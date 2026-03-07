@@ -1,0 +1,17 @@
+{
+  "name": "tolty",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @tolty/api dev",
+    "dev:web": "pnpm --filter @tolty/web dev",
+    "dev:all": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @tolty/api db:generate",
+    "db:migrate": "pnpm --filter @tolty/api db:migrate",
+    "db:seed": "pnpm --filter @tolty/api db:seed",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
