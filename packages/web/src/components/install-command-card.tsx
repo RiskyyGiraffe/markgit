@@ -5,7 +5,7 @@ import { Check, Copy, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const installCommand =
-  "git clone https://github.com/RiskyyGiraffe/agentmarket.git markgit && cd markgit && pnpm install && pnpm dev:all";
+  "git clone https://github.com/RiskyyGiraffe/markgit.git markgit && cd markgit && pnpm install && pnpm dev:all";
 
 export function InstallCommandCard() {
   const [copied, setCopied] = useState(false);
