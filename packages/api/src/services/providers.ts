@@ -1,13 +1,18 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { providers } from '../db/schema.js';
-import { NotFoundError } from '../lib/errors.js';
+import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 export async function registerProvider(userId: string, data: {
   name: string;
   description?: string;
   websiteUrl?: string;
 }) {
+  const existing = await getProviderByUserId(userId);
+  if (existing) {
+    throw new ConflictError('User is already registered as a provider');
+  }
+
   const [provider] = await db
     .insert(providers)
     .values({

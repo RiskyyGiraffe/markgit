@@ -12,6 +12,7 @@ import type {
   SearchResponse,
   Product,
   CreateProductRequest,
+  ProviderProductListResponse,
   CreateQuoteRequest,
   Quote,
   CreatePurchaseRequest,
@@ -106,6 +107,22 @@ export class ToltyClient {
     return this.request('POST', '/v1/products', request);
   }
 
+  async listMyProducts(limit?: number, offset?: number): Promise<ProviderProductListResponse> {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (offset) params.set('offset', String(offset));
+    const qs = params.toString();
+    return this.request('GET', `/v1/products/mine${qs ? `?${qs}` : ''}`);
+  }
+
+  async submitProduct(id: string): Promise<Product> {
+    return this.request('POST', `/v1/products/${id}/submit`);
+  }
+
+  async publishProduct(id: string): Promise<Product> {
+    return this.request('POST', `/v1/products/${id}/publish`);
+  }
+
   // ── Quotes ──────────────────────────────────────────────────────────
 
   async createQuote(request: CreateQuoteRequest): Promise<Quote> {
@@ -148,6 +165,10 @@ export class ToltyClient {
 
   async registerProvider(request: RegisterProviderRequest): Promise<Provider> {
     return this.request('POST', '/v1/providers', request);
+  }
+
+  async getProvider(): Promise<Provider> {
+    return this.request('GET', '/v1/providers');
   }
 
   // ── Stripe Connect ─────────────────────────────────────────────────

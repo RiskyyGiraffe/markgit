@@ -21,8 +21,8 @@ export async function createCheckoutSession(
           currency: 'usd',
           unit_amount: Math.round(amountUsd * 100), // cents
           product_data: {
-            name: 'Tolty Wallet Funding',
-            description: `Add $${amountUsd.toFixed(2)} to your Tolty wallet`,
+            name: 'markgit Wallet Funding',
+            description: `Add $${amountUsd.toFixed(2)} to your markgit wallet`,
           },
         },
         quantity: 1,

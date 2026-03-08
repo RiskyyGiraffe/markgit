@@ -2,6 +2,7 @@ import { eq, and, sql, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { wallets, walletLedgerEntries, holds } from '../db/schema.js';
 import { NotFoundError, InsufficientFundsError } from '../lib/errors.js';
+import { ensureHoldIsActive } from '../lib/marketplace-guards.js';
 
 export async function getLedgerEntries(walletId: string, limit = 50, offset = 0) {
   const entries = await db
@@ -123,6 +124,7 @@ export async function captureHold(holdId: string) {
     .limit(1);
 
   if (!hold) throw new NotFoundError('Hold');
+  ensureHoldIsActive(hold.status);
 
   await db
     .update(holds)
@@ -151,6 +153,7 @@ export async function releaseHold(holdId: string) {
     .limit(1);
 
   if (!hold) throw new NotFoundError('Hold');
+  ensureHoldIsActive(hold.status);
 
   await db
     .update(holds)

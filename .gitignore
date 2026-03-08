@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .next/
+.next.stale-*/
 .env
 .env.local
 *.log
@@ -9,3 +10,4 @@ drizzle/
 ngrok.exe
 .claude/
 .agents/
+.vercel

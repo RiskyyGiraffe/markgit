@@ -1,9 +1,20 @@
 import { Hono } from 'hono';
-import { registerProvider } from '../services/providers.js';
-import { ValidationError } from '../lib/errors.js';
+import { getProviderByUserId, registerProvider } from '../services/providers.js';
+import { NotFoundError, ValidationError } from '../lib/errors.js';
 import type { AuthContext } from '../middleware/auth.js';
 
 const providers = new Hono<{ Variables: { auth: AuthContext } }>();
+
+providers.get('/', async (c) => {
+  const { auth: ctx } = c.var;
+  const provider = await getProviderByUserId(ctx.userId);
+
+  if (!provider) {
+    throw new NotFoundError('Provider');
+  }
+
+  return c.json(provider);
+});
 
 providers.post('/', async (c) => {
   const { auth: ctx } = c.var;

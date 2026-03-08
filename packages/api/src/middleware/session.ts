@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { sessions } from '../db/schema.js';
 import type { AuthContext } from './auth.js';
+import { canReuseSession } from '../lib/marketplace-guards.js';
 
 export const sessionMiddleware = createMiddleware<{
   Variables: { auth: AuthContext; sessionId: string };
@@ -15,12 +16,19 @@ export const sessionMiddleware = createMiddleware<{
   if (existingSessionId) {
     // Verify session exists and belongs to this user
     const [existing] = await db
-      .select({ id: sessions.id })
+      .select({
+        id: sessions.id,
+        userId: sessions.userId,
+        apiKeyId: sessions.apiKeyId,
+      })
       .from(sessions)
       .where(eq(sessions.id, existingSessionId))
       .limit(1);
 
-    if (existing) {
+    if (
+      existing &&
+      canReuseSession(existing.userId, existing.apiKeyId, auth.userId, auth.apiKeyId)
+    ) {
       sessionId = existing.id;
       // Update last activity (fire-and-forget)
       db.update(sessions)

@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { executions, purchases, products } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
@@ -29,19 +29,31 @@ export async function listExecutions(userId: string, limit = 50, offset = 0) {
   return { results, total: results.length };
 }
 
-export async function getExecution(id: string) {
+export async function getExecution(userId: string, id: string) {
   const [execution] = await db
-    .select()
+    .select({
+      id: executions.id,
+      purchaseId: executions.purchaseId,
+      productId: executions.productId,
+      status: executions.status,
+      input: executions.input,
+      output: executions.output,
+      errorMessage: executions.errorMessage,
+      startedAt: executions.startedAt,
+      completedAt: executions.completedAt,
+      createdAt: executions.createdAt,
+    })
     .from(executions)
-    .where(eq(executions.id, id))
+    .innerJoin(purchases, eq(executions.purchaseId, purchases.id))
+    .where(and(eq(executions.id, id), eq(purchases.userId, userId)))
     .limit(1);
 
   if (!execution) throw new NotFoundError('Execution');
   return execution;
 }
 
-export async function getExecutionResult(id: string) {
-  const execution = await getExecution(id);
+export async function getExecutionResult(userId: string, id: string) {
+  const execution = await getExecution(userId, id);
 
   if (execution.status === 'pending' || execution.status === 'running') {
     return { status: execution.status, output: null };

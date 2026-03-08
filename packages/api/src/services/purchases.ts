@@ -1,9 +1,22 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { quotes, purchases, executions, products, providerEarnings } from '../db/schema.js';
-import { NotFoundError, ValidationError } from '../lib/errors.js';
+import {
+  quotes,
+  purchases,
+  executions,
+  products,
+  providerEarnings,
+  wallets,
+  apiKeys,
+} from '../db/schema.js';
+import { ForbiddenError, NotFoundError, ValidationError } from '../lib/errors.js';
 import { createHold, captureHold, releaseHold } from './wallet.js';
 import { runExecution } from './execution-engine.js';
+import {
+  addUsd,
+  ensureBudgetWithinLimit,
+  ensureResourceOwnership,
+} from '../lib/marketplace-guards.js';
 
 const TOLTY_FEE_RATE = 0.10; // 10%
 const QUOTE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -30,6 +43,15 @@ export async function listPurchases(userId: string, limit = 50, offset = 0) {
 }
 
 export async function createQuote(userId: string, productId: string, walletId: string) {
+  const [wallet] = await db
+    .select({ userId: wallets.userId })
+    .from(wallets)
+    .where(eq(wallets.id, walletId))
+    .limit(1);
+
+  if (!wallet) throw new NotFoundError('Wallet');
+  ensureResourceOwnership('Wallet', wallet.userId, userId);
+
   const [product] = await db
     .select()
     .from(products)
@@ -37,6 +59,9 @@ export async function createQuote(userId: string, productId: string, walletId: s
     .limit(1);
 
   if (!product) throw new NotFoundError('Product');
+  if (product.status !== 'active') {
+    throw new ValidationError('Product is not active');
+  }
 
   const price = parseFloat(product.pricePerCallUsd);
   const fee = parseFloat((price * TOLTY_FEE_RATE).toFixed(4));
@@ -60,7 +85,7 @@ export async function createQuote(userId: string, productId: string, walletId: s
 
 export async function createPurchase(
   userId: string,
-  data: { productId: string; quoteId: string; input?: Record<string, unknown> },
+  data: { productId: string; quoteId: string; input?: Record<string, unknown>; apiKeyId: string },
 ) {
   const input = data.input ?? {};
 
@@ -71,6 +96,7 @@ export async function createPurchase(
     .limit(1);
 
   if (!quote) throw new NotFoundError('Quote');
+  ensureResourceOwnership('Quote', quote.userId, userId);
 
   if (quote.status !== 'active') {
     throw new ValidationError('Quote is no longer active');
@@ -96,6 +122,32 @@ export async function createPurchase(
   if (product.status !== 'active') {
     throw new ValidationError('Product is not active');
   }
+
+  const [wallet] = await db
+    .select({ userId: wallets.userId })
+    .from(wallets)
+    .where(eq(wallets.id, quote.walletId))
+    .limit(1);
+
+  if (!wallet) throw new NotFoundError('Wallet');
+  ensureResourceOwnership('Wallet', wallet.userId, userId);
+
+  const [apiKey] = await db
+    .select({
+      budgetLimitUsd: apiKeys.budgetLimitUsd,
+      budgetUsedUsd: apiKeys.budgetUsedUsd,
+      userId: apiKeys.userId,
+    })
+    .from(apiKeys)
+    .where(eq(apiKeys.id, data.apiKeyId))
+    .limit(1);
+
+  if (!apiKey) throw new NotFoundError('API key');
+  if (apiKey.userId !== userId) {
+    throw new ForbiddenError('API key does not belong to the authenticated user');
+  }
+
+  ensureBudgetWithinLimit(apiKey.budgetLimitUsd, apiKey.budgetUsedUsd, quote.totalUsd);
 
   // Create hold on wallet
   const hold = await createHold(quote.walletId, quote.totalUsd, '00000000-0000-0000-0000-000000000000');
@@ -144,6 +196,13 @@ export async function createPurchase(
     // Capture the hold (debit wallet)
     await captureHold(hold.id);
 
+    await db
+      .update(apiKeys)
+      .set({
+        budgetUsedUsd: addUsd(apiKey.budgetUsedUsd, quote.totalUsd),
+      })
+      .where(and(eq(apiKeys.id, data.apiKeyId), eq(apiKeys.userId, userId)));
+
     // Mark purchase as completed
     await db
       .update(purchases)
@@ -175,7 +234,11 @@ export async function createPurchase(
   }
 
   return {
-    purchase: { ...purchase, status: result.success ? 'completed' : 'failed' },
+    purchase: {
+      ...purchase,
+      executionId: execution.id,
+      status: result.success ? 'completed' : 'failed',
+    },
     executionId: execution.id,
     execution: {
       status: result.success ? 'completed' : 'failed',

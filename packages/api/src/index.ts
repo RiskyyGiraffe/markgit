@@ -56,7 +56,7 @@ app.onError((err, c) => {
 });
 
 const port = parseInt(process.env.PORT ?? '3000', 10);
-console.log(`Tolty API starting on port ${port}`);
+console.log(`markgit API starting on port ${port}`);
 
 serve({ fetch: app.fetch, port });
 

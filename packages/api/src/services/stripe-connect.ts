@@ -18,10 +18,22 @@ export async function createConnectAccount(providerId: string) {
     return { accountId: provider.stripeAccountId };
   }
 
-  const account = await stripe.accounts.create({
-    type: 'express',
-    metadata: { providerId },
-  });
+  let account: Stripe.Account;
+  try {
+    account = await stripe.accounts.create({
+      type: 'express',
+      metadata: { providerId },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("signed up for Connect")) {
+      throw new ValidationError(
+        'Stripe Connect is not enabled on this Stripe account. Enable Connect in the Stripe dashboard first.',
+      );
+    }
+
+    throw err;
+  }
 
   await db
     .update(providers)

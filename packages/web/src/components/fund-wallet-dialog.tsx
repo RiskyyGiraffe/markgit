@@ -28,8 +28,12 @@ export function FundWalletDialog() {
 
     setLoading(true);
     try {
-      const successUrl = `${window.location.origin}/wallet?payment=success`;
-      const cancelUrl = `${window.location.origin}/wallet?payment=cancelled`;
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin).replace(
+        /\/$/,
+        "",
+      );
+      const successUrl = `${appUrl}/wallet?payment=success`;
+      const cancelUrl = `${appUrl}/wallet?payment=cancelled`;
       const { checkoutUrl } = await createCheckoutSession(
         parseFloat(amount),
         successUrl,

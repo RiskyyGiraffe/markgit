@@ -12,8 +12,12 @@ export function StripeConnectButton() {
   const handleConnect = async () => {
     setLoading(true);
     try {
-      const refreshUrl = `${window.location.origin}/provider`;
-      const returnUrl = `${window.location.origin}/provider?onboarding=complete`;
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin).replace(
+        /\/$/,
+        "",
+      );
+      const refreshUrl = `${appUrl}/provider`;
+      const returnUrl = `${appUrl}/provider?onboarding=complete`;
       const { url } = await connectStripeAccount(refreshUrl, returnUrl);
       window.location.href = url;
     } catch (err) {

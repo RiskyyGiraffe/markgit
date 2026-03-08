@@ -28,6 +28,7 @@ purchases.post('/', async (c) => {
     productId: body.productId,
     quoteId: body.quoteId,
     input: body.input ?? {},
+    apiKeyId: ctx.apiKeyId,
   });
   return c.json(result, 201);
 });

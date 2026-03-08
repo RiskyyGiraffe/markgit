@@ -13,12 +13,14 @@ executions.get('/', async (c) => {
 });
 
 executions.get('/:id', async (c) => {
-  const execution = await getExecution(c.req.param('id'));
+  const { auth: ctx } = c.var;
+  const execution = await getExecution(ctx.userId, c.req.param('id'));
   return c.json(execution);
 });
 
 executions.get('/:id/result', async (c) => {
-  const result = await getExecutionResult(c.req.param('id'));
+  const { auth: ctx } = c.var;
+  const result = await getExecutionResult(ctx.userId, c.req.param('id'));
   return c.json(result);
 });
 

@@ -22,9 +22,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Tolty Marketplace</CardTitle>
+          <CardTitle className="text-2xl font-bold">markgit</CardTitle>
           <CardDescription>
-            Sign in to browse APIs, execute calls, and manage your wallet
+            Sign in to browse APIs, execute calls, and manage your markgit wallet
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getOrCreateWallet, getWalletBalance, fundWallet, getLedgerEntries } from '../services/wallet.js';
 import { createCheckoutSession } from '../services/stripe-checkout.js';
-import { ValidationError } from '../lib/errors.js';
+import { ForbiddenError, ValidationError } from '../lib/errors.js';
 import type { AuthContext } from '../middleware/auth.js';
 
 const wallet = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -23,6 +23,10 @@ wallet.get('/ledger', async (c) => {
 });
 
 wallet.post('/fund', async (c) => {
+  if (process.env.ALLOW_DIRECT_WALLET_FUNDING !== 'true') {
+    throw new ForbiddenError('Direct wallet funding is disabled; use Stripe Checkout');
+  }
+
   const { auth: ctx } = c.var;
   const body = await c.req.json<{ amountUsd: string; description?: string }>();
 

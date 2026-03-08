@@ -8,7 +8,7 @@ import { generateApiKey } from "@tolty/api/lib/crypto";
 const WEB_SESSION_LABEL = "__web_session__";
 
 /**
- * Find-or-create a Tolty user by email, provision a fresh API key,
+ * Find-or-create a markgit user by email, provision a fresh API key,
  * and return the raw key so the caller (a Route Handler) can set the cookie.
  */
 export async function ensureToltyUserAndKey(

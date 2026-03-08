@@ -127,6 +127,11 @@ export interface CreateProductRequest {
   tags?: string[];
 }
 
+export interface ProviderProductListResponse {
+  results: Product[];
+  total: number;
+}
+
 // ── Quotes ──────────────────────────────────────────────────────────────
 
 export interface CreateQuoteRequest {

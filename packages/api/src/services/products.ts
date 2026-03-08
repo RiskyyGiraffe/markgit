@@ -35,6 +35,18 @@ export async function getProduct(id: string) {
   return product;
 }
 
+export async function listProviderProducts(providerId: string, limit = 50, offset = 0) {
+  const results = await db
+    .select()
+    .from(products)
+    .where(eq(products.providerId, providerId))
+    .orderBy(desc(products.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  return { results, total: results.length };
+}
+
 export async function createProduct(data: {
   providerId: string;
   name: string;

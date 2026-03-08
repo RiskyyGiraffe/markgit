@@ -1,9 +1,14 @@
 import {
+  getProviderProfile,
   getStripeStatus,
   getEarningsSummary,
   listEarnings,
+  listMyProducts,
   listPayouts,
 } from "@/actions/provider";
+import { ProviderProductForm } from "@/components/provider-product-form";
+import { ProviderProductsTable } from "@/components/provider-products-table";
+import { ProviderRegistrationForm } from "@/components/provider-registration-form";
 import { StripeConnectButton } from "@/components/stripe-connect-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +28,13 @@ import {
 } from "@/components/ui/table";
 
 export default async function ProviderPage() {
+  let provider: {
+    id: string;
+    name: string;
+    description: string | null;
+    websiteUrl: string | null;
+    trustTier: string;
+  };
   let stripeStatus: { accountId: string | null; status: string };
   let earnings: {
     totalGross: string;
@@ -52,13 +64,25 @@ export default async function ProviderPage() {
       createdAt: string;
     }>;
   };
+  let products: {
+    results: Array<{
+      id: string;
+      name: string;
+      slug: string;
+      status: string;
+      pricePerCallUsd: string;
+      updatedAt: string;
+    }>;
+  };
 
   try {
-    [stripeStatus, earnings, earningsLog, payoutHistory] = await Promise.all([
+    provider = await getProviderProfile();
+    [stripeStatus, earnings, earningsLog, payoutHistory, products] = await Promise.all([
       getStripeStatus(),
       getEarningsSummary(),
       listEarnings(),
       listPayouts(),
+      listMyProducts(),
     ]);
   } catch {
     return (
@@ -66,9 +90,10 @@ export default async function ProviderPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Provider</h1>
           <p className="text-muted-foreground">
-            You need to be registered as a provider to access this page.
+            Register your provider profile to publish APIs and receive payouts.
           </p>
         </div>
+        <ProviderRegistrationForm />
       </div>
     );
   }
@@ -80,9 +105,25 @@ export default async function ProviderPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Provider</h1>
         <p className="text-muted-foreground">
-          Earnings, API call history, and payouts
+          Manage your provider profile, publish APIs, and track earnings
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{provider.name}</CardTitle>
+          <CardDescription>
+            {provider.description || provider.websiteUrl || "Provider profile"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <span>Trust tier: {provider.trustTier}</span>
+          {provider.websiteUrl && <span>{provider.websiteUrl}</span>}
+        </CardContent>
+      </Card>
+
+      <ProviderProductForm />
+      <ProviderProductsTable products={products.results} />
 
       {/* Stripe Status */}
       <Card>
@@ -142,7 +183,7 @@ export default async function ProviderPage() {
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Paid out daily at midnight UTC
+              Processed by the automatic payout sweep when earnings are eligible
             </p>
           </CardContent>
         </Card>
@@ -214,7 +255,7 @@ export default async function ProviderPage() {
       <Card>
         <CardHeader>
           <CardTitle>Payout History</CardTitle>
-          <CardDescription>Daily automatic payouts to your Stripe account</CardDescription>
+          <CardDescription>Automatic payouts to your Stripe account</CardDescription>
         </CardHeader>
         <CardContent>
           {payoutHistory.results.length === 0 ? (

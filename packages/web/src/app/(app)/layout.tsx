@@ -21,7 +21,7 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  // If the Tolty API key cookie is missing, redirect to the provision
+  // If the markgit API key cookie is missing, redirect to the provision
   // route handler which can set the cookie and redirect back.
   const cookieStore = await cookies();
   if (!cookieStore.get("tolty-api-key")) {
@@ -31,9 +31,11 @@ export default async function AppLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={session.user} />
-      <SidebarInset>
+      <SidebarInset className="bg-[radial-gradient(circle_at_top,rgba(0,0,0,0.035),transparent_26%),linear-gradient(180deg,#f7f7f3_0%,#f1f1ec_100%)]">
         <AppTopbar user={session.user} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
