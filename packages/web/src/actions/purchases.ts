@@ -30,3 +30,21 @@ export async function listExecutions() {
   const client = await getToltyClient();
   return client.listExecutions();
 }
+
+export async function saveBuyerCredential(
+  productId: string,
+  input: {
+    authType: "bearer" | "api_key" | "basic";
+    location: "header" | "query" | "body";
+    name: string;
+    value: string;
+  }
+) {
+  const client = await getToltyClient();
+  return client.setSelfCredential(productId, input);
+}
+
+export async function deleteBuyerCredential(productId: string) {
+  const client = await getToltyClient();
+  return client.deleteSelfCredential(productId);
+}

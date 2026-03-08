@@ -7,6 +7,8 @@ dist/
 *.log
 .DS_Store
 drizzle/
+!packages/api/drizzle/
+!packages/api/drizzle/**
 ngrok.exe
 .claude/
 .agents/

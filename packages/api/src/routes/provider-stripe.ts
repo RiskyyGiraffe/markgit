@@ -8,6 +8,7 @@ import {
   getEarningsSummary,
   listEarnings,
   listPayouts,
+  syncStripeStatus,
 } from '../services/stripe-connect.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import type { AuthContext } from '../middleware/auth.js';
@@ -43,6 +44,13 @@ providerStripe.get('/stripe/status', async (c) => {
   const { auth: ctx } = c.var;
   const provider = await requireProvider(ctx.userId);
   const status = await getStripeStatus(provider.id);
+  return c.json(status);
+});
+
+providerStripe.post('/stripe/sync', async (c) => {
+  const { auth: ctx } = c.var;
+  const provider = await requireProvider(ctx.userId);
+  const status = await syncStripeStatus(provider.id);
   return c.json(status);
 });
 

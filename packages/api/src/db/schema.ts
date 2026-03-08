@@ -73,6 +73,38 @@ export const payoutStatusEnum = pgEnum('payout_status', [
   'failed',
 ]);
 
+export const importSourceTypeEnum = pgEnum('import_source_type', [
+  'openapi_json',
+  'openapi_yaml',
+  'postman_collection',
+  'html_docs',
+  'unknown',
+]);
+
+export const importRunStatusEnum = pgEnum('import_run_status', [
+  'created',
+  'fetching',
+  'parsed',
+  'review_ready',
+  'test_ready',
+  'test_passed',
+  'test_failed',
+  'published',
+]);
+
+export const credentialAuthTypeEnum = pgEnum('credential_auth_type', [
+  'none',
+  'bearer',
+  'api_key',
+  'basic',
+]);
+
+export const credentialLocationEnum = pgEnum('credential_location', [
+  'header',
+  'query',
+  'body',
+]);
+
 export const quoteStatusEnum = pgEnum('quote_status', [
   'active',
   'expired',
@@ -145,6 +177,47 @@ export const products = pgTable('products', {
   executionConfig: jsonb('execution_config').$type<Record<string, unknown>>(),
   pricePerCallUsd: numeric('price_per_call_usd', { precision: 19, scale: 4 }).notNull(),
   tags: jsonb('tags').$type<string[]>().default([]).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const providerImportRuns = pgTable('provider_import_runs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  providerId: uuid('provider_id').notNull().references(() => providers.id),
+  docsUrl: varchar('docs_url', { length: 2048 }).notNull(),
+  baseUrl: varchar('base_url', { length: 2048 }).notNull(),
+  sourceType: importSourceTypeEnum('source_type').default('unknown').notNull(),
+  status: importRunStatusEnum('status').default('created').notNull(),
+  confidence: numeric('confidence', { precision: 5, scale: 4 }).default('0').notNull(),
+  warnings: jsonb('warnings').$type<string[]>().default([]).notNull(),
+  errors: jsonb('errors').$type<string[]>().default([]).notNull(),
+  generatedDraft: jsonb('generated_draft').$type<Record<string, unknown>>(),
+  lastTestRequest: jsonb('last_test_request').$type<Record<string, unknown> | null>(),
+  lastTestResponse: jsonb('last_test_response').$type<Record<string, unknown> | null>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const providerCredentials = pgTable('provider_credentials', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  providerId: uuid('provider_id').notNull().references(() => providers.id),
+  productId: uuid('product_id').references(() => products.id),
+  authType: credentialAuthTypeEnum('auth_type').notNull(),
+  location: credentialLocationEnum('location').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  secretCiphertext: text('secret_ciphertext').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const userProductCredentials = pgTable('user_product_credentials', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  authType: credentialAuthTypeEnum('auth_type').notNull(),
+  location: credentialLocationEnum('location').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  secretCiphertext: text('secret_ciphertext').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -241,6 +314,10 @@ export const payouts = pgTable('payouts', {
   txHash: varchar('tx_hash', { length: 255 }),
   walletAddress: varchar('wallet_address', { length: 255 }),
   stripeTransferId: varchar('stripe_transfer_id', { length: 255 }),
+  failureCode: varchar('failure_code', { length: 255 }),
+  failureMessage: text('failure_message'),
+  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  retryCount: integer('retry_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

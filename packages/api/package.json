@@ -11,8 +11,8 @@
     "dev": "tsx watch --env-file=../../.env src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:generate": "node --env-file=../../.env node_modules/.bin/drizzle-kit generate",
-    "db:migrate": "node --env-file=../../.env node_modules/.bin/drizzle-kit migrate",
+    "db:generate": "node --env-file=../../.env ./node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "node --env-file=../../.env ./node_modules/drizzle-kit/bin.cjs migrate",
     "db:seed": "tsx --env-file=../../.env src/db/seed.ts",
     "test": "vitest run"
   },
@@ -21,7 +21,8 @@
     "drizzle-orm": "^0.41.0",
     "hono": "^4.6.0",
     "postgres": "^3.4.0",
-    "stripe": "^20.4.0"
+    "stripe": "^20.4.0",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

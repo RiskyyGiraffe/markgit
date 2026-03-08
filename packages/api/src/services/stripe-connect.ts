@@ -1,4 +1,4 @@
-import { eq, and, sql, isNull, isNotNull, lte, desc, ne } from 'drizzle-orm';
+import { eq, and, sql, isNull, isNotNull, lte, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { providers, providerEarnings, payouts, products, purchases } from '../db/schema.js';
 import { stripe } from '../lib/stripe.js';
@@ -105,6 +105,60 @@ export async function handleAccountUpdated(account: Stripe.Account) {
     .where(eq(providers.stripeAccountId, stripeAccountId));
 }
 
+export async function syncStripeStatus(providerId: string) {
+  const [provider] = await db
+    .select()
+    .from(providers)
+    .where(eq(providers.id, providerId))
+    .limit(1);
+
+  if (!provider) throw new NotFoundError('Provider');
+  if (!provider.stripeAccountId) {
+    return {
+      accountId: null,
+      status: provider.stripeAccountStatus ?? 'none',
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+      currentlyDue: [] as string[],
+      platformAvailableUsd: '0.0000',
+      platformPendingUsd: '0.0000',
+    };
+  }
+
+  const [account, balance] = await Promise.all([
+    stripe.accounts.retrieve(provider.stripeAccountId),
+    stripe.balance.retrieve(),
+  ]);
+
+  await handleAccountUpdated(account);
+
+  const status =
+    account.charges_enabled && account.payouts_enabled
+      ? 'active'
+      : account.requirements?.disabled_reason
+        ? 'restricted'
+        : 'pending';
+
+  const availableUsd = (
+    (balance.available ?? []).find((entry) => entry.currency === 'usd')?.amount ?? 0
+  ) / 100;
+  const pendingUsd = (
+    (balance.pending ?? []).find((entry) => entry.currency === 'usd')?.amount ?? 0
+  ) / 100;
+
+  return {
+    accountId: provider.stripeAccountId,
+    status,
+    chargesEnabled: account.charges_enabled,
+    payoutsEnabled: account.payouts_enabled,
+    detailsSubmitted: account.details_submitted,
+    currentlyDue: account.requirements?.currently_due ?? [],
+    platformAvailableUsd: availableUsd.toFixed(4),
+    platformPendingUsd: pendingUsd.toFixed(4),
+  };
+}
+
 export async function getStripeStatus(providerId: string) {
   const [provider] = await db
     .select({
@@ -120,6 +174,12 @@ export async function getStripeStatus(providerId: string) {
   return {
     accountId: provider.stripeAccountId,
     status: provider.stripeAccountStatus ?? 'none',
+    chargesEnabled: provider.stripeAccountStatus === 'active',
+    payoutsEnabled: provider.stripeAccountStatus === 'active',
+    detailsSubmitted: provider.stripeAccountStatus === 'active',
+    currentlyDue: [],
+    platformAvailableUsd: '0.0000',
+    platformPendingUsd: '0.0000',
   };
 }
 
@@ -162,14 +222,11 @@ export async function getUnpaidEarnings(providerId: string) {
 }
 
 export async function createPayout(providerId: string) {
-  const [provider] = await db
-    .select()
-    .from(providers)
-    .where(eq(providers.id, providerId))
-    .limit(1);
+  const synced = await syncStripeStatus(providerId);
+  const [provider] = await db.select().from(providers).where(eq(providers.id, providerId)).limit(1);
 
   if (!provider) throw new NotFoundError('Provider');
-  if (!provider.stripeAccountId || provider.stripeAccountStatus !== 'active') {
+  if (!provider.stripeAccountId || synced.status !== 'active') {
     throw new ValidationError('Stripe account is not active');
   }
 
@@ -185,6 +242,8 @@ export async function createPayout(providerId: string) {
       providerId,
       amountUsd: unpaidAmount.toFixed(4),
       status: 'processing',
+      lastAttemptAt: new Date(),
+      retryCount: 0,
     })
     .returning();
 
@@ -203,6 +262,9 @@ export async function createPayout(providerId: string) {
       .set({
         stripeTransferId: transfer.id,
         status: 'completed',
+        failureCode: null,
+        failureMessage: null,
+        lastAttemptAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(payouts.id, payout.id));
@@ -221,10 +283,19 @@ export async function createPayout(providerId: string) {
 
     return { ...payout, status: 'completed', stripeTransferId: transfer.id };
   } catch (err) {
+    const failureCode = err && typeof err === 'object' && 'code' in err ? String(err.code) : null;
+    const failureMessage = err instanceof Error ? err.message : String(err);
     // Mark payout as failed
     await db
       .update(payouts)
-      .set({ status: 'failed', updatedAt: new Date() })
+      .set({
+        status: 'failed',
+        failureCode,
+        failureMessage,
+        lastAttemptAt: new Date(),
+        retryCount: payout.retryCount + 1,
+        updatedAt: new Date(),
+      })
       .where(eq(payouts.id, payout.id));
     throw err;
   }

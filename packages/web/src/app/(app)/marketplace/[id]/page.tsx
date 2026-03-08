@@ -59,6 +59,8 @@ export default async function ProductDetailPage({
             <ProductExecuteForm
               productId={product.id}
               inputSchema={product.inputSchema as Record<string, unknown> | null}
+              executionConfig={product.executionConfig as Record<string, unknown> | null}
+              buyerCredentialConfigured={product.buyerCredentialConfigured}
             />
           </CardContent>
         </Card>

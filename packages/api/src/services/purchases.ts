@@ -12,6 +12,7 @@ import {
 import { ForbiddenError, NotFoundError, ValidationError } from '../lib/errors.js';
 import { createHold, captureHold, releaseHold } from './wallet.js';
 import { runExecution } from './execution-engine.js';
+import { hasBuyerCredential } from './credentials.js';
 import {
   addUsd,
   ensureBudgetWithinLimit,
@@ -61,6 +62,15 @@ export async function createQuote(userId: string, productId: string, walletId: s
   if (!product) throw new NotFoundError('Product');
   if (product.status !== 'active') {
     throw new ValidationError('Product is not active');
+  }
+
+  const authMode = ((product.executionConfig as { auth?: { mode?: string } } | null)?.auth?.mode ??
+    'none') as string;
+  if (authMode === 'buyer_supplied') {
+    const credentialExists = await hasBuyerCredential(userId, product.id);
+    if (!credentialExists) {
+      throw new ValidationError('This product requires a saved buyer credential before quoting');
+    }
   }
 
   const price = parseFloat(product.pricePerCallUsd);
@@ -190,7 +200,7 @@ export async function createPurchase(
     .where(eq(quotes.id, quote.id));
 
   // Run execution synchronously
-  const result = await runExecution(execution.id, data.productId, input);
+  const result = await runExecution(execution.id, data.productId, userId, input);
 
   if (result.success) {
     // Capture the hold (debit wallet)

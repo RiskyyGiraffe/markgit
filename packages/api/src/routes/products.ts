@@ -13,6 +13,7 @@ import {
   ensureProductCanPublish,
   ensureProductCanSubmitForReview,
 } from '../lib/product-workflow.js';
+import { hasBuyerCredential, upsertProviderCredential, upsertUserCredential, deleteUserCredential } from '../services/credentials.js';
 
 const products = new Hono<{ Variables: { auth: AuthContext } }>();
 
@@ -42,8 +43,16 @@ products.get('/mine', async (c) => {
 });
 
 products.get('/:id', async (c) => {
+  const { auth: ctx } = c.var;
   const product = await getProduct(c.req.param('id'));
-  return c.json(product);
+  const authMode = ((product.executionConfig as { auth?: { mode?: string } } | null)?.auth?.mode ??
+    'none') as string;
+  const buyerCredentialConfigured =
+    authMode === 'buyer_supplied' ? await hasBuyerCredential(ctx.userId, product.id) : false;
+  return c.json({
+    ...product,
+    buyerCredentialConfigured,
+  });
 });
 
 products.post('/', async (c) => {
@@ -100,6 +109,63 @@ products.post('/:id/publish', async (c) => {
   ensureProductCanPublish(product.status);
   const updated = await updateProductStatus(product.id, 'active');
   return c.json(updated);
+});
+
+products.post('/:id/credentials/provider', async (c) => {
+  const { auth: ctx } = c.var;
+  const body = await c.req.json<{
+    authType: 'bearer' | 'api_key' | 'basic';
+    location: 'header' | 'query' | 'body';
+    name: string;
+    value: string;
+  }>();
+
+  if (!body.authType || !body.location || !body.name || !body.value) {
+    throw new ValidationError('authType, location, name, and value are required');
+  }
+
+  const credential = await upsertProviderCredential(ctx.userId, c.req.param('id'), body);
+  return c.json({ id: credential.id }, 201);
+});
+
+products.put('/:id/credentials/provider', async (c) => {
+  const { auth: ctx } = c.var;
+  const body = await c.req.json<{
+    authType: 'bearer' | 'api_key' | 'basic';
+    location: 'header' | 'query' | 'body';
+    name: string;
+    value: string;
+  }>();
+
+  if (!body.authType || !body.location || !body.name || !body.value) {
+    throw new ValidationError('authType, location, name, and value are required');
+  }
+
+  const credential = await upsertProviderCredential(ctx.userId, c.req.param('id'), body);
+  return c.json({ id: credential.id });
+});
+
+products.put('/:id/credentials/self', async (c) => {
+  const { auth: ctx } = c.var;
+  const body = await c.req.json<{
+    authType: 'bearer' | 'api_key' | 'basic';
+    location: 'header' | 'query' | 'body';
+    name: string;
+    value: string;
+  }>();
+
+  if (!body.authType || !body.location || !body.name || !body.value) {
+    throw new ValidationError('authType, location, name, and value are required');
+  }
+
+  const credential = await upsertUserCredential(ctx.userId, c.req.param('id'), body);
+  return c.json({ id: credential.id });
+});
+
+products.delete('/:id/credentials/self', async (c) => {
+  const { auth: ctx } = c.var;
+  await deleteUserCredential(ctx.userId, c.req.param('id'));
+  return c.body(null, 204);
 });
 
 export { products as productRoutes };

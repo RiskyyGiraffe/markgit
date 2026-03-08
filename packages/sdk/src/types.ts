@@ -111,6 +111,7 @@ export interface Product {
   executionConfig: Record<string, unknown> | null;
   pricePerCallUsd: string;
   tags: string[];
+  buyerCredentialConfigured?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -283,6 +284,12 @@ export interface ConnectAccountResponse {
 export interface StripeStatusResponse {
   accountId: string | null;
   status: string;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  currentlyDue: string[];
+  platformAvailableUsd: string;
+  platformPendingUsd: string;
 }
 
 export interface StripeDashboardLinkResponse {
@@ -303,6 +310,10 @@ export interface Payout {
   amountUsd: string;
   status: string;
   stripeTransferId: string | null;
+  failureCode?: string | null;
+  failureMessage?: string | null;
+  lastAttemptAt?: string | null;
+  retryCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -327,4 +338,87 @@ export interface EarningEntry {
 export interface EarningListResponse {
   results: EarningEntry[];
   total: number;
+}
+
+export interface ProviderImportRun {
+  id: string;
+  providerId: string;
+  docsUrl: string;
+  baseUrl: string;
+  sourceType: string;
+  status: string;
+  confidence: string;
+  warnings: string[];
+  errors: string[];
+  generatedDraft: Record<string, unknown> | null;
+  lastTestRequest: Record<string, unknown> | null;
+  lastTestResponse: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProviderImportListResponse {
+  results: ProviderImportRun[];
+  total: number;
+}
+
+export interface CreateProviderImportRequest {
+  docsUrl: string;
+  baseUrl: string;
+  authMode: 'none' | 'provider_managed' | 'buyer_supplied';
+}
+
+export interface ReviewProviderImportRequest {
+  name?: string;
+  slug?: string;
+  description?: string;
+  category?: string;
+  pricePerCallUsd?: string;
+  tags?: string[];
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+  executionConfig?: Record<string, unknown>;
+}
+
+export interface TestProviderImportRequest {
+  input?: Record<string, unknown>;
+  credential?: {
+    value: string;
+    authType: 'bearer' | 'api_key' | 'basic';
+    location: 'header' | 'query' | 'body';
+    name: string;
+    scheme?: string;
+  };
+}
+
+export interface PublishProviderImportRequest {
+  draft?: ReviewProviderImportRequest;
+  providerCredential?: {
+    value: string;
+    authType: 'bearer' | 'api_key' | 'basic';
+    location: 'header' | 'query' | 'body';
+    name: string;
+    scheme?: string;
+  };
+}
+
+export interface ImportTestResponse {
+  run: ProviderImportRun;
+  result: {
+    success: boolean;
+    output: Record<string, unknown> | null;
+    errorMessage: string | null;
+  };
+}
+
+export interface PublishProviderImportResponse {
+  run: ProviderImportRun;
+  product: Product;
+}
+
+export interface CredentialRequest {
+  authType: 'bearer' | 'api_key' | 'basic';
+  location: 'header' | 'query' | 'body';
+  name: string;
+  value: string;
 }

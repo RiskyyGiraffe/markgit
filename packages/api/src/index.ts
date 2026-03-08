@@ -10,6 +10,7 @@ import { purchaseRoutes, quoteRoutes } from './routes/purchases.js';
 import { executionRoutes } from './routes/executions.js';
 import { providerRoutes } from './routes/providers.js';
 import { providerStripeRoutes } from './routes/provider-stripe.js';
+import { providerImportRoutes } from './routes/provider-imports.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { AppError } from './lib/errors.js';
 import { runDailyPayouts } from './services/stripe-connect.js';
@@ -36,6 +37,7 @@ v1.route('/quotes', quoteRoutes);
 v1.route('/executions', executionRoutes);
 v1.route('/providers', providerStripeRoutes);
 v1.route('/providers', providerRoutes);
+v1.route('/provider-imports', providerImportRoutes);
 
 app.route('/v1', v1);
 

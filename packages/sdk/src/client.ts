@@ -32,6 +32,15 @@ import type {
   EarningListResponse,
   PayoutResponse,
   PayoutListResponse,
+  ProviderImportRun,
+  ProviderImportListResponse,
+  CreateProviderImportRequest,
+  ReviewProviderImportRequest,
+  TestProviderImportRequest,
+  PublishProviderImportRequest,
+  ImportTestResponse,
+  PublishProviderImportResponse,
+  CredentialRequest,
 } from './types.js';
 
 export class ToltyApiError extends Error {
@@ -123,6 +132,18 @@ export class ToltyClient {
     return this.request('POST', `/v1/products/${id}/publish`);
   }
 
+  async setProviderCredential(id: string, request: CredentialRequest): Promise<{ id: string }> {
+    return this.request('PUT', `/v1/products/${id}/credentials/provider`, request);
+  }
+
+  async setSelfCredential(id: string, request: CredentialRequest): Promise<{ id: string }> {
+    return this.request('PUT', `/v1/products/${id}/credentials/self`, request);
+  }
+
+  async deleteSelfCredential(id: string): Promise<void> {
+    await this.request('DELETE', `/v1/products/${id}/credentials/self`);
+  }
+
   // ── Quotes ──────────────────────────────────────────────────────────
 
   async createQuote(request: CreateQuoteRequest): Promise<Quote> {
@@ -181,6 +202,10 @@ export class ToltyClient {
     return this.request('GET', '/v1/providers/stripe/status');
   }
 
+  async syncStripeStatus(): Promise<StripeStatusResponse> {
+    return this.request('POST', '/v1/providers/stripe/sync');
+  }
+
   async getStripeDashboardLink(): Promise<StripeDashboardLinkResponse> {
     return this.request('GET', '/v1/providers/stripe/dashboard');
   }
@@ -199,6 +224,33 @@ export class ToltyClient {
 
   async listPayouts(): Promise<PayoutListResponse> {
     return this.request('GET', '/v1/providers/payouts');
+  }
+
+  async listProviderImports(): Promise<ProviderImportListResponse> {
+    return this.request('GET', '/v1/provider-imports');
+  }
+
+  async createProviderImport(request: CreateProviderImportRequest): Promise<ProviderImportRun> {
+    return this.request('POST', '/v1/provider-imports', request);
+  }
+
+  async getProviderImport(id: string): Promise<ProviderImportRun> {
+    return this.request('GET', `/v1/provider-imports/${id}`);
+  }
+
+  async reviewProviderImport(id: string, request: ReviewProviderImportRequest): Promise<ProviderImportRun> {
+    return this.request('POST', `/v1/provider-imports/${id}/review`, request);
+  }
+
+  async testProviderImport(id: string, request: TestProviderImportRequest): Promise<ImportTestResponse> {
+    return this.request('POST', `/v1/provider-imports/${id}/test`, request);
+  }
+
+  async publishProviderImport(
+    id: string,
+    request: PublishProviderImportRequest,
+  ): Promise<PublishProviderImportResponse> {
+    return this.request('POST', `/v1/provider-imports/${id}/publish`, request);
   }
 
   // ── Session ─────────────────────────────────────────────────────────
@@ -245,6 +297,10 @@ export class ToltyClient {
         errorBody.error.code,
         errorBody.error.message,
       );
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return response.json() as Promise<T>;

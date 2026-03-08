@@ -24,6 +24,90 @@ export async function listMyProducts() {
   return client.listMyProducts();
 }
 
+export async function listProviderImports() {
+  const client = await getToltyClient();
+  return client.listProviderImports();
+}
+
+export async function createProviderImport(input: {
+  docsUrl: string;
+  baseUrl: string;
+  authMode: "none" | "provider_managed" | "buyer_supplied";
+}) {
+  const client = await getToltyClient();
+  const result = await client.createProviderImport(input);
+  revalidatePath("/provider");
+  return result;
+}
+
+export async function reviewProviderImport(
+  importRunId: string,
+  input: {
+    name?: string;
+    slug?: string;
+    description?: string;
+    category?: string;
+    pricePerCallUsd?: string;
+    tags?: string[];
+    inputSchema?: Record<string, unknown>;
+    outputSchema?: Record<string, unknown>;
+    executionConfig?: Record<string, unknown>;
+  }
+) {
+  const client = await getToltyClient();
+  const result = await client.reviewProviderImport(importRunId, input);
+  revalidatePath("/provider");
+  return result;
+}
+
+export async function testProviderImport(
+  importRunId: string,
+  input: {
+    input?: Record<string, unknown>;
+    credential?: {
+      value: string;
+      authType: "bearer" | "api_key" | "basic";
+      location: "header" | "query" | "body";
+      name: string;
+      scheme?: string;
+    };
+  }
+) {
+  const client = await getToltyClient();
+  const result = await client.testProviderImport(importRunId, input);
+  revalidatePath("/provider");
+  return result;
+}
+
+export async function publishProviderImport(
+  importRunId: string,
+  input: {
+    draft?: {
+      name?: string;
+      slug?: string;
+      description?: string;
+      category?: string;
+      pricePerCallUsd?: string;
+      tags?: string[];
+      inputSchema?: Record<string, unknown>;
+      outputSchema?: Record<string, unknown>;
+      executionConfig?: Record<string, unknown>;
+    };
+    providerCredential?: {
+      value: string;
+      authType: "bearer" | "api_key" | "basic";
+      location: "header" | "query" | "body";
+      name: string;
+      scheme?: string;
+    };
+  }
+) {
+  const client = await getToltyClient();
+  const result = await client.publishProviderImport(importRunId, input);
+  revalidatePath("/provider");
+  return result;
+}
+
 export async function createProviderProduct(input: {
   name: string;
   slug: string;
@@ -63,6 +147,13 @@ export async function connectStripeAccount(refreshUrl: string, returnUrl: string
 export async function getStripeStatus() {
   const client = await getToltyClient();
   return client.getStripeStatus();
+}
+
+export async function syncStripeStatus() {
+  const client = await getToltyClient();
+  const status = await client.syncStripeStatus();
+  revalidatePath("/provider");
+  return status;
 }
 
 export async function getStripeDashboardLink() {
