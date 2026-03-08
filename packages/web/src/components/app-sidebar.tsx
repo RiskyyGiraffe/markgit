@@ -36,32 +36,32 @@ export function AppSidebar({ user }: { user: { name?: string | null; email: stri
 
   return (
     <Sidebar variant="floating" collapsible="icon" className="p-3">
-      <SidebarHeader className="gap-3 rounded-[28px] border border-black/5 bg-white/90 p-4 shadow-sm backdrop-blur">
+      <SidebarHeader className="gap-3 rounded-[28px] border border-sidebar-border/70 bg-sidebar/90 p-4 shadow-sm backdrop-blur">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-black text-sm font-semibold text-white shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground shadow-sm">
             M
           </div>
           <div className="grid gap-0.5 group-data-[collapsible=icon]:hidden">
-            <span className="font-display text-lg font-medium tracking-[-0.04em] text-black">
+            <span className="font-display text-lg font-medium tracking-[-0.04em] text-sidebar-foreground">
               markgit
             </span>
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-black/45">
+            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-sidebar-foreground/55">
               Agent commerce
             </span>
           </div>
         </Link>
-        <div className="rounded-2xl border border-black/5 bg-[#f5f5f1] px-3 py-3 group-data-[collapsible=icon]:hidden">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/45">
+        <div className="rounded-2xl border border-sidebar-border/70 bg-sidebar-accent px-3 py-3 group-data-[collapsible=icon]:hidden">
+          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-sidebar-foreground/55">
             Workspace
           </div>
-          <div className="mt-1 text-sm text-black/70">
+          <div className="mt-1 text-sm text-sidebar-foreground/75">
             Monitor wallet, runs, and provider performance across markgit.
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent className="mt-4 gap-4">
         <SidebarGroup className="p-1">
-          <SidebarGroupLabel className="px-3 font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+          <SidebarGroupLabel className="px-3 font-mono text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/50">
             Platform
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -75,8 +75,8 @@ export function AppSidebar({ user }: { user: { name?: string | null; email: stri
                     className={cn(
                       "h-11 rounded-2xl px-3.5 text-[15px] shadow-none transition-all",
                       pathname.startsWith(item.href)
-                        ? "bg-black text-white hover:bg-black hover:text-white"
-                        : "text-black/62 hover:bg-black/[0.035] hover:text-black"
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}
                   >
                     <Link href={item.href}>
@@ -90,14 +90,14 @@ export function AppSidebar({ user }: { user: { name?: string | null; email: stri
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="mt-auto rounded-[28px] border border-black/5 bg-white/90 p-4 shadow-sm backdrop-blur group-data-[collapsible=icon]:hidden">
-        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+      <SidebarFooter className="mt-auto rounded-[28px] border border-sidebar-border/70 bg-sidebar/90 p-4 shadow-sm backdrop-blur group-data-[collapsible=icon]:hidden">
+        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/50">
           Signed in
         </div>
-        <div className="text-sm font-medium text-black">
+        <div className="text-sm font-medium text-sidebar-foreground">
           {user.name ?? "markgit user"}
         </div>
-        <div className="text-sm text-black/55">{user.email}</div>
+        <div className="text-sm text-sidebar-foreground/70">{user.email}</div>
       </SidebarFooter>
     </Sidebar>
   );

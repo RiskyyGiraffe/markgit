@@ -35,7 +35,7 @@ export default async function WalletPage({
     <div className="space-y-6">
       {params.payment === "success" && (
         <Alert>
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           <AlertDescription>
             Payment successful! Your wallet balance will be updated shortly once
             the payment is confirmed.
@@ -131,8 +131,8 @@ export default async function WalletPage({
                     <TableCell
                       className={
                         entry.entryType === "credit" || entry.entryType === "release"
-                          ? "text-green-600"
-                          : "text-red-600"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400"
                       }
                     >
                       {entry.entryType === "credit" || entry.entryType === "release"

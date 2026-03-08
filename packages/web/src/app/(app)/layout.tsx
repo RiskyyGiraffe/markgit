@@ -31,7 +31,7 @@ export default async function AppLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={session.user} />
-      <SidebarInset className="bg-[radial-gradient(circle_at_top,rgba(0,0,0,0.035),transparent_26%),linear-gradient(180deg,#f7f7f3_0%,#f1f1ec_100%)]">
+      <SidebarInset className="bg-[radial-gradient(circle_at_top,rgba(0,0,0,0.035),transparent_26%),linear-gradient(180deg,#f7f7f3_0%,#f1f1ec_100%)] transition-colors dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,#09090b_0%,#121216_100%)]">
         <AppTopbar user={session.user} />
         <main className="flex-1 px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
           {children}

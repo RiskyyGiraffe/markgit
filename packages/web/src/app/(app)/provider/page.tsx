@@ -177,7 +177,7 @@ export default async function ProviderPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Pending Payout</CardDescription>
-            <CardTitle className="text-2xl text-green-600">
+            <CardTitle className="text-2xl text-emerald-600 dark:text-emerald-400">
               ${parseFloat(earnings.unpaid).toFixed(2)}
             </CardTitle>
           </CardHeader>
@@ -232,7 +232,7 @@ export default async function ProviderPage() {
                     <TableCell className="text-muted-foreground">
                       -${parseFloat(entry.toltyFeeUsd).toFixed(4)}
                     </TableCell>
-                    <TableCell className="text-green-600">
+                    <TableCell className="text-emerald-600 dark:text-emerald-400">
                       ${parseFloat(entry.netAmountUsd).toFixed(4)}
                     </TableCell>
                     <TableCell>

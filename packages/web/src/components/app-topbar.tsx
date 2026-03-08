@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,49 +51,50 @@ export function AppTopbar({
     routeMeta["/dashboard"];
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/5 bg-[#f7f7f3]/85 px-4 backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl sm:px-6">
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="-ml-1 rounded-xl border border-black/5 bg-white text-black shadow-sm hover:bg-white" />
+        <SidebarTrigger className="-ml-1 rounded-xl border border-border/70 bg-card text-foreground shadow-sm hover:bg-accent" />
         <div className="hidden min-w-0 sm:block">
-          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             {meta.subtitle}
           </div>
-          <div className="truncate text-sm font-medium text-black">
+          <div className="truncate text-sm font-medium text-foreground">
             {meta.title}
           </div>
         </div>
       </div>
 
       <div className="hidden flex-1 items-center justify-center lg:flex">
-        <div className="flex w-full max-w-md items-center gap-2 rounded-full border border-black/5 bg-white px-4 py-2 text-sm text-black/45 shadow-sm">
+        <div className="flex w-full max-w-md items-center gap-2 rounded-full border border-border/70 bg-card px-4 py-2 text-sm text-muted-foreground shadow-sm">
           <Search className="size-4" />
           <span>Search products, runs, or providers</span>
-          <span className="ml-auto rounded-md border border-black/5 px-2 py-0.5 font-mono text-[11px] text-black/40">
+          <span className="ml-auto rounded-md border border-border/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
             /
           </span>
         </div>
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2">
-        <div className="hidden items-center gap-2 rounded-full border border-black/5 bg-white px-3 py-2 text-sm text-black/60 shadow-sm md:flex">
-          <Sparkles className="size-4 text-emerald-600" />
+        <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-sm text-muted-foreground shadow-sm md:flex">
+          <Sparkles className="size-4 text-emerald-500 dark:text-emerald-400" />
           <span>Live workspace</span>
         </div>
+        <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative h-10 w-10 rounded-full border border-black/5 bg-white shadow-sm hover:bg-white"
+              className="relative h-10 w-10 rounded-full border border-border/70 bg-card shadow-sm hover:bg-accent"
             >
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-black text-white">
+                <AvatarFallback className="bg-foreground text-background">
                   {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-64 rounded-2xl border-black/10 p-2"
+            className="w-64 rounded-2xl border-border/70 bg-popover/95 p-2 backdrop-blur"
             align="end"
           >
             <DropdownMenuLabel>

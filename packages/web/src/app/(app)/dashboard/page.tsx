@@ -32,15 +32,15 @@ function formatUsd(value: string) {
 function activityTone(status: string) {
   switch (status) {
     case "completed":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
     case "running":
     case "pending":
-      return "border-amber-200 bg-amber-50 text-amber-700";
+      return "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300";
     case "failed":
     case "timed_out":
-      return "border-rose-200 bg-rose-50 text-rose-700";
+      return "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300";
     default:
-      return "border-black/10 bg-black/[0.03] text-black/60";
+      return "border-border/60 bg-muted/70 text-muted-foreground";
   }
 }
 
@@ -126,20 +126,20 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4">
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <Card className="rounded-[32px] border-black/10 bg-white/90 shadow-sm">
+        <Card className="rounded-[32px] border-border/60 bg-card/90 shadow-sm backdrop-blur">
           <CardContent className="p-6 sm:p-8">
             <div className="flex flex-col gap-8">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-2xl space-y-4">
-                  <Badge className="rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-black/60 hover:bg-black/[0.03]">
+                  <Badge className="rounded-full border border-border/60 bg-muted/70 px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground hover:bg-muted/70">
                     Command center
                   </Badge>
                   <div className="space-y-3">
-                    <h1 className="font-display text-4xl font-medium tracking-[-0.05em] text-black sm:text-5xl">
+                    <h1 className="font-display text-4xl font-medium tracking-[-0.05em] text-foreground sm:text-5xl">
                       Operate your marketplace without the stale dashboard
                       chrome.
                     </h1>
-                    <p className="max-w-xl text-[15px] leading-7 text-black/60 sm:text-base">
+                    <p className="max-w-xl text-[15px] leading-7 text-muted-foreground sm:text-base">
                       Wallet capacity, purchases, executions, and provider
                       actions are surfaced in one denser workspace with less
                       filler and more signal.
@@ -147,18 +147,18 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[28px] border border-black/8 bg-[#f5f5f1] p-5 shadow-inner">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/45">
+                <div className="rounded-[28px] border border-border/60 bg-muted/60 p-5 shadow-inner">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Wallet runway
                   </div>
-                  <div className="mt-3 font-display text-4xl tracking-[-0.05em] text-black">
+                  <div className="mt-3 font-display text-4xl tracking-[-0.05em] text-foreground">
                     {formatUsd(wallet.available)}
                   </div>
-                  <div className="mt-2 text-sm text-black/55">
+                  <div className="mt-2 text-sm text-muted-foreground">
                     Ready for executions and new product purchases.
                   </div>
-                  <div className="mt-5 flex items-center gap-2 rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm text-black/70">
-                    <Sparkles className="size-4 text-emerald-600" />
+                  <div className="mt-5 flex items-center gap-2 rounded-2xl border border-border/60 bg-background/80 px-4 py-3 text-sm text-muted-foreground">
+                    <Sparkles className="size-4 text-emerald-500 dark:text-emerald-400" />
                     Held balance: {formatUsd(wallet.heldAmount)}
                   </div>
                 </div>
@@ -171,18 +171,20 @@ export default async function DashboardPage() {
                   return (
                     <div
                       key={stat.label}
-                      className="rounded-[24px] border border-black/8 bg-[#f7f7f4] p-4"
+                      className="rounded-[24px] border border-border/60 bg-muted/60 p-4"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-black/45">
+                        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                           {stat.label}
                         </div>
-                        <Icon className="size-4 text-black/35" />
+                        <Icon className="size-4 text-muted-foreground" />
                       </div>
-                      <div className="mt-4 font-display text-3xl tracking-[-0.05em] text-black">
+                      <div className="mt-4 font-display text-3xl tracking-[-0.05em] text-foreground">
                         {stat.value}
                       </div>
-                      <div className="mt-2 text-sm text-black/55">{stat.meta}</div>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        {stat.meta}
+                      </div>
                     </div>
                   );
                 })}
@@ -191,14 +193,14 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[32px] border-black/10 bg-white/90 shadow-sm">
+        <Card className="rounded-[32px] border-border/60 bg-card/90 shadow-sm backdrop-blur">
           <CardContent className="p-6">
             <div className="space-y-5">
               <div className="space-y-2">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   Quick launch
                 </div>
-                <h2 className="font-display text-3xl tracking-[-0.05em] text-black">
+                <h2 className="font-display text-3xl tracking-[-0.05em] text-foreground">
                   Move between revenue surfaces quickly.
                 </h2>
               </div>
@@ -211,18 +213,18 @@ export default async function DashboardPage() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="flex items-start justify-between rounded-[24px] border border-black/8 bg-[#f7f7f4] p-4 transition hover:-translate-y-0.5 hover:border-black/15 hover:bg-white"
+                      className="flex items-start justify-between rounded-[24px] border border-border/60 bg-muted/60 p-4 transition hover:-translate-y-0.5 hover:border-border hover:bg-accent/60"
                     >
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-black">
-                          <Icon className="size-4 text-black/45" />
+                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <Icon className="size-4 text-muted-foreground" />
                           {item.title}
                         </div>
-                        <p className="text-sm leading-6 text-black/55">
+                        <p className="text-sm leading-6 text-muted-foreground">
                           {item.description}
                         </p>
                       </div>
-                      <ArrowRight className="mt-1 size-4 text-black/35" />
+                      <ArrowRight className="mt-1 size-4 text-muted-foreground" />
                     </Link>
                   );
                 })}
@@ -233,21 +235,21 @@ export default async function DashboardPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="rounded-[32px] border-black/10 bg-white/90 shadow-sm">
+        <Card className="rounded-[32px] border-border/60 bg-card/90 shadow-sm backdrop-blur">
           <CardContent className="p-6">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   Recent activity
                 </div>
-                <h2 className="mt-2 font-display text-3xl tracking-[-0.05em] text-black">
+                <h2 className="mt-2 font-display text-3xl tracking-[-0.05em] text-foreground">
                   Latest purchases and runs
                 </h2>
               </div>
               <Button
                 asChild
                 variant="outline"
-                className="rounded-full border-black/10 bg-white text-black hover:bg-[#f7f7f4]"
+                className="rounded-full border-border/60 bg-background text-foreground hover:bg-accent"
               >
                 <Link href="/history">Open history</Link>
               </Button>
@@ -255,7 +257,7 @@ export default async function DashboardPage() {
 
             <div className="mt-6 space-y-3">
               {recentActivity.length === 0 ? (
-                <div className="rounded-[24px] border border-dashed border-black/10 bg-[#f7f7f4] px-4 py-10 text-center text-sm text-black/50">
+                <div className="rounded-[24px] border border-dashed border-border/60 bg-muted/50 px-4 py-10 text-center text-sm text-muted-foreground">
                   No activity yet. Start with a marketplace purchase or provider
                   listing.
                 </div>
@@ -263,11 +265,11 @@ export default async function DashboardPage() {
                 recentActivity.map((item) => (
                   <div
                     key={`${item.type}-${item.id}`}
-                    className="flex flex-col gap-3 rounded-[24px] border border-black/8 bg-[#f7f7f4] p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-[24px] border border-border/60 bg-muted/60 p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                           {item.type}
                         </span>
                         <span
@@ -279,12 +281,12 @@ export default async function DashboardPage() {
                           {item.status}
                         </span>
                       </div>
-                      <div className="text-base font-medium text-black">
+                      <div className="text-base font-medium text-foreground">
                         {item.title}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6 text-sm text-black/55">
+                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
                       <div>{item.meta}</div>
                       <div className="flex items-center gap-2">
                         <Clock3 className="size-4" />
@@ -298,14 +300,14 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[32px] border-black/10 bg-white/90 shadow-sm">
+        <Card className="rounded-[32px] border-border/60 bg-card/90 shadow-sm backdrop-blur">
           <CardContent className="p-6">
             <div className="space-y-5">
               <div>
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-black/40">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   Workflow map
                 </div>
-                <h2 className="mt-2 font-display text-3xl tracking-[-0.05em] text-black">
+                <h2 className="mt-2 font-display text-3xl tracking-[-0.05em] text-foreground">
                   The product areas that matter day to day
                 </h2>
               </div>
@@ -331,17 +333,17 @@ export default async function DashboardPage() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="block rounded-[24px] border border-black/8 bg-[#f7f7f4] p-4 transition hover:bg-white"
+                    className="block rounded-[24px] border border-border/60 bg-muted/60 p-4 transition hover:bg-accent/60"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex size-8 items-center justify-center rounded-full border border-black/10 bg-white font-mono text-[11px] text-black/55">
+                      <div className="flex size-8 items-center justify-center rounded-full border border-border/60 bg-background font-mono text-[11px] text-muted-foreground">
                         0{index + 1}
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-black">
+                        <div className="text-sm font-medium text-foreground">
                           {item.title}
                         </div>
-                        <div className="mt-1 text-sm leading-6 text-black/55">
+                        <div className="mt-1 text-sm leading-6 text-muted-foreground">
                           {item.description}
                         </div>
                       </div>
@@ -350,11 +352,11 @@ export default async function DashboardPage() {
                 ))}
               </div>
 
-              <div className="rounded-[24px] border border-black/8 bg-black px-4 py-4 text-white">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+              <div className="rounded-[24px] border border-border/60 bg-foreground px-4 py-4 text-background">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-background/60">
                   Current state
                 </div>
-                <div className="mt-3 text-sm leading-7 text-white/80">
+                <div className="mt-3 text-sm leading-7 text-background/80">
                   {executions.total > 0
                     ? "Execution history is live. Use history for trace-level review and the marketplace to expand coverage."
                     : "No executions logged yet. Fund the wallet and purchase a product to start building operational history."}
