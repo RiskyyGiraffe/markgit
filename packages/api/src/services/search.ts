@@ -7,16 +7,16 @@ export async function searchProducts(query: string, limit = 20, offset = 0) {
   const likeQuery = `%${normalizedQuery}%`;
   const searchDocument = sql`
     (
-      setweight(to_tsvector('simple', coalesce(${products.name}, '')), 'A') ||
-      setweight(to_tsvector('simple', coalesce(${products.description}, '')), 'B') ||
-      setweight(to_tsvector('simple', coalesce(${products.category}, '')), 'C') ||
-      setweight(to_tsvector('simple', coalesce(${products.tags}::text, '')), 'B') ||
-      setweight(to_tsvector('simple', coalesce(${products.inputSchema}::text, '')), 'D') ||
-      setweight(to_tsvector('simple', coalesce(${products.outputSchema}::text, '')), 'D') ||
-      setweight(to_tsvector('simple', coalesce(${products.executionConfig}::text, '')), 'D')
+      setweight(to_tsvector('english', coalesce(${products.name}, '')), 'A') ||
+      setweight(to_tsvector('english', coalesce(${products.description}, '')), 'B') ||
+      setweight(to_tsvector('english', coalesce(${products.category}, '')), 'C') ||
+      setweight(to_tsvector('english', coalesce(${products.tags}::text, '')), 'B') ||
+      setweight(to_tsvector('english', coalesce(${products.inputSchema}::text, '')), 'D') ||
+      setweight(to_tsvector('english', coalesce(${products.outputSchema}::text, '')), 'D') ||
+      setweight(to_tsvector('english', coalesce(${products.executionConfig}::text, '')), 'D')
     )
   `;
-  const tsQuery = sql`websearch_to_tsquery('simple', ${normalizedQuery})`;
+  const tsQuery = sql`websearch_to_tsquery('english', ${normalizedQuery})`;
   const relevance = sql<number>`
     ts_rank_cd(${searchDocument}, ${tsQuery}) +
     CASE WHEN ${products.name} ILIKE ${likeQuery} THEN 1.0 ELSE 0 END +
