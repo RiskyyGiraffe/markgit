@@ -5,6 +5,7 @@ set -euo pipefail
 REMOTE_HOST="${MARKGIT_API_SSH_HOST:-penguin}"
 REMOTE_DIR="${MARKGIT_API_REMOTE_DIR:-/home/ubuntu/projects/markgit}"
 SERVICE_NAME="${MARKGIT_API_SERVICE:-markgit-api}"
+WORKER_SERVICE_NAME="${MARKGIT_WORKER_SERVICE:-markgit-worker}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -25,17 +26,23 @@ if [[ -f "${ROOT_DIR}/.env" ]]; then
 fi
 
 scp "${ROOT_DIR}/ops/systemd/${SERVICE_NAME}.service" "${REMOTE_HOST}:/tmp/${SERVICE_NAME}.service"
+scp "${ROOT_DIR}/ops/systemd/${WORKER_SERVICE_NAME}.service" "${REMOTE_HOST}:/tmp/${WORKER_SERVICE_NAME}.service"
 
 ssh "${REMOTE_HOST}" "
   set -euo pipefail
   sudo mv /tmp/${SERVICE_NAME}.service /etc/systemd/system/${SERVICE_NAME}.service
+  sudo mv /tmp/${WORKER_SERVICE_NAME}.service /etc/systemd/system/${WORKER_SERVICE_NAME}.service
   sudo chown root:root /etc/systemd/system/${SERVICE_NAME}.service
+  sudo chown root:root /etc/systemd/system/${WORKER_SERVICE_NAME}.service
   corepack prepare pnpm@9.13.1 --activate
   cd '${REMOTE_DIR}'
   corepack pnpm install --frozen-lockfile
   corepack pnpm --filter @tolty/api build
   sudo systemctl daemon-reload
   sudo systemctl enable ${SERVICE_NAME}
+  sudo systemctl enable ${WORKER_SERVICE_NAME}
   sudo systemctl restart ${SERVICE_NAME}
+  sudo systemctl restart ${WORKER_SERVICE_NAME}
   sudo systemctl --no-pager --full status ${SERVICE_NAME}
+  sudo systemctl --no-pager --full status ${WORKER_SERVICE_NAME}
 "

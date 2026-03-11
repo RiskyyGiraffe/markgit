@@ -353,6 +353,17 @@ export const backgroundJobs = pgTable('background_jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const productSearchEmbeddings = pgTable('product_search_embeddings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  model: varchar('model', { length: 255 }).notNull(),
+  contentHash: varchar('content_hash', { length: 64 }).notNull(),
+  sourceText: text('source_text').notNull(),
+  embedding: jsonb('embedding').$type<number[]>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const stripeCheckoutSessions = pgTable('stripe_checkout_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),

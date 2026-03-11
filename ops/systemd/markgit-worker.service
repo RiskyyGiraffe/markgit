@@ -1,0 +1,19 @@
+[Unit]
+Description=Markgit Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/projects/markgit
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/markgit/api.env
+ExecStart=/usr/bin/env node /home/ubuntu/projects/markgit/packages/api/dist/worker.js
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

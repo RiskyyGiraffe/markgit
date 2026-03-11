@@ -14,6 +14,7 @@ import {
 } from '../lib/provider-import.js';
 import { runAdhocExecution } from './execution-engine.js';
 import { upsertProviderCredential } from './credentials.js';
+import { ensureProductEmbeddings } from './embeddings.js';
 
 type ImportRunRecord = typeof providerImportRuns.$inferSelect;
 
@@ -815,6 +816,8 @@ export async function publishProviderImportRun(userId: string, importRunId: stri
       tags: draft.tags,
     })
     .returning();
+
+  await ensureProductEmbeddings([product.id]);
 
   if (draft.executionConfig.auth.mode === 'provider_managed') {
     if (!input.providerCredential) {

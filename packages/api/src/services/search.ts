@@ -1,6 +1,7 @@
-import { sql, eq, and, ilike, or, desc } from 'drizzle-orm';
+import { sql, eq, and, ilike, or, desc, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { products } from '../db/schema.js';
+import { products, productSearchEmbeddings } from '../db/schema.js';
+import { cosineSimilarity, embedQuery, ensureProductEmbeddings } from './embeddings.js';
 
 const semanticLexicon: Record<string, string[]> = {
   birthday: ['age', 'years', 'estimate'],
@@ -139,26 +140,48 @@ async function runSearchQuery(query: string, limit: number, offset: number) {
 }
 
 export async function searchProducts(query: string, limit = 20, offset = 0) {
-  const primaryResults = await runSearchQuery(query, limit, offset);
-  if (primaryResults.length >= Math.min(limit, 3)) {
-    return { results: primaryResults, total: primaryResults.length };
-  }
+  const primaryResults = await runSearchQuery(query, limit * 2, 0);
+  const relatedTerms = primaryResults.length >= Math.min(limit, 3) ? [] : await expandSemanticQuery(query);
+  const expandedQuery = relatedTerms.length > 0 ? [query, ...relatedTerms].join(' OR ') : query;
+  const expandedResults =
+    relatedTerms.length > 0 ? await runSearchQuery(expandedQuery, limit * 2, 0) : primaryResults;
 
-  const relatedTerms = await expandSemanticQuery(query);
-  if (relatedTerms.length === 0) {
-    return { results: primaryResults, total: primaryResults.length };
-  }
-
-  const expandedQuery = [query, ...relatedTerms].join(' OR ');
-  const expandedResults = await runSearchQuery(expandedQuery, limit, offset);
-  const deduped = [...primaryResults];
-
+  const combined = [...primaryResults];
   for (const result of expandedResults) {
-    if (!deduped.some((existing) => existing.id === result.id)) {
-      deduped.push(result);
+    if (!combined.some((existing) => existing.id === result.id)) {
+      combined.push(result);
     }
-    if (deduped.length >= limit) break;
   }
 
-  return { results: deduped, total: deduped.length };
+  await ensureProductEmbeddings(combined.map((item) => item.id));
+  const queryEmbedding = await embedQuery(query);
+  if (!queryEmbedding) {
+    return {
+      results: combined.slice(offset, offset + limit),
+      total: combined.length,
+    };
+  }
+
+  const embeddings = await db
+    .select()
+    .from(productSearchEmbeddings)
+    .where(inArray(productSearchEmbeddings.productId, combined.map((item) => item.id)));
+  const embeddingMap = new Map(embeddings.map((row) => [row.productId, row.embedding]));
+
+  const scored = combined
+    .map((item, index) => {
+      const embedding = embeddingMap.get(item.id);
+      const semanticScore = embedding ? cosineSimilarity(queryEmbedding, embedding) : 0;
+      const lexicalBonus = Math.max(0, (combined.length - index) / combined.length);
+      return {
+        item,
+        score: semanticScore * 0.75 + lexicalBonus * 0.25,
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  return {
+    results: scored.slice(offset, offset + limit).map((entry) => entry.item),
+    total: scored.length,
+  };
 }

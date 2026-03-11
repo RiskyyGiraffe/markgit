@@ -15,6 +15,13 @@
       "when": 1773188961432,
       "tag": "0001_rainy_grim_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773189944180,
+      "tag": "0002_gifted_lyja",
+      "breakpoints": true
     }
   ]
 }

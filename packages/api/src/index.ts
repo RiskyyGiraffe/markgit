@@ -13,7 +13,6 @@ import { providerStripeRoutes } from './routes/provider-stripe.js';
 import { providerImportRoutes } from './routes/provider-imports.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { AppError } from './lib/errors.js';
-import { runDueJobs, schedulePayoutSweep } from './services/jobs.js';
 
 const app = new Hono();
 
@@ -61,27 +60,5 @@ const port = parseInt(process.env.PORT ?? '3000', 10);
 console.log(`markgit API starting on port ${port}`);
 
 serve({ fetch: app.fetch, port });
-
-async function bootstrapJobs() {
-  try {
-    await schedulePayoutSweep();
-  } catch (err) {
-    console.error('[jobs] Failed to schedule payout sweep:', err);
-  }
-}
-
-bootstrapJobs();
-
-const JOB_POLL_INTERVAL_MS = 60_000;
-setInterval(async () => {
-  try {
-    const results = await runDueJobs();
-    if (results.length > 0) {
-      console.log('[jobs] processed:', JSON.stringify(results));
-    }
-  } catch (err) {
-    console.error('[jobs] worker failure:', err);
-  }
-}, JOB_POLL_INTERVAL_MS);
 
 export default app;

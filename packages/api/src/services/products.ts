@@ -2,6 +2,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
+import { ensureProductEmbeddings } from './embeddings.js';
 
 export async function listProducts(limit = 50, offset = 0) {
   const results = await db
@@ -67,6 +68,10 @@ export async function createProduct(data: {
     })
     .returning();
 
+  if (product.status === 'active') {
+    await ensureProductEmbeddings([product.id]);
+  }
+
   return product;
 }
 
@@ -78,5 +83,8 @@ export async function updateProductStatus(id: string, status: typeof products.$i
     .returning();
 
   if (!product) throw new NotFoundError('Product');
+  if (product.status === 'active') {
+    await ensureProductEmbeddings([product.id]);
+  }
   return product;
 }
