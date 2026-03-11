@@ -1,8 +1,32 @@
-import { sql, eq, and, ilike, or } from 'drizzle-orm';
+import { sql, eq, and, ilike, or, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products } from '../db/schema.js';
 
 export async function searchProducts(query: string, limit = 20, offset = 0) {
+  const normalizedQuery = query.trim().replace(/\s+/g, ' ');
+  const likeQuery = `%${normalizedQuery}%`;
+  const searchDocument = sql`
+    (
+      setweight(to_tsvector('simple', coalesce(${products.name}, '')), 'A') ||
+      setweight(to_tsvector('simple', coalesce(${products.description}, '')), 'B') ||
+      setweight(to_tsvector('simple', coalesce(${products.category}, '')), 'C') ||
+      setweight(to_tsvector('simple', coalesce(${products.tags}::text, '')), 'B') ||
+      setweight(to_tsvector('simple', coalesce(${products.inputSchema}::text, '')), 'D') ||
+      setweight(to_tsvector('simple', coalesce(${products.outputSchema}::text, '')), 'D') ||
+      setweight(to_tsvector('simple', coalesce(${products.executionConfig}::text, '')), 'D')
+    )
+  `;
+  const tsQuery = sql`websearch_to_tsquery('simple', ${normalizedQuery})`;
+  const relevance = sql<number>`
+    ts_rank_cd(${searchDocument}, ${tsQuery}) +
+    CASE WHEN ${products.name} ILIKE ${likeQuery} THEN 1.0 ELSE 0 END +
+    CASE WHEN ${products.description} ILIKE ${likeQuery} THEN 0.45 ELSE 0 END +
+    CASE WHEN ${products.tags}::text ILIKE ${likeQuery} THEN 0.35 ELSE 0 END +
+    CASE WHEN ${products.inputSchema}::text ILIKE ${likeQuery} THEN 0.15 ELSE 0 END +
+    CASE WHEN ${products.outputSchema}::text ILIKE ${likeQuery} THEN 0.15 ELSE 0 END +
+    CASE WHEN ${products.executionConfig}::text ILIKE ${likeQuery} THEN 0.1 ELSE 0 END
+  `;
+
   const results = await db
     .select({
       id: products.id,
@@ -13,20 +37,30 @@ export async function searchProducts(query: string, limit = 20, offset = 0) {
       pricePerCallUsd: products.pricePerCallUsd,
       tags: products.tags,
       providerId: products.providerId,
+      relevance,
     })
     .from(products)
     .where(
       and(
         eq(products.status, 'active'),
         or(
-          ilike(products.name, `%${query}%`),
-          ilike(products.description, `%${query}%`),
-          ilike(products.category, `%${query}%`),
+          sql`${searchDocument} @@ ${tsQuery}`,
+          ilike(products.name, likeQuery),
+          ilike(products.description, likeQuery),
+          ilike(products.category, likeQuery),
+          sql`${products.tags}::text ILIKE ${likeQuery}`,
+          sql`${products.inputSchema}::text ILIKE ${likeQuery}`,
+          sql`${products.outputSchema}::text ILIKE ${likeQuery}`,
+          sql`${products.executionConfig}::text ILIKE ${likeQuery}`,
         ),
       ),
     )
+    .orderBy(desc(relevance), products.name)
     .limit(limit)
     .offset(offset);
 
-  return { results, total: results.length };
+  return {
+    results: results.map(({ relevance: _relevance, ...product }) => product),
+    total: results.length,
+  };
 }
