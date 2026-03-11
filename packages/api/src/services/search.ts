@@ -2,6 +2,19 @@ import { sql, eq, and, ilike, or, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products } from '../db/schema.js';
 
+const semanticLexicon: Record<string, string[]> = {
+  birthday: ['age', 'years', 'estimate'],
+  guess: ['estimate', 'prediction'],
+  years: ['age'],
+  first: ['name'],
+  firstname: ['name'],
+  demographic: ['demographics', 'population'],
+  predictor: ['prediction', 'estimate'],
+  weather: ['forecast', 'temperature', 'climate'],
+  dogs: ['dog'],
+  facts: ['fact'],
+};
+
 function buildSearchDocument() {
   return sql`
     (
@@ -17,8 +30,14 @@ function buildSearchDocument() {
 }
 
 async function expandSemanticQuery(query: string) {
+  const lexicalTerms = query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/g)
+    .filter(Boolean)
+    .flatMap((term) => semanticLexicon[term] ?? []);
+
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) return Array.from(new Set(lexicalTerms)).slice(0, 6);
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -43,23 +62,29 @@ async function expandSemanticQuery(query: string) {
     }),
   });
 
-  if (!response.ok) return [];
+  if (!response.ok) return Array.from(new Set(lexicalTerms)).slice(0, 6);
 
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const content = data.choices?.[0]?.message?.content;
-  if (!content) return [];
+  if (!content) return Array.from(new Set(lexicalTerms)).slice(0, 6);
 
   try {
     const parsed = JSON.parse(content) as { terms?: unknown[] };
-    return (parsed.terms ?? [])
+    const parsedTerms = (parsed.terms ?? [])
       .filter((term): term is string => typeof term === 'string')
       .map((term) => term.trim())
-      .filter(Boolean)
-      .slice(0, 6);
+      .filter(Boolean);
+
+    return Array.from(
+      new Set([
+        ...lexicalTerms,
+        ...parsedTerms,
+      ]),
+    ).slice(0, 6);
   } catch {
-    return [];
+    return Array.from(new Set(lexicalTerms)).slice(0, 6);
   }
 }
 

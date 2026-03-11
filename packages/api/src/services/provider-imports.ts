@@ -168,9 +168,17 @@ function applyImportHeuristics(
   const paramHints = extractQueryHints(rawBody, baseUrl);
   const currentFields = Object.keys((draft.inputSchema?.properties as Record<string, unknown> | undefined) ?? {});
   const genericFields = currentFields.filter((field) => /^(field|input|param|query)$/i.test(field));
+  const mappingEntries = Object.entries(draft.executionConfig.paramMapping ?? {});
+  const mappedParams = [...new Set(mappingEntries.map(([, mapping]) => mapping.param))];
+  const renameHint =
+    paramHints.length === 1
+      ? paramHints[0]
+      : mappedParams.length === 1 && genericFields.length === 1 && mappedParams[0] !== genericFields[0]
+        ? mappedParams[0]
+        : null;
 
-  if (paramHints.length === 1 && genericFields.length === 1) {
-    const inferredParam = paramHints[0];
+  if (renameHint && genericFields.length === 1) {
+    const inferredParam = renameHint;
     const currentField = genericFields[0];
     const properties = { ...((draft.inputSchema?.properties as Record<string, unknown>) ?? {}) };
     const currentProperty = properties[currentField];
@@ -206,7 +214,9 @@ function applyImportHeuristics(
   }
 
   const hostname = new URL(baseUrl).hostname.replace(/^api\./, '').split('.').slice(0, -1).join(' ');
-  const extraTags = [hostname, ...paramHints].filter(Boolean);
+  const extraTags = [hostname, ...paramHints].filter(
+    (value) => Boolean(value) && value.length > 2 && /^[a-z0-9_-]+$/i.test(value),
+  );
   draft = {
     ...draft,
     tags: Array.from(new Set([...draft.tags, ...extraTags])).slice(0, 12),
