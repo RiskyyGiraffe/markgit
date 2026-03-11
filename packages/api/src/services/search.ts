@@ -2,10 +2,8 @@ import { sql, eq, and, ilike, or, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products } from '../db/schema.js';
 
-export async function searchProducts(query: string, limit = 20, offset = 0) {
-  const normalizedQuery = query.trim().replace(/\s+/g, ' ');
-  const likeQuery = `%${normalizedQuery}%`;
-  const searchDocument = sql`
+function buildSearchDocument() {
+  return sql`
     (
       setweight(to_tsvector('english', coalesce(${products.name}, '')), 'A') ||
       setweight(to_tsvector('english', coalesce(${products.description}, '')), 'B') ||
@@ -16,6 +14,59 @@ export async function searchProducts(query: string, limit = 20, offset = 0) {
       setweight(to_tsvector('english', coalesce(${products.executionConfig}::text, '')), 'D')
     )
   `;
+}
+
+async function expandSemanticQuery(query: string) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return [];
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            'Expand this marketplace search query into up to 6 short related search phrases.',
+            'Focus on product intent, synonyms, input/output concepts, and common buyer vocabulary.',
+            'Return JSON only in the form {"terms":["..."]}.',
+            `Query: ${query}`,
+          ].join('\n'),
+        },
+      ],
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) return [];
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) return [];
+
+  try {
+    const parsed = JSON.parse(content) as { terms?: unknown[] };
+    return (parsed.terms ?? [])
+      .filter((term): term is string => typeof term === 'string')
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
+async function runSearchQuery(query: string, limit: number, offset: number) {
+  const normalizedQuery = query.trim().replace(/\s+/g, ' ');
+  const likeQuery = `%${normalizedQuery}%`;
+  const searchDocument = buildSearchDocument();
   const tsQuery = sql`websearch_to_tsquery('english', ${normalizedQuery})`;
   const relevance = sql<number>`
     ts_rank_cd(${searchDocument}, ${tsQuery}) +
@@ -59,8 +110,30 @@ export async function searchProducts(query: string, limit = 20, offset = 0) {
     .limit(limit)
     .offset(offset);
 
-  return {
-    results: results.map(({ relevance: _relevance, ...product }) => product),
-    total: results.length,
-  };
+  return results.map(({ relevance: _relevance, ...product }) => product);
+}
+
+export async function searchProducts(query: string, limit = 20, offset = 0) {
+  const primaryResults = await runSearchQuery(query, limit, offset);
+  if (primaryResults.length >= Math.min(limit, 3)) {
+    return { results: primaryResults, total: primaryResults.length };
+  }
+
+  const relatedTerms = await expandSemanticQuery(query);
+  if (relatedTerms.length === 0) {
+    return { results: primaryResults, total: primaryResults.length };
+  }
+
+  const expandedQuery = [query, ...relatedTerms].join(' OR ');
+  const expandedResults = await runSearchQuery(expandedQuery, limit, offset);
+  const deduped = [...primaryResults];
+
+  for (const result of expandedResults) {
+    if (!deduped.some((existing) => existing.id === result.id)) {
+      deduped.push(result);
+    }
+    if (deduped.length >= limit) break;
+  }
+
+  return { results: deduped, total: deduped.length };
 }

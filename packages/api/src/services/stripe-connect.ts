@@ -221,6 +221,30 @@ export async function getUnpaidEarnings(providerId: string) {
   return parseFloat(result.total);
 }
 
+export async function enqueueEligiblePayouts() {
+  const { schedulePayoutForProvider } = await import('./jobs.js');
+  const eligibleProviders = await db
+    .select({ id: providers.id, stripeAccountId: providers.stripeAccountId })
+    .from(providers)
+    .where(
+      and(
+        eq(providers.stripeAccountStatus, 'active'),
+        isNotNull(providers.stripeAccountId),
+      ),
+    );
+
+  const queued: string[] = [];
+  for (const provider of eligibleProviders) {
+    const unpaidAmount = await getUnpaidEarnings(provider.id);
+    if (unpaidAmount >= 1.0) {
+      await schedulePayoutForProvider(provider.id);
+      queued.push(provider.id);
+    }
+  }
+
+  return queued;
+}
+
 export async function createPayout(providerId: string) {
   const synced = await syncStripeStatus(providerId);
   const [provider] = await db.select().from(providers).where(eq(providers.id, providerId)).limit(1);
@@ -336,34 +360,6 @@ export async function listEarnings(providerId: string, limit = 50, offset = 0) {
 
 /** Run daily payouts for all providers with active Stripe accounts and ≥$1 unpaid. */
 export async function runDailyPayouts() {
-  const eligibleProviders = await db
-    .select({ id: providers.id, stripeAccountId: providers.stripeAccountId })
-    .from(providers)
-    .where(
-      and(
-        eq(providers.stripeAccountStatus, 'active'),
-        isNotNull(providers.stripeAccountId),
-      ),
-    );
-
-  const results: Array<{ providerId: string; status: string; amount?: string; error?: string }> = [];
-
-  for (const provider of eligibleProviders) {
-    try {
-      const unpaidAmount = await getUnpaidEarnings(provider.id);
-      if (unpaidAmount < 1.0) {
-        results.push({ providerId: provider.id, status: 'skipped', amount: unpaidAmount.toFixed(4) });
-        continue;
-      }
-
-      const payout = await createPayout(provider.id);
-      results.push({ providerId: provider.id, status: 'completed', amount: payout.amountUsd });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`Daily payout failed for provider ${provider.id}:`, message);
-      results.push({ providerId: provider.id, status: 'failed', error: message });
-    }
-  }
-
-  return results;
+  const queued = await enqueueEligiblePayouts();
+  return queued.map((providerId) => ({ providerId, status: 'queued' }));
 }

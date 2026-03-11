@@ -117,6 +117,107 @@ function cleanText(html: string) {
     .slice(0, 18_000);
 }
 
+function extractDocLinks(documentUrl: string, html: string) {
+  const matches = [...html.matchAll(/href=["']([^"'#]+)["']/gi)];
+  const links = new Set<string>();
+
+  for (const match of matches) {
+    const raw = match[1];
+    try {
+      const resolved = new URL(raw, documentUrl);
+      links.add(resolved.toString());
+    } catch {
+      continue;
+    }
+  }
+
+  return [...links].filter((link) =>
+    /(openapi|swagger|postman|docs|api|json|yaml|yml)/i.test(link),
+  );
+}
+
+function extractQueryHints(rawBody: string, baseUrl: string) {
+  const candidates = new Set<string>();
+  const urls = [...rawBody.matchAll(/https?:\/\/[^\s"'<>]+/gi)].map((match) => match[0]);
+
+  for (const rawUrl of urls) {
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.host !== new URL(baseUrl).host) continue;
+      for (const key of parsed.searchParams.keys()) {
+        if (key) candidates.add(key);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  for (const match of rawBody.matchAll(/[?&]([a-zA-Z_][a-zA-Z0-9_]*)=/g)) {
+    candidates.add(match[1]);
+  }
+
+  return [...candidates];
+}
+
+function applyImportHeuristics(
+  draft: ProductDraft,
+  rawBody: string,
+  docsUrl: string,
+  baseUrl: string,
+): ProductDraft {
+  const paramHints = extractQueryHints(rawBody, baseUrl);
+  const currentFields = Object.keys((draft.inputSchema?.properties as Record<string, unknown> | undefined) ?? {});
+  const genericFields = currentFields.filter((field) => /^(field|input|param|query)$/i.test(field));
+
+  if (paramHints.length === 1 && genericFields.length === 1) {
+    const inferredParam = paramHints[0];
+    const currentField = genericFields[0];
+    const properties = { ...((draft.inputSchema?.properties as Record<string, unknown>) ?? {}) };
+    const currentProperty = properties[currentField];
+    delete properties[currentField];
+    properties[inferredParam] = currentProperty;
+
+    const required = Array.isArray(draft.inputSchema?.required)
+      ? draft.inputSchema.required.map((field) => (field === currentField ? inferredParam : field))
+      : [];
+
+    const paramMapping = { ...(draft.executionConfig.paramMapping ?? {}) };
+    const currentMapping = paramMapping[currentField] ?? { target: 'query' as const, param: inferredParam };
+    delete paramMapping[currentField];
+    paramMapping[inferredParam] = { ...currentMapping, param: inferredParam };
+
+    draft = normalizeDraft(
+      {
+        ...draft,
+        inputSchema: {
+          ...(draft.inputSchema ?? {}),
+          type: 'object',
+          required,
+          properties,
+        },
+        executionConfig: {
+          ...draft.executionConfig,
+          paramMapping,
+        },
+      },
+      baseUrl,
+      draft.executionConfig.auth.mode,
+    );
+  }
+
+  const hostname = new URL(baseUrl).hostname.replace(/^api\./, '').split('.').slice(0, -1).join(' ');
+  const extraTags = [hostname, ...paramHints].filter(Boolean);
+  draft = {
+    ...draft,
+    tags: Array.from(new Set([...draft.tags, ...extraTags])).slice(0, 12),
+    description:
+      draft.description ??
+      `Imported from ${new URL(docsUrl).hostname} and prepared for agent search and execution.`,
+  };
+
+  return draft;
+}
+
 function normalizeMethod(method: string | undefined) {
   if (!method) return 'GET' as const;
   const upper = method.toUpperCase();
@@ -464,6 +565,7 @@ export async function importDocs(input: ProviderImportDraftInput): Promise<Norma
   const contentType = response.headers.get('content-type') ?? '';
   const body = await response.text();
   const trimmed = body.trim();
+  const candidateLinks = contentType.includes('html') ? extractDocLinks(input.docsUrl, body).slice(0, 5) : [];
 
   if (contentType.includes('application/json') || trimmed.startsWith('{')) {
     const parsed = JSON.parse(trimmed);
@@ -486,7 +588,46 @@ export async function importDocs(input: ProviderImportDraftInput): Promise<Norma
     }
   }
 
-  return buildDraftWithOpenRouter(cleanText(body), input.baseUrl, input.authMode);
+  for (const candidateLink of candidateLinks) {
+    try {
+      const linked = await fetch(candidateLink, {
+        headers: { Accept: 'application/json, text/yaml, text/plain, text/html' },
+      });
+      if (!linked.ok) continue;
+      const linkedContentType = linked.headers.get('content-type') ?? '';
+      const linkedBody = await linked.text();
+      const linkedTrimmed = linkedBody.trim();
+
+      if (linkedContentType.includes('application/json') || linkedTrimmed.startsWith('{')) {
+        const parsed = JSON.parse(linkedTrimmed);
+        if (parsed?.openapi || parsed?.swagger) {
+          return buildDraftFromOpenApiDocument(parsed, input.baseUrl, input.authMode, 'openapi_json');
+        }
+        if (parsed?.info && parsed?.item) {
+          return buildDraftFromPostmanCollection(parsed, input.baseUrl, input.authMode);
+        }
+      }
+
+      if (
+        linkedContentType.includes('yaml') ||
+        linkedContentType.includes('yml') ||
+        /^openapi:\s|^swagger:\s/m.test(linkedTrimmed)
+      ) {
+        const parsed = YAML.parse(linkedTrimmed) as Record<string, any>;
+        if (parsed?.openapi || parsed?.swagger) {
+          return buildDraftFromOpenApiDocument(parsed, input.baseUrl, input.authMode, 'openapi_yaml');
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  const imported = await buildDraftWithOpenRouter(cleanText(body), input.baseUrl, input.authMode);
+  return {
+    ...imported,
+    draft: applyImportHeuristics(imported.draft, body, input.docsUrl, input.baseUrl),
+  };
 }
 
 async function getImportRunForProvider(userId: string, importRunId: string) {

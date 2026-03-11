@@ -117,6 +117,13 @@ export const checkoutSessionStatusEnum = pgEnum('checkout_session_status', [
   'expired',
 ]);
 
+export const backgroundJobStatusEnum = pgEnum('background_job_status', [
+  'pending',
+  'running',
+  'completed',
+  'failed',
+]);
+
 // ── Tables ─────────────────────────────────────────────────────────────────
 
 export const users = pgTable('users', {
@@ -329,6 +336,21 @@ export const providerPayoutConfigs = pgTable('provider_payout_configs', {
   walletAddress: varchar('wallet_address', { length: 255 }).notNull(),
   isPrimary: boolean('is_primary').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const backgroundJobs = pgTable('background_jobs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  kind: varchar('kind', { length: 100 }).notNull(),
+  status: backgroundJobStatusEnum('status').default('pending').notNull(),
+  payload: jsonb('payload').$type<Record<string, unknown>>().default({}).notNull(),
+  runAt: timestamp('run_at', { withTimezone: true }).defaultNow().notNull(),
+  lockedAt: timestamp('locked_at', { withTimezone: true }),
+  lockedBy: varchar('locked_by', { length: 255 }),
+  attempts: integer('attempts').default(0).notNull(),
+  maxAttempts: integer('max_attempts').default(5).notNull(),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const stripeCheckoutSessions = pgTable('stripe_checkout_sessions', {

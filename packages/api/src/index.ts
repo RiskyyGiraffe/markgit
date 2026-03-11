@@ -13,7 +13,7 @@ import { providerStripeRoutes } from './routes/provider-stripe.js';
 import { providerImportRoutes } from './routes/provider-imports.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { AppError } from './lib/errors.js';
-import { runDailyPayouts } from './services/stripe-connect.js';
+import { runDueJobs, schedulePayoutSweep } from './services/jobs.js';
 
 const app = new Hono();
 
@@ -62,16 +62,26 @@ console.log(`markgit API starting on port ${port}`);
 
 serve({ fetch: app.fetch, port });
 
-// Daily payout cron — runs every 24h
-const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-setInterval(async () => {
-  console.log('[cron] Running daily payouts...');
+async function bootstrapJobs() {
   try {
-    const results = await runDailyPayouts();
-    console.log('[cron] Daily payouts complete:', JSON.stringify(results));
+    await schedulePayoutSweep();
   } catch (err) {
-    console.error('[cron] Daily payouts failed:', err);
+    console.error('[jobs] Failed to schedule payout sweep:', err);
   }
-}, TWENTY_FOUR_HOURS);
+}
+
+bootstrapJobs();
+
+const JOB_POLL_INTERVAL_MS = 60_000;
+setInterval(async () => {
+  try {
+    const results = await runDueJobs();
+    if (results.length > 0) {
+      console.log('[jobs] processed:', JSON.stringify(results));
+    }
+  } catch (err) {
+    console.error('[jobs] worker failure:', err);
+  }
+}, JOB_POLL_INTERVAL_MS);
 
 export default app;

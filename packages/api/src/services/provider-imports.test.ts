@@ -135,4 +135,88 @@ describe('provider imports', () => {
       }),
     ).rejects.toThrowError(new ValidationError('OpenRouter returned invalid JSON'));
   });
+
+  it('uses docs heuristics to replace generic field names from HTML examples', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
+    process.env.OPENROUTER_MODEL = 'test-model';
+
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          '<html><body>Try it with https://api.agify.io?name=michael for an age estimate.</body></html>',
+          {
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    name: 'Predict Age',
+                    slug: 'predict-age',
+                    description: 'Estimate age from a first name',
+                    category: 'demographics',
+                    pricePerCallUsd: '0.2500',
+                    tags: ['imported'],
+                    inputSchema: {
+                      type: 'object',
+                      required: ['field'],
+                      properties: {
+                        field: {
+                          type: 'string',
+                          description: 'The first name to estimate the age from.',
+                        },
+                      },
+                    },
+                    executionConfig: {
+                      type: 'http_rest',
+                      method: 'GET',
+                      baseUrl: 'https://api.agify.io',
+                      timeoutMs: 10000,
+                      paramMapping: {
+                        field: { target: 'query', param: 'field' },
+                      },
+                      auth: {
+                        mode: 'none',
+                        type: 'none',
+                        location: 'header',
+                        name: 'Authorization',
+                      },
+                    },
+                  }),
+                },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+      );
+
+    const result = await importDocs({
+      docsUrl: 'https://docs.example.com/html',
+      baseUrl: 'https://api.agify.io',
+      authMode: 'none',
+    });
+
+    expect(result.draft.inputSchema).toMatchObject({
+      required: ['name'],
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+    });
+    expect(result.draft.executionConfig.paramMapping).toEqual({
+      name: { target: 'query', param: 'name' },
+    });
+    expect(result.draft.tags).toContain('agify');
+  });
 });
