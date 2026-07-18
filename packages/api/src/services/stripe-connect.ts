@@ -187,7 +187,7 @@ export async function getEarningsSummary(providerId: string) {
   const [result] = await db
     .select({
       totalGross: sql<string>`coalesce(sum(${providerEarnings.grossAmountUsd}), '0')`,
-      totalFees: sql<string>`coalesce(sum(${providerEarnings.toltyFeeUsd}), '0')`,
+      totalFees: sql<string>`coalesce(sum(${providerEarnings.markgitFeeUsd}), '0')`,
       totalNet: sql<string>`coalesce(sum(${providerEarnings.netAmountUsd}), '0')`,
       unpaid: sql<string>`coalesce(sum(case when ${providerEarnings.payoutId} is null then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
       paidOut: sql<string>`coalesce(sum(case when ${providerEarnings.payoutId} is not null then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
@@ -342,7 +342,7 @@ export async function listEarnings(providerId: string, limit = 50, offset = 0) {
       purchaseId: providerEarnings.purchaseId,
       productName: products.name,
       grossAmountUsd: providerEarnings.grossAmountUsd,
-      toltyFeeUsd: providerEarnings.toltyFeeUsd,
+      markgitFeeUsd: providerEarnings.markgitFeeUsd,
       netAmountUsd: providerEarnings.netAmountUsd,
       payoutId: providerEarnings.payoutId,
       createdAt: providerEarnings.createdAt,

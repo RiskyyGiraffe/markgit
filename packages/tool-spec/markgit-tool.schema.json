@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://markgit.dev/schemas/tool/v1.json",
+  "title": "Markgit Hosted Tool Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "slug", "description", "endpoint", "inputSchema", "pricing"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 255 },
+    "description": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "maxLength": 100 },
+    "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "method"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "method": { "enum": ["GET", "POST"] }
+      }
+    },
+    "inputSchema": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "const": "object" } }
+    },
+    "outputSchema": { "type": "object" },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amountPerCallUsd"],
+      "properties": {
+        "amountPerCallUsd": { "type": "string", "pattern": "^\\d+(?:\\.\\d{1,4})?$" }
+      }
+    }
+  }
+}

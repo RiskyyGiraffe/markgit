@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { headers, cookies } from "next/headers";
 import { auth } from "@/lib/auth";
-import { ensureToltyUserAndKey } from "@/actions/auth-bridge";
+import { ensureMarkgitUserAndKey } from "@/actions/auth-bridge";
 import { encrypt } from "@/lib/cookie-crypto";
 
-const COOKIE_NAME = "tolty-api-key";
+const COOKIE_NAME = "markgit-api-key";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
 export async function GET(request: Request) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const { rawKey } = await ensureToltyUserAndKey(
+  const { rawKey } = await ensureMarkgitUserAndKey(
     session.user.email,
     session.user.name
   );

@@ -27,6 +27,7 @@ This expects:
 - API env at `/etc/markgit/api.env`
 
 The script copies the local root `.env` into `/etc/markgit/api.env`. Update that file on the server when Stripe or database secrets change.
+Set `PUBLIC_WEB_URL=https://markgit.com` there so CLI login links open the production web portal.
 
 Validate the service:
 
@@ -59,7 +60,7 @@ Create a Vercel project from this repo with:
 - Framework: `Next.js`
 - Root Directory: `packages/web`
 - Install Command: `pnpm install --frozen-lockfile`
-- Build Command: `pnpm --filter @tolty/web build`
+- Build Command: `pnpm --filter @markgit/web build`
 
 Set these production env vars in Vercel:
 
@@ -70,7 +71,7 @@ Set these production env vars in Vercel:
 - `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
-- `TOLTY_API_URL=https://api.markgit.com`
+- `MARKGIT_API_URL=https://api.markgit.com`
 - `COOKIE_ENCRYPTION_SECRET`
 - `NEXT_PUBLIC_APP_URL=https://markgit.com`
 
@@ -91,7 +92,7 @@ Use the exact apex and verification values Vercel shows when you add the domain 
 After the domains are live:
 
 1. Set `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to `https://markgit.com`
-2. Set `TOLTY_API_URL` to `https://api.markgit.com`
+2. Set `MARKGIT_API_URL` to `https://api.markgit.com`
 3. Create a live Stripe webhook for `https://api.markgit.com/webhooks/stripe`
 4. Replace `STRIPE_WEBHOOK_SECRET` on the VPS with the new live value
 5. Re-run a provider Connect onboarding flow and a wallet Checkout flow against the production URLs

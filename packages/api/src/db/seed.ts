@@ -10,7 +10,7 @@ async function seed() {
   let [user] = await db
     .insert(users)
     .values({
-      email: 'admin@tolty.dev',
+      email: 'admin@markgit.dev',
       name: 'Admin',
     })
     .onConflictDoNothing()
@@ -20,7 +20,7 @@ async function seed() {
     [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, 'admin@tolty.dev'))
+      .where(eq(users.email, 'admin@markgit.dev'))
       .limit(1);
     console.log(`User already exists: ${user.email} (${user.id})`);
   } else {

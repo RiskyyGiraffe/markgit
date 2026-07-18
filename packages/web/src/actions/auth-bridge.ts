@@ -2,20 +2,15 @@
 
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users, apiKeys, wallets } from "@tolty/api/db/schema";
-import { generateApiKey } from "@tolty/api/lib/crypto";
+import { users, apiKeys, wallets } from "@markgit/api/db/schema";
+import { generateApiKey } from "@markgit/api/lib/crypto";
 
 const WEB_SESSION_LABEL = "__web_session__";
 
-/**
- * Find-or-create a markgit user by email, provision a fresh API key,
- * and return the raw key so the caller (a Route Handler) can set the cookie.
- */
-export async function ensureToltyUserAndKey(
+export async function ensureMarkgitUser(
   email: string,
   name?: string | null
-): Promise<{ userId: string; rawKey: string }> {
-  // 1. Find or create user
+): Promise<{ userId: string }> {
   let [user] = await db
     .select()
     .from(users)
@@ -28,9 +23,22 @@ export async function ensureToltyUserAndKey(
       .values({ email, name: name ?? undefined })
       .returning();
 
-    // Create wallet for new user
     await db.insert(wallets).values({ userId: user.id });
   }
+
+  return { userId: user.id };
+}
+
+/**
+ * Find-or-create a markgit user by email, provision a fresh API key,
+ * and return the raw key so the caller (a Route Handler) can set the cookie.
+ */
+export async function ensureMarkgitUserAndKey(
+  email: string,
+  name?: string | null
+): Promise<{ userId: string; rawKey: string }> {
+  // 1. Find or create user
+  const { userId } = await ensureMarkgitUser(email, name);
 
   // 2. Revoke any existing web session keys
   await db
@@ -38,7 +46,7 @@ export async function ensureToltyUserAndKey(
     .set({ revokedAt: new Date() })
     .where(
       and(
-        eq(apiKeys.userId, user.id),
+        eq(apiKeys.userId, userId),
         eq(apiKeys.label, WEB_SESSION_LABEL),
         isNull(apiKeys.revokedAt)
       )
@@ -48,12 +56,12 @@ export async function ensureToltyUserAndKey(
   const { rawKey, keyHash, keyPrefix } = generateApiKey();
 
   await db.insert(apiKeys).values({
-    userId: user.id,
+    userId,
     keyHash,
     keyPrefix,
     label: WEB_SESSION_LABEL,
     permissions: [],
   });
 
-  return { userId: user.id, rawKey };
+  return { userId, rawKey };
 }

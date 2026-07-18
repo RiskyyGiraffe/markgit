@@ -12,7 +12,11 @@ import { providerRoutes } from './routes/providers.js';
 import { providerStripeRoutes } from './routes/provider-stripe.js';
 import { providerImportRoutes } from './routes/provider-imports.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { deviceRoutes } from './routes/device.js';
+import { registryRoutes } from './routes/registry.js';
+import { toolRoutes } from './routes/tools.js';
 import { AppError } from './lib/errors.js';
+import { cors } from 'hono/cors';
 
 const app = new Hono();
 
@@ -21,6 +25,11 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 // Webhooks (no auth — signature-verified internally)
 app.route('/webhooks', webhookRoutes);
+
+// Public discovery and CLI account-linking routes
+app.use('/v1/registry/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
+app.route('/v1/device', deviceRoutes);
+app.route('/v1/registry', registryRoutes);
 
 // Authenticated v1 routes
 const v1 = new Hono();
@@ -34,6 +43,7 @@ v1.route('/products', productRoutes);
 v1.route('/purchases', purchaseRoutes);
 v1.route('/quotes', quoteRoutes);
 v1.route('/executions', executionRoutes);
+v1.route('/tools', toolRoutes);
 v1.route('/providers', providerStripeRoutes);
 v1.route('/providers', providerRoutes);
 v1.route('/provider-imports', providerImportRoutes);

@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Check, Copy, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const installCommand =
-  "git clone https://github.com/RiskyyGiraffe/markgit.git markgit && cd markgit && pnpm install && pnpm dev:all";
+const installCommand = "npm install -g @markgit/cli && markgit login";
 
 export function InstallCommandCard() {
   const [copied, setCopied] = useState(false);
@@ -22,11 +21,11 @@ export function InstallCommandCard() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-white/75">
             <Terminal className="size-4 text-cyan-200" />
-            Install markgit locally
+            Install and link your account
           </div>
           <p className="max-w-2xl text-sm leading-6 text-white/50">
-            One command to clone the repo, install dependencies, and boot the
-            markgit workspace. Requires Node 20+ and `pnpm`.
+            Installs the thin CLI and opens a browser to connect your account.
+            No agent runtime or hosted compute is added to your machine.
           </p>
         </div>
 

@@ -5,6 +5,6 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgresql://tolty:tolty@localhost:5432/tolty',
+    url: process.env.DATABASE_URL ?? 'postgresql://markgit:markgit@localhost:5432/markgit',
   },
 });

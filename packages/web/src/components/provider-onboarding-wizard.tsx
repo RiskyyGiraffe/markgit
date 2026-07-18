@@ -9,7 +9,7 @@ import type {
   Provider,
   ProviderImportRun,
   StripeStatusResponse,
-} from "@tolty/sdk";
+} from "@markgit/sdk";
 import { Loader2, RefreshCw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 

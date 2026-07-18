@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ProductSummary } from "@tolty/sdk";
+import type { ProductSummary } from "@markgit/sdk";
 import {
   Card,
   CardContent,

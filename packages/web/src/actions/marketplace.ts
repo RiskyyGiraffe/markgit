@@ -1,9 +1,9 @@
 "use server";
 
-import { getToltyClient } from "@/lib/tolty-client";
+import { getMarkgitClient } from "@/lib/markgit-client";
 
 export async function searchProducts(query?: string) {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
   if (query && query.trim()) {
     return client.search({ query: query.trim() });
   }
@@ -11,6 +11,6 @@ export async function searchProducts(query?: string) {
 }
 
 export async function getProduct(id: string) {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
   return client.getProduct(id);
 }

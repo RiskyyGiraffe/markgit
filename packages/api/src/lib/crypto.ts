@@ -1,6 +1,6 @@
 import { randomBytes, createHash } from 'node:crypto';
 
-const KEY_PREFIX = 'tlty_';
+const KEY_PREFIX = 'mkgt_';
 const KEY_BYTE_LENGTH = 32;
 
 export function generateApiKey(): { rawKey: string; keyHash: string; keyPrefix: string } {

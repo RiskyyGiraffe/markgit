@@ -9,7 +9,7 @@ export const sessionMiddleware = createMiddleware<{
   Variables: { auth: AuthContext; sessionId: string };
 }>(async (c, next) => {
   const auth = c.get('auth');
-  const existingSessionId = c.req.header('X-Tolty-Session');
+  const existingSessionId = c.req.header('X-Markgit-Session');
 
   let sessionId: string;
 
@@ -59,7 +59,7 @@ export const sessionMiddleware = createMiddleware<{
   }
 
   c.set('sessionId', sessionId);
-  c.header('X-Tolty-Session', sessionId);
+  c.header('X-Markgit-Session', sessionId);
 
   await next();
 });

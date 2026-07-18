@@ -1,4 +1,4 @@
-import type { WalletBalance } from "@tolty/sdk";
+import type { WalletBalance } from "@markgit/sdk";
 import {
   Card,
   CardContent,

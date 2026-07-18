@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
-import { ToltyClient } from "@tolty/sdk";
+import { MarkgitClient } from "@markgit/sdk";
 import { decrypt } from "./cookie-crypto";
 
-const COOKIE_NAME = "tolty-api-key";
+const COOKIE_NAME = "markgit-api-key";
 
-export async function getToltyClient(): Promise<ToltyClient> {
+export async function getMarkgitClient(): Promise<MarkgitClient> {
   const cookieStore = await cookies();
   const encrypted = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -13,8 +13,8 @@ export async function getToltyClient(): Promise<ToltyClient> {
   }
 
   const rawKey = decrypt(encrypted);
-  return new ToltyClient({
+  return new MarkgitClient({
     apiKey: rawKey,
-    baseUrl: process.env.TOLTY_API_URL ?? "http://localhost:3000",
+    baseUrl: process.env.MARKGIT_API_URL ?? "http://localhost:3000",
   });
 }

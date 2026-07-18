@@ -9,6 +9,7 @@ import {
   numeric,
   pgEnum,
   integer,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 // ── Enums ──────────────────────────────────────────────────────────────────
@@ -124,6 +125,19 @@ export const backgroundJobStatusEnum = pgEnum('background_job_status', [
   'failed',
 ]);
 
+export const deviceAuthorizationStatusEnum = pgEnum('device_authorization_status', [
+  'pending',
+  'approved',
+  'denied',
+  'consumed',
+]);
+
+export const toolCallRequestStatusEnum = pgEnum('tool_call_request_status', [
+  'processing',
+  'completed',
+  'failed',
+]);
+
 // ── Tables ─────────────────────────────────────────────────────────────────
 
 export const users = pgTable('users', {
@@ -156,6 +170,19 @@ export const sessions = pgTable('sessions', {
   metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const deviceAuthorizations = pgTable('device_authorizations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  deviceCodeHash: varchar('device_code_hash', { length: 64 }).notNull().unique(),
+  userCode: varchar('user_code', { length: 12 }).notNull().unique(),
+  clientName: varchar('client_name', { length: 255 }).default('Markgit CLI').notNull(),
+  status: deviceAuthorizationStatusEnum('status').default('pending').notNull(),
+  userId: uuid('user_id').references(() => users.id),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const providers = pgTable('providers', {
@@ -256,7 +283,7 @@ export const quotes = pgTable('quotes', {
   productId: uuid('product_id').notNull().references(() => products.id),
   walletId: uuid('wallet_id').notNull().references(() => wallets.id),
   priceUsd: numeric('price_usd', { precision: 19, scale: 4 }).notNull(),
-  toltyFeeUsd: numeric('tolty_fee_usd', { precision: 19, scale: 4 }).notNull(),
+  markgitFeeUsd: numeric('markgit_fee_usd', { precision: 19, scale: 4 }).notNull(),
   totalUsd: numeric('total_usd', { precision: 19, scale: 4 }).notNull(),
   status: quoteStatusEnum('status').default('active').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -300,12 +327,26 @@ export const executions = pgTable('executions', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const toolCallRequests = pgTable('tool_call_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  idempotencyKey: varchar('idempotency_key', { length: 255 }).notNull(),
+  status: toolCallRequestStatusEnum('status').default('processing').notNull(),
+  response: jsonb('response').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('tool_call_requests_user_idempotency_idx').on(table.userId, table.idempotencyKey),
+]);
+
 export const providerEarnings = pgTable('provider_earnings', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   purchaseId: uuid('purchase_id').notNull().references(() => purchases.id),
   grossAmountUsd: numeric('gross_amount_usd', { precision: 19, scale: 4 }).notNull(),
-  toltyFeeUsd: numeric('tolty_fee_usd', { precision: 19, scale: 4 }).notNull(),
+  markgitFeeUsd: numeric('markgit_fee_usd', { precision: 19, scale: 4 }).notNull(),
   netAmountUsd: numeric('net_amount_usd', { precision: 19, scale: 4 }).notNull(),
   payoutEligibleAt: timestamp('payout_eligible_at', { withTimezone: true }),
   payoutId: uuid('payout_id').references(() => payouts.id),

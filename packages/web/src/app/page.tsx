@@ -19,40 +19,40 @@ import { Card, CardContent } from "@/components/ui/card";
 import { InstallCommandCard } from "@/components/install-command-card";
 
 const heroStats = [
-  { label: "Curated agents", value: "240+" },
-  { label: "Live executions", value: "18.2k" },
-  { label: "Provider payout rate", value: "99.3%" },
+  { label: "Registry", value: "Public" },
+  { label: "Free tools", value: "Direct" },
+  { label: "Paid tools", value: "Metered" },
 ];
 
 const featuredAgents = [
   {
-    name: "Lead Enrichment",
-    category: "Sales",
+    name: "Company Enrichment",
+    category: "Data",
     accent: "from-cyan-400/40 via-sky-500/20 to-transparent",
   },
   {
-    name: "Doc Analyst",
-    category: "Research",
+    name: "Web Search",
+    category: "Search",
     accent: "from-violet-400/35 via-fuchsia-500/15 to-transparent",
   },
   {
-    name: "Ops Copilot",
-    category: "Support",
+    name: "Send Email",
+    category: "Communication",
     accent: "from-emerald-400/35 via-teal-500/15 to-transparent",
   },
   {
-    name: "Risk Watch",
-    category: "Security",
+    name: "Fraud Check",
+    category: "Risk",
     accent: "from-amber-300/30 via-orange-500/10 to-transparent",
   },
   {
-    name: "Creative Studio",
-    category: "Content",
+    name: "Generate Image",
+    category: "Media",
     accent: "from-pink-400/35 via-rose-500/15 to-transparent",
   },
   {
-    name: "Data Router",
-    category: "Infra",
+    name: "Run SQL",
+    category: "Developer",
     accent: "from-blue-400/35 via-indigo-500/15 to-transparent",
   },
 ];
@@ -61,47 +61,47 @@ const valuePillars = [
   {
     title: "Discover faster",
     description:
-      "Search verified agents by category, pricing model, response shape, and execution guarantees.",
+      "Search hosted tools by capability, provider, price, trust tier, and machine-readable schemas.",
     icon: Search,
   },
   {
     title: "Launch safely",
     description:
-      "Use wallet balances, purchase history, and transparent run logs before committing production traffic.",
+      "Inspect exact inputs, outputs, pricing, and provider identity before making a call.",
     icon: ShieldCheck,
   },
   {
     title: "Monetize cleanly",
     description:
-      "Publish once, define price per call, and let providers track payouts without building billing rails.",
+      "Host the endpoint anywhere, publish one manifest, and use Markgit only when billing is needed.",
     icon: CircleDollarSign,
   },
 ];
 
 const marketplaceCategories = [
-  "Research agents",
-  "Growth agents",
-  "Internal ops",
-  "Support automations",
-  "Financial workflows",
-  "Developer tooling",
+  "Search and research",
+  "Data and enrichment",
+  "Communication",
+  "Commerce",
+  "Media generation",
+  "Developer tools",
 ];
 
 const launchSteps = [
   {
-    title: "Find the right agent",
+    title: "Search the public registry",
     description:
-      "Browse marketplace inventory with tags, pricing, and outcome summaries tailored to teams evaluating quickly.",
+      "People and agents receive the same transparent provider, price, and schema metadata.",
   },
   {
-    title: "Validate the workflow",
+    title: "Call the provider",
     description:
-      "Inspect inputs and outputs, compare providers, and verify execution behavior before routing real jobs.",
+      "Free standardized tools are called directly. Markgit stays out of the request path.",
   },
   {
-    title: "Scale transactions",
+    title: "Meter only paid calls",
     description:
-      "Fund a wallet, execute on demand, and track every purchase and run from one operational surface.",
+      "Paid calls use one API key and wallet for authorization, receipts, and provider settlement.",
   },
 ];
 
@@ -180,15 +180,15 @@ export default function Home() {
           <div className="max-w-[38rem] space-y-6">
             <div className="space-y-4">
               <Badge className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.24em] text-cyan-100 hover:bg-cyan-400/10">
-                Curated for modern agent commerce
+                An open tool registry with optional commerce
               </Badge>
               <h1 className="max-w-3xl font-display text-4xl font-medium leading-[0.94] tracking-[-0.06em] text-white sm:text-5xl lg:text-6xl xl:text-7xl">
-                markgit is the agent marketplace built to source, test, and ship AI work.
+                One searchable API for tools hosted anywhere.
               </h1>
               <p className="max-w-xl text-[15px] leading-7 text-white/62 sm:text-base sm:leading-8">
-                Discover production-ready agents on markgit, validate outcomes
-                before you commit traffic, and let providers publish monetized
-                workflows from one polished operating surface.
+                Your agent stays yours. Providers host their own tools. Markgit
+                standardizes discovery and calls, then handles metering only
+                when money needs to move.
               </p>
             </div>
 
@@ -199,7 +199,7 @@ export default function Home() {
                 className="h-11 rounded-full bg-white px-5 text-sm font-medium text-black hover:bg-white/90"
               >
                 <Link href="/login">
-                  Explore agents
+                  Explore tools
                   <Sparkles className="size-4" />
                 </Link>
               </Button>
@@ -210,11 +210,13 @@ export default function Home() {
                 className="h-11 rounded-full border-white/15 bg-white/[0.03] px-5 text-sm text-white hover:bg-white/10 hover:text-white"
               >
                 <Link href="#providers">
-                  Publish as provider
+                  Host a tool
                   <Store className="size-4" />
                 </Link>
               </Button>
             </div>
+
+            <InstallCommandCard />
 
             <div className="grid gap-3 sm:grid-cols-3">
               {heroStats.map((stat) => (
@@ -290,7 +292,7 @@ export default function Home() {
                           <div className="inline-flex rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs text-white/70">
                             ${" "}
                             {(0.0025 + index * 0.0011).toFixed(4)}
-                            /run
+                            /call
                           </div>
                           <div>
                             <div className="font-display text-xl tracking-[-0.04em] text-white sm:text-2xl">
@@ -298,7 +300,7 @@ export default function Home() {
                             </div>
                             <div className="mt-2 flex items-center gap-2 text-sm text-white/50">
                               <Workflow className="size-4" />
-                              Structured output, usage logs, retry support
+                              JSON schemas, provider identity, clear pricing
                             </div>
                           </div>
                         </div>
@@ -310,13 +312,13 @@ export default function Home() {
                 <div className="hidden space-y-3 xl:block">
                   <div className="rounded-[22px] border border-white/8 bg-black/45 p-4">
                     <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-                      Run queue
+                      Recent calls
                     </div>
                     <div className="mt-4 space-y-3">
                       {[
-                        "Lead Enrichment",
-                        "Doc Analyst",
-                        "Risk Watch",
+                        "Company Enrichment",
+                        "Web Search",
+                        "Fraud Check",
                       ].map((item, index) => (
                         <div
                           key={item}
@@ -340,14 +342,14 @@ export default function Home() {
                   <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
                     <div className="flex items-center gap-2 text-sm text-white/70">
                       <Wallet className="size-4 text-cyan-200" />
-                      Wallet-ready purchasing
+                      One balance for paid tools
                     </div>
                     <div className="mt-5 font-display text-4xl tracking-[-0.05em]">
                       $12,480
                     </div>
                     <div className="mt-2 text-sm text-white/45">
-                      Available balance powering purchase, execution, and payout
-                      flows from a single ledger.
+                      Free calls bypass Markgit. Paid calls draw from one visible,
+                      auditable balance.
                     </div>
                   </div>
                 </div>
@@ -357,18 +359,14 @@ export default function Home() {
         </section>
       </div>
 
-      <section className="mx-auto max-w-7xl px-6 pb-2 sm:px-8">
-        <InstallCommandCard />
-      </section>
-
       <section
         id="marketplace"
         className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.88fr_1.12fr]"
       >
         <SectionHeading
-          eyebrow="Design and publish in one place"
-          title="A marketplace front door on one side, provider console on the other."
-          description="The landing page mirrors the product itself: sharper hierarchy, tighter spacing, and product previews that feel like the real interface instead of generic marketing blocks."
+          eyebrow="A deliberately small middle layer"
+          title="Public discovery on one side, optional commerce on the other."
+          description="Markgit hosts metadata, account balances, and payment records—not agents and not provider compute."
         />
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -378,16 +376,16 @@ export default function Home() {
                 <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 p-2">
                   <Search className="size-4 text-cyan-200" />
                 </div>
-                Buyer workflow
+                User and agent workflow
               </div>
               <div className="space-y-3">
                 <div className="font-display text-2xl tracking-[-0.05em] text-white sm:text-3xl">
-                  Find the right outcome before the first API call.
+                  Find the right tool before the first call.
                 </div>
                 <p className="text-sm leading-6 text-white/55">
-                  Marketplace cards, pricing, tags, and verified metadata help
-                  teams evaluate quickly without bouncing across docs and demo
-                  links.
+                  The public registry exposes JSON schemas, exact pricing,
+                  provider identity, and trust metadata through the same API
+                  people and agents search.
                 </p>
               </div>
             </CardContent>
@@ -406,12 +404,12 @@ export default function Home() {
               </div>
               <div className="space-y-3">
                 <div className="font-display text-2xl tracking-[-0.05em] text-white sm:text-3xl">
-                  Publish once, monetize every successful execution.
+                  Host anywhere. Publish one small manifest.
                 </div>
                 <p className="text-sm leading-6 text-white/55">
-                  Providers manage catalog entries, execution configuration, and
-                  payouts from a single console backed by wallet and purchase
-                  primitives.
+                  Free tools remain direct. Paid tools gain idempotent calls,
+                  wallet authorization, usage receipts, and payouts without a
+                  custom billing stack.
                 </p>
               </div>
             </CardContent>
@@ -478,9 +476,9 @@ export default function Home() {
 
       <section id="details" className="mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-20">
         <SectionHeading
-          eyebrow="The beauty is in the details"
-          title="Every surface is tuned for confidence, not just conversion."
-          description="The reference leaned on bold contrast, oversized typography, and interface-forward storytelling. This homepage follows that direction while staying grounded in your product model."
+          eyebrow="Transparent by default"
+          title="The contract is small enough for any agent to understand."
+          description="Every listing exposes who runs it, what it accepts, what it returns, what it costs, and whether Markgit is in the request path."
         />
 
         <div className="mt-10 grid gap-4 lg:grid-cols-3">
@@ -514,9 +512,9 @@ export default function Home() {
       <section className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.82fr_1.18fr]">
         <div className="space-y-6">
           <SectionHeading
-            eyebrow="Operational depth"
-            title="The marketplace still needs real rails underneath."
-            description="This is not a brochure site. The homepage now calls out the wallet, execution, and provider mechanics that already exist in the application."
+            eyebrow="Simple mechanics"
+            title="Use standards for calls and ledgers for money."
+            description="There is no second agent to configure and no Markgit compute environment to maintain."
           />
           <div className="space-y-3 text-sm text-white/55">
             {marketplaceCategories.map((category) => (
@@ -600,9 +598,8 @@ export default function Home() {
                 ))}
               </div>
               <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/8 p-4 text-sm leading-7 text-cyan-50/85">
-                Buyers get a cleaner marketplace story. Providers get a clearer
-                reason to publish. The product gets a homepage that finally
-                matches the sophistication of the flows behind it.
+                The CLI is optional convenience. The registry and call API are
+                the product boundary, so any harness can integrate directly.
               </div>
             </div>
           </CardContent>
@@ -613,15 +610,15 @@ export default function Home() {
         <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] px-6 py-8 sm:px-10 sm:py-12">
           <div className="max-w-3xl space-y-5">
             <Badge className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.24em] text-white/70 hover:bg-white/5">
-              Design bold. Launch fast.
+              Install once. Use from any harness.
             </Badge>
             <h2 className="font-display text-3xl font-medium tracking-[-0.05em] text-white sm:text-4xl lg:text-5xl">
-              A homepage that looks like an actual product company built it.
+              Link your terminal without copying an API key.
             </h2>
             <p className="max-w-2xl text-[15px] leading-7 text-white/60 sm:text-base sm:leading-8">
-              The new layout gives `packages/web` a proper front door: dark,
-              modern, interface-led, and aligned with your marketplace,
-              provider, wallet, and execution model.
+              Run the npm command, approve the short-lived code in your browser,
+              and search or call tools immediately. Add funds only when a paid
+              tool requires them.
             </p>
             <div className="flex flex-col gap-2.5 sm:flex-row">
               <Button
@@ -630,7 +627,7 @@ export default function Home() {
                 className="h-11 rounded-full bg-white px-5 text-sm text-black hover:bg-white/90"
               >
                 <Link href="/login">
-                  Enter marketplace
+                  Open marketplace
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -640,7 +637,7 @@ export default function Home() {
                 variant="outline"
                 className="h-11 rounded-full border-white/15 bg-transparent px-5 text-sm text-white hover:bg-white/10 hover:text-white"
               >
-                <Link href="#marketplace">Review the product story</Link>
+                <Link href="#marketplace">See how it works</Link>
               </Button>
             </div>
           </div>
@@ -651,8 +648,8 @@ export default function Home() {
         <div>
           <div className="font-display text-xl text-white">markgit</div>
           <div className="mt-2 max-w-md leading-7">
-            Discover, buy, and run agents with markgit&apos;s marketplace clarity
-            and provider-grade commercial rails.
+            Search tools hosted anywhere. Call free tools directly or use one
+            wallet for paid calls.
           </div>
         </div>
         <div className="flex flex-wrap gap-x-8 gap-y-3">
