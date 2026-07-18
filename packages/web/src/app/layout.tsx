@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "markgit",
   description:
-    "Discover, buy, publish, and run production-ready agents and APIs on markgit.",
+    "An open tool registry and optional commerce layer for agents and APIs hosted anywhere.",
 };
 
 export default function RootLayout({

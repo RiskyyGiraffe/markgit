@@ -15,7 +15,8 @@ import { webhookRoutes } from './routes/webhooks.js';
 import { deviceRoutes } from './routes/device.js';
 import { registryRoutes } from './routes/registry.js';
 import { toolRoutes } from './routes/tools.js';
-import { AppError } from './lib/errors.js';
+import { spendControlRoutes } from './routes/spend-controls.js';
+import { AppError, RateLimitError } from './lib/errors.js';
 import { cors } from 'hono/cors';
 
 const app = new Hono();
@@ -44,6 +45,7 @@ v1.route('/purchases', purchaseRoutes);
 v1.route('/quotes', quoteRoutes);
 v1.route('/executions', executionRoutes);
 v1.route('/tools', toolRoutes);
+v1.route('/spend-controls', spendControlRoutes);
 v1.route('/providers', providerStripeRoutes);
 v1.route('/providers', providerRoutes);
 v1.route('/provider-imports', providerImportRoutes);
@@ -53,8 +55,15 @@ app.route('/v1', v1);
 // Global error handler
 app.onError((err, c) => {
   if (err instanceof AppError) {
+    if (err instanceof RateLimitError) c.header('Retry-After', String(err.retryAfterSeconds));
     return c.json(
-      { error: { code: err.code, message: err.message } },
+      {
+        error: {
+          code: err.code,
+          message: err.message,
+          ...(err instanceof RateLimitError ? { retryAfterSeconds: err.retryAfterSeconds } : {}),
+        },
+      },
       err.statusCode as any,
     );
   }

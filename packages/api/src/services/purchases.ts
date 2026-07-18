@@ -12,6 +12,7 @@ import {
 import { ForbiddenError, NotFoundError, ValidationError } from '../lib/errors.js';
 import { createHold, captureHold, releaseHold } from './wallet.js';
 import { runExecution } from './execution-engine.js';
+import { enforceSpendLimits } from './spend-controls.js';
 import { hasBuyerCredential } from './credentials.js';
 import {
   addUsd,
@@ -158,6 +159,7 @@ export async function createPurchase(
   }
 
   ensureBudgetWithinLimit(apiKey.budgetLimitUsd, apiKey.budgetUsedUsd, quote.totalUsd);
+  await enforceSpendLimits(userId, data.productId, quote.totalUsd);
 
   // Create hold on wallet
   const hold = await createHold(quote.walletId, quote.totalUsd, '00000000-0000-0000-0000-000000000000');

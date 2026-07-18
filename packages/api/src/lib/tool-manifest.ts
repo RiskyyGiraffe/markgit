@@ -7,6 +7,11 @@ export type ToolManifest = {
   description: string;
   category?: string;
   tags?: string[];
+  provider?: {
+    name: string;
+    description?: string;
+    websiteUrl?: string;
+  };
   endpoint: {
     url: string;
     method: 'GET' | 'POST';
@@ -63,6 +68,9 @@ export function validateToolManifest(value: unknown): ToolManifest {
   }
   if (manifest.tags && (!Array.isArray(manifest.tags) || manifest.tags.some((tag) => typeof tag !== 'string'))) {
     throw new ValidationError('tags must be an array of strings');
+  }
+  if (manifest.provider && !manifest.provider.name?.trim()) {
+    throw new ValidationError('provider.name is required when provider metadata is included');
   }
 
   return manifest as ToolManifest;

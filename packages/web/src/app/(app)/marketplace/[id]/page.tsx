@@ -39,6 +39,9 @@ export default async function ProductDetailPage({
             <Badge variant="secondary">{product.category}</Badge>
           )}
           <Badge variant="outline">{product.status}</Badge>
+          <Badge variant="outline">
+            Used {(product.usageCount ?? 0).toLocaleString()} {(product.usageCount ?? 0) === 1 ? "time" : "times"}
+          </Badge>
           {product.tags.map((tag) => (
             <Badge key={tag} variant="outline">
               {tag}

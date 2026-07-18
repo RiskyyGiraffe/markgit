@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Activity } from "lucide-react";
 
 export function ProductCard({ product }: { product: ProductSummary }) {
   return (
@@ -30,6 +31,10 @@ export function ProductCard({ product }: { product: ProductSummary }) {
           <CardDescription className="line-clamp-2">
             {product.description ?? "No description"}
           </CardDescription>
+          <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Activity className="size-3.5" />
+            Used {product.usageCount.toLocaleString()} {product.usageCount === 1 ? "time" : "times"}
+          </div>
           {product.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {product.tags.slice(0, 3).map((tag) => (

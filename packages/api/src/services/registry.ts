@@ -1,6 +1,6 @@
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { products, providers } from '../db/schema.js';
+import { products, providers, purchases } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,6 +20,10 @@ const publicToolSelection = {
   providerId: providers.id,
   providerName: providers.name,
   providerTrustTier: providers.trustTier,
+  usageCount: sql<number>`(
+    select count(*)::int from ${purchases}
+    where ${purchases.productId} = ${products.id} and ${purchases.status} = 'completed'
+  )`,
 };
 
 type PublicToolRow = {
@@ -37,6 +41,7 @@ type PublicToolRow = {
   providerId: string;
   providerName: string;
   providerTrustTier: 'unverified' | 'basic' | 'verified' | 'premium';
+  usageCount: number;
 };
 
 function toToolCard(row: PublicToolRow) {
@@ -59,6 +64,7 @@ function toToolCard(row: PublicToolRow) {
       name: row.providerName,
       trustTier: row.providerTrustTier,
     },
+    usage: { count: Number(row.usageCount), tracked: !isFree || !standardizedEndpoint },
     pricing: isFree
       ? { type: 'free' as const, currency: 'USD', amount: '0.0000' }
       : { type: 'per_call' as const, currency: 'USD', amount },

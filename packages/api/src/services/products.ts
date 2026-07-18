@@ -1,6 +1,6 @@
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { products } from '../db/schema.js';
+import { products, purchases } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
 import { ensureProductEmbeddings } from './embeddings.js';
 
@@ -15,9 +15,12 @@ export async function listProducts(limit = 50, offset = 0) {
       pricePerCallUsd: products.pricePerCallUsd,
       tags: products.tags,
       providerId: products.providerId,
+      usageCount: sql<number>`count(${purchases.id})::int`,
     })
     .from(products)
+    .leftJoin(purchases, and(eq(purchases.productId, products.id), eq(purchases.status, 'completed')))
     .where(eq(products.status, 'active'))
+    .groupBy(products.id)
     .orderBy(desc(products.createdAt))
     .limit(limit)
     .offset(offset);
@@ -27,13 +30,36 @@ export async function listProducts(limit = 50, offset = 0) {
 
 export async function getProduct(id: string) {
   const [product] = await db
-    .select()
+    .select({
+      id: products.id,
+      providerId: products.providerId,
+      name: products.name,
+      slug: products.slug,
+      description: products.description,
+      category: products.category,
+      status: products.status,
+      inputSchema: products.inputSchema,
+      outputSchema: products.outputSchema,
+      executionConfig: products.executionConfig,
+      pricePerCallUsd: products.pricePerCallUsd,
+      tags: products.tags,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt,
+      usageCount: sql<number>`count(${purchases.id})::int`,
+    })
     .from(products)
+    .leftJoin(purchases, and(eq(purchases.productId, products.id), eq(purchases.status, 'completed')))
     .where(eq(products.id, id))
+    .groupBy(products.id)
     .limit(1);
 
   if (!product) throw new NotFoundError('Product');
   return product;
+}
+
+export async function getProductBySlug(slug: string) {
+  const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
+  return product ?? null;
 }
 
 export async function listProviderProducts(providerId: string, limit = 50, offset = 0) {

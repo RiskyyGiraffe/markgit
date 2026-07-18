@@ -5,11 +5,12 @@ import { toolCallRequests } from '../db/schema.js';
 import { ConflictError, ValidationError } from '../lib/errors.js';
 import { manifestExecutionConfig, validateToolManifest } from '../lib/tool-manifest.js';
 import type { AuthContext } from '../middleware/auth.js';
-import { createProduct } from '../services/products.js';
+import { createProduct, getProductBySlug } from '../services/products.js';
 import { getProviderByUserId } from '../services/providers.js';
 import { createPurchase, createQuote } from '../services/purchases.js';
 import { getPublicTool } from '../services/registry.js';
 import { getOrCreateWallet } from '../services/wallet.js';
+import { enforceRateLimits, getSpendControlPreview } from '../services/spend-controls.js';
 
 const tools = new Hono<{ Variables: { auth: AuthContext } }>();
 
@@ -21,6 +22,20 @@ tools.post('/', async (c) => {
   }
 
   const manifest = validateToolManifest(await c.req.json<unknown>());
+  const existing = await getProductBySlug(manifest.slug);
+  if (existing) {
+    if (existing.providerId !== provider.id) {
+      throw new ConflictError(`The tool slug "${manifest.slug}" is already in use`);
+    }
+    return c.json({
+      tool: existing,
+      created: false,
+      next: existing.status === 'active'
+        ? 'This tool is already active'
+        : `Continue onboarding from its current ${existing.status} status`,
+    });
+  }
+
   const product = await createProduct({
     providerId: provider.id,
     name: manifest.name,
@@ -36,7 +51,28 @@ tools.post('/', async (c) => {
 
   return c.json({
     tool: product,
+    created: true,
     next: `Submit it for review with POST /v1/products/${product.id}/submit`,
+  }, 201);
+});
+
+tools.post('/:identifier/quote', async (c) => {
+  const { auth } = c.var;
+  const tool = await getPublicTool(c.req.param('identifier'));
+  const wallet = await getOrCreateWallet(auth.userId);
+  const quote = await createQuote(auth.userId, tool.id, wallet.id);
+  const controls = await getSpendControlPreview(auth.userId, tool.id, quote.totalUsd);
+
+  return c.json({
+    quote: {
+      id: quote.id,
+      priceUsd: quote.priceUsd,
+      feeUsd: quote.markgitFeeUsd,
+      totalUsd: quote.totalUsd,
+      expiresAt: quote.expiresAt,
+    },
+    tool: { id: tool.id, slug: tool.slug, name: tool.name },
+    controls,
   }, 201);
 });
 
@@ -64,9 +100,12 @@ tools.post('/:identifier/call', async (c) => {
   }
 
   const tool = await getPublicTool(c.req.param('identifier'));
-  const body: { input?: Record<string, unknown> } = await c.req
-    .json<{ input?: Record<string, unknown> }>()
+  const body: { input?: Record<string, unknown>; quoteId?: string } = await c.req
+    .json<{ input?: Record<string, unknown>; quoteId?: string }>()
     .catch(() => ({}));
+  if (!body.quoteId) {
+    throw new ValidationError('quoteId is required; request and approve a quote before calling a paid tool');
+  }
   const [request] = await db
     .insert(toolCallRequests)
     .values({
@@ -94,20 +133,29 @@ tools.post('/:identifier/call', async (c) => {
   }
 
   try {
-    const wallet = await getOrCreateWallet(auth.userId);
-    const quote = await createQuote(auth.userId, tool.id, wallet.id);
+    await enforceRateLimits(auth.userId, tool.id);
     const result = await createPurchase(auth.userId, {
       productId: tool.id,
-      quoteId: quote.id,
+      quoteId: body.quoteId,
       input: body.input ?? {},
       apiKeyId: auth.apiKeyId,
     });
+
+    const quote = await db.query.quotes.findFirst({
+      where: (quotes, { eq }) => eq(quotes.id, body.quoteId!),
+    });
+    if (!quote) throw new ValidationError('Approved quote was not found');
 
     const response = {
       id: result.executionId,
       tool: { id: tool.id, slug: tool.slug, name: tool.name },
       status: result.execution.status,
-      cost: { amount: quote.totalUsd, currency: 'USD' },
+      cost: {
+        priceUsd: quote.priceUsd,
+        feeUsd: quote.markgitFeeUsd,
+        totalUsd: quote.totalUsd,
+        currency: 'USD',
+      },
       output: result.execution.output,
       error: result.execution.errorMessage
         ? { message: result.execution.errorMessage }

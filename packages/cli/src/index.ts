@@ -211,6 +211,7 @@ async function callTool(args: string[]): Promise<void> {
     id: string;
     slug: string;
     name: string;
+    pricing: { type: 'free' | 'per_call'; amount: string; currency: 'USD' };
     access: {
       mode: 'direct' | 'gateway';
       endpoint: { url?: string; method: 'GET' | 'POST'; path?: string };
@@ -242,6 +243,33 @@ async function callTool(args: string[]): Promise<void> {
   }
 
   const config = await loadConfig();
+  const approval = await request<{
+    quote: { id: string; priceUsd: string; feeUsd: string; totalUsd: string; expiresAt: string };
+    controls: { approved: boolean; violations: string[] };
+  }>(`/v1/tools/${encodeURIComponent(identifier)}/quote`, {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+
+  console.log(`Price: $${approval.quote.priceUsd} + $${approval.quote.feeUsd} Markgit fee = $${approval.quote.totalUsd} USD`);
+  if (!approval.controls.approved) {
+    throw new Error(`Blocked by spend controls: ${approval.controls.violations.join('; ')}`);
+  }
+
+  const rawMaxCost = valueAfter(args, '--max-cost');
+  if (rawMaxCost !== undefined) {
+    const maxCost = Number.parseFloat(rawMaxCost);
+    if (!Number.isFinite(maxCost) || maxCost < 0) throw new Error('--max-cost must be a non-negative USD amount');
+    if (Number.parseFloat(approval.quote.totalUsd) > maxCost) {
+      throw new Error(`Quoted cost $${approval.quote.totalUsd} exceeds --max-cost $${maxCost.toFixed(4)}`);
+    }
+  } else if (!args.includes('--yes')) {
+    console.log(`Approval required. Re-run with --yes or --max-cost ${approval.quote.totalUsd}.`);
+    return;
+  }
+
   const result = await request<Record<string, unknown>>(
     tool.access.endpoint.path ?? `/v1/tools/${encodeURIComponent(identifier)}/call`,
     {
@@ -249,7 +277,7 @@ async function callTool(args: string[]): Promise<void> {
       apiKey: config!.apiKey,
       method: 'POST',
       headers: { 'Idempotency-Key': randomUUID() },
-      body: JSON.stringify({ input }),
+      body: JSON.stringify({ input, quoteId: approval.quote.id }),
     },
   );
   console.log(JSON.stringify(result, null, 2));
@@ -262,22 +290,149 @@ async function openWallet(): Promise<void> {
   openBrowser(url);
 }
 
-async function publish(manifestPath: string | undefined): Promise<void> {
+async function fundWallet(args: string[]): Promise<void> {
+  const amount = args[0];
+  if (!amount) return openWallet();
+  if (!/^\d+(?:\.\d{1,4})?$/.test(amount) || Number.parseFloat(amount) <= 0) {
+    throw new Error('Usage: markgit fund <positive USD amount>');
+  }
+  const config = await loadConfig();
+  const result = await request<{ balance: { balance: string; available: string } }>('/v1/wallet/fund', {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'POST',
+    body: JSON.stringify({ amountUsd: Number.parseFloat(amount).toFixed(4), description: 'Local CLI test funding' }),
+  });
+  console.log(`Wallet funded. Available: $${result.balance.available} USD`);
+}
+
+async function earnings(): Promise<void> {
+  const config = await loadConfig();
+  const result = await request<{
+    totalGross: string; totalFees: string; totalNet: string; unpaid: string; paidOut: string;
+  }>('/v1/providers/earnings', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
+  console.log(`Provider earnings: $${result.totalNet} USD`);
+  console.log(`Unpaid:            $${result.unpaid} USD`);
+  console.log(`Paid out:          $${result.paidOut} USD`);
+}
+
+function controlUpdate(args: string[]) {
+  const update: Record<string, string | number | boolean> = {};
+  const mappings = [
+    ['--per-call', 'maxPerCallUsd'],
+    ['--daily', 'dailyLimitUsd'],
+    ['--monthly', 'monthlyLimitUsd'],
+  ] as const;
+  for (const [flag, field] of mappings) {
+    const value = valueAfter(args, flag);
+    if (value !== undefined) update[field] = Number.parseFloat(value).toFixed(4);
+  }
+  const rpm = valueAfter(args, '--rpm');
+  const rph = valueAfter(args, '--rph');
+  if (rpm !== undefined) update.rateLimitPerMinute = Number.parseInt(rpm, 10);
+  if (rph !== undefined) update.rateLimitPerHour = Number.parseInt(rph, 10);
+  if (args.includes('--allow')) update.allowed = true;
+  if (args.includes('--block')) update.allowed = false;
+  return update;
+}
+
+async function limits(args: string[]): Promise<void> {
+  const config = await loadConfig();
+  if (args[0] === 'set') {
+    const result = await request<Record<string, unknown>>('/v1/spend-controls', {
+      apiUrl: config!.apiUrl,
+      apiKey: config!.apiKey,
+      method: 'PUT',
+      body: JSON.stringify(controlUpdate(args.slice(1))),
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (args[0] === 'tool') {
+    const identifier = args[1];
+    if (!identifier) throw new Error('Usage: markgit limits tool <tool-slug> [limits]');
+    if (args.length === 2) {
+      const result = await request<Record<string, unknown>>(`/v1/spend-controls/tools/${encodeURIComponent(identifier)}`, {
+        apiUrl: config!.apiUrl,
+        apiKey: config!.apiKey,
+      });
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    if (args.includes('--inherit')) {
+      const result = await request<Record<string, unknown>>(`/v1/spend-controls/tools/${encodeURIComponent(identifier)}`, {
+        apiUrl: config!.apiUrl,
+        apiKey: config!.apiKey,
+        method: 'DELETE',
+      });
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    const result = await request<Record<string, unknown>>(`/v1/spend-controls/tools/${encodeURIComponent(identifier)}`, {
+      apiUrl: config!.apiUrl,
+      apiKey: config!.apiKey,
+      method: 'PUT',
+      body: JSON.stringify(controlUpdate(args.slice(2))),
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  const result = await request<Record<string, unknown>>('/v1/spend-controls', {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+  });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+type PublishManifest = {
+  provider?: { name: string; description?: string; websiteUrl?: string };
+  [key: string]: unknown;
+};
+
+async function publish(args: string[], activate = false): Promise<void> {
+  const manifestPath = args[0];
   if (!manifestPath) throw new Error('Usage: markgit publish <markgit-tool.json>');
   const config = await loadConfig();
-  let manifest: unknown;
+  let manifest: PublishManifest;
   try {
-    manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as PublishManifest;
   } catch (error) {
     throw new Error(`Could not read manifest: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const result = await request<Record<string, unknown>>('/v1/tools', {
+
+  try {
+    await request('/v1/providers', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
+  } catch (error) {
+    if ((error as { status?: number }).status !== 404) throw error;
+    await request('/v1/providers', {
+      apiUrl: config!.apiUrl,
+      apiKey: config!.apiKey,
+      method: 'POST',
+      body: JSON.stringify(manifest.provider ?? { name: 'Local Markgit Provider' }),
+    });
+    console.log(`Registered provider: ${manifest.provider?.name ?? 'Local Markgit Provider'}`);
+  }
+
+  const result = await request<{ tool: { id: string; slug: string; status: string }; created: boolean }>('/v1/tools', {
     apiUrl: config!.apiUrl,
     apiKey: config!.apiKey,
     method: 'POST',
     body: JSON.stringify(manifest),
   });
-  console.log(JSON.stringify(result, null, 2));
+  const shouldActivate = activate || args.includes('--activate');
+  if (shouldActivate) {
+    if (result.tool.status === 'draft') {
+      await request(`/v1/products/${result.tool.id}/submit`, {
+        apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+      });
+    }
+    if (result.tool.status === 'draft' || result.tool.status === 'pending_review') {
+      await request(`/v1/products/${result.tool.id}/publish`, {
+        apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+      });
+    }
+  }
+  console.log(JSON.stringify({ ...result, status: shouldActivate ? 'active' : result.tool.status }, null, 2));
 }
 
 function help(): void {
@@ -288,11 +443,16 @@ Usage:
   markgit logout                 Remove the account from this machine
   markgit status                 Show the linked account and available balance
   markgit balance                Show wallet balances
-  markgit fund                   Open the wallet page in your browser
+  markgit fund [amount]          Fund locally by amount, or open the wallet portal
   markgit search <query>         Search the public tool registry
   markgit inspect <tool-slug>    Print a tool's schemas, provider, and price
-  markgit call <tool-slug> --input '{"key":"value"}'
+  markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD]
   markgit publish <manifest>     Publish a provider-hosted tool as a draft
+  markgit onboard <manifest>     Register provider, publish, and activate a tool
+  markgit limits                 Show global spend and rate controls
+  markgit limits set [limits]    Set --per-call, --daily, --monthly, --rpm, --rph
+  markgit limits tool <slug>     View/set limits; use --allow, --block, or --inherit
+  markgit earnings               Show provider earnings
 
 Environment:
   MARKGIT_API_URL, MARKGIT_WEB_URL, MARKGIT_API_KEY`);
@@ -308,11 +468,14 @@ async function main(): Promise<void> {
       return;
     case 'status': return status();
     case 'balance': return balance();
-    case 'fund': return openWallet();
+    case 'fund': return fundWallet(args);
     case 'search': return search(args);
     case 'inspect': return inspect(args[0]);
     case 'call': return callTool(args);
-    case 'publish': return publish(args[0]);
+    case 'publish': return publish(args);
+    case 'onboard': return publish(args, true);
+    case 'limits': return limits(args);
+    case 'earnings': return earnings();
     case 'help':
     case '--help':
     case '-h':

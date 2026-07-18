@@ -44,6 +44,7 @@ import type {
   ToolCard,
   ToolListResponse,
   ToolCallResponse,
+  ToolQuoteResponse,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -110,15 +111,20 @@ export class MarkgitClient {
     return this.request('GET', `/v1/registry/tools/${encodeURIComponent(identifier)}`);
   }
 
+  async quoteTool(identifier: string): Promise<ToolQuoteResponse> {
+    return this.request('POST', `/v1/tools/${encodeURIComponent(identifier)}/quote`, {});
+  }
+
   async callTool(
     identifier: string,
     input: Record<string, unknown>,
     idempotencyKey: string,
+    quoteId: string,
   ): Promise<ToolCallResponse> {
     return this.request(
       'POST',
       `/v1/tools/${encodeURIComponent(identifier)}/call`,
-      { input },
+      { input, quoteId },
       { 'Idempotency-Key': idempotencyKey },
     );
   }

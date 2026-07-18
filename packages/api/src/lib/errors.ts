@@ -44,3 +44,15 @@ export class ValidationError extends AppError {
     super(400, 'VALIDATION_ERROR', message);
   }
 }
+
+export class SpendLimitError extends AppError {
+  constructor(message: string) {
+    super(403, 'SPEND_LIMIT_EXCEEDED', message);
+  }
+}
+
+export class RateLimitError extends AppError {
+  constructor(message: string, public retryAfterSeconds = 60) {
+    super(429, 'RATE_LIMIT_EXCEEDED', message);
+  }
+}

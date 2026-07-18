@@ -10,6 +10,7 @@ import {
   pgEnum,
   integer,
   uniqueIndex,
+  index,
 } from 'drizzle-orm/pg-core';
 
 // ── Enums ──────────────────────────────────────────────────────────────────
@@ -312,7 +313,9 @@ export const purchases = pgTable('purchases', {
   totalUsd: numeric('total_usd', { precision: 19, scale: 4 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('purchases_product_status_idx').on(table.productId, table.status),
+]);
 
 export const executions = pgTable('executions', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -339,6 +342,34 @@ export const toolCallRequests = pgTable('tool_call_requests', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('tool_call_requests_user_idempotency_idx').on(table.userId, table.idempotencyKey),
+]);
+
+export const userSpendControls = pgTable('user_spend_controls', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id).unique(),
+  maxPerCallUsd: numeric('max_per_call_usd', { precision: 19, scale: 4 }).default('25').notNull(),
+  dailyLimitUsd: numeric('daily_limit_usd', { precision: 19, scale: 4 }).default('100').notNull(),
+  monthlyLimitUsd: numeric('monthly_limit_usd', { precision: 19, scale: 4 }).default('1000').notNull(),
+  rateLimitPerMinute: integer('rate_limit_per_minute').default(60).notNull(),
+  rateLimitPerHour: integer('rate_limit_per_hour').default(1000).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const toolSpendControls = pgTable('tool_spend_controls', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  allowed: boolean('allowed').default(true).notNull(),
+  maxPerCallUsd: numeric('max_per_call_usd', { precision: 19, scale: 4 }),
+  dailyLimitUsd: numeric('daily_limit_usd', { precision: 19, scale: 4 }),
+  monthlyLimitUsd: numeric('monthly_limit_usd', { precision: 19, scale: 4 }),
+  rateLimitPerMinute: integer('rate_limit_per_minute'),
+  rateLimitPerHour: integer('rate_limit_per_hour'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('tool_spend_controls_user_product_idx').on(table.userId, table.productId),
 ]);
 
 export const providerEarnings = pgTable('provider_earnings', {

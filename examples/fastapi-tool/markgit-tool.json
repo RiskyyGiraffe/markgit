@@ -1,0 +1,47 @@
+{
+  "$schema": "../../packages/tool-spec/markgit-tool.schema.json",
+  "schemaVersion": "1",
+  "provider": {
+    "name": "Local FastAPI Tools",
+    "description": "A local publisher used to verify Markgit onboarding and settlement.",
+    "websiteUrl": "http://localhost:3200/docs"
+  },
+  "name": "Local Text Analyzer",
+  "slug": "local-text-analyzer",
+  "description": "Counts words and characters and can uppercase the supplied text.",
+  "category": "text",
+  "tags": ["text", "analysis", "local", "fastapi"],
+  "endpoint": {
+    "url": "http://localhost:3200/v1/analyze",
+    "method": "POST"
+  },
+  "inputSchema": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 10000
+      },
+      "uppercase": {
+        "type": "boolean",
+        "default": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["text", "wordCount", "characterCount", "processedAt"],
+    "properties": {
+      "text": { "type": "string" },
+      "wordCount": { "type": "integer" },
+      "characterCount": { "type": "integer" },
+      "processedAt": { "type": "string", "format": "date-time" }
+    }
+  },
+  "pricing": {
+    "amountPerCallUsd": "0.0500"
+  }
+}

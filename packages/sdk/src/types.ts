@@ -93,6 +93,7 @@ export interface ToolCard {
   category: string | null;
   tags: string[];
   provider: { id: string; name: string; trustTier: string };
+  usage: { count: number; tracked: boolean };
   pricing: { type: 'free' | 'per_call'; currency: 'USD'; amount: string };
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
@@ -111,9 +112,34 @@ export interface ToolCallResponse {
   id: string;
   tool: { id: string; slug: string; name: string };
   status: string;
-  cost: { amount: string; currency: 'USD' };
+  cost: {
+    priceUsd: string;
+    feeUsd: string;
+    totalUsd: string;
+    currency: 'USD';
+  };
   output: Record<string, unknown> | null;
   error: { message: string } | null;
+}
+
+export interface SpendControlPreview {
+  approved: boolean;
+  violations: string[];
+  requestedUsd: string;
+  global: Record<string, string | number | null>;
+  tool: Record<string, string | number | boolean | null>;
+}
+
+export interface ToolQuoteResponse {
+  quote: {
+    id: string;
+    priceUsd: string;
+    feeUsd: string;
+    totalUsd: string;
+    expiresAt: string;
+  };
+  tool: { id: string; slug: string; name: string };
+  controls: SpendControlPreview;
 }
 
 export interface ProductSummary {
@@ -125,6 +151,7 @@ export interface ProductSummary {
   pricePerCallUsd: string;
   tags: string[];
   providerId: string;
+  usageCount: number;
 }
 
 // ── Products ────────────────────────────────────────────────────────────
@@ -143,6 +170,7 @@ export interface Product {
   pricePerCallUsd: string;
   tags: string[];
   buyerCredentialConfigured?: boolean;
+  usageCount?: number;
   createdAt: string;
   updatedAt: string;
 }
