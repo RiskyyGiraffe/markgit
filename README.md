@@ -1,18 +1,31 @@
-# Tolty — Agent API Marketplace
+# Markgit — Tool Registry and Commerce API
 
-Tolty is a hosted marketplace and execution layer for AI agents. Agents connect to Tolty to discover, buy, and consume third-party API products. Providers list their APIs with zero custom integration — Tolty reads their docs, generates product cards, and handles billing, execution, and payouts.
+Markgit is a thin standardization and marketplace layer for tools used by people and agents. Tool publishers host their own endpoints. Free standardized tools can be called directly; paid tools use Markgit only for wallet authorization, metering, and settlement. Markgit is not a separate agent runtime.
 
-**Repo**: [github.com/RiskyyGiraffe/agentmarket](https://github.com/RiskyyGiraffe/agentmarket)
+**Repo**: [github.com/RiskyyGiraffe/markgit](https://github.com/RiskyyGiraffe/markgit)
+
+## Install the CLI
+
+```bash
+npm install -g @markgit/cli
+markgit login
+markgit search "weather"
+markgit balance
+```
+
+The CLI opens a browser link so the user can connect their account without copying an API key. See [Tool API v1](docs/tool-api.md) for public discovery, direct free calls, paid calls, and provider publishing.
 
 ## Architecture
 
-Monorepo using pnpm workspaces with three packages:
+Monorepo using pnpm workspaces:
 
 ```
 packages/
   api/     → Hono (Node.js) REST API — all business logic, Stripe integration, DB access
-  sdk/     → TypeScript SDK — typed client for the Tolty API
+  sdk/     → TypeScript SDK — typed client for the Markgit API
   web/     → Next.js 15 frontend — dashboard, marketplace, wallet, provider pages
+  cli/     → Thin installable client — account linking, search, balance, and calls
+  tool-spec/ → Open JSON Schema for publisher-hosted tools
 ```
 
 **Database**: Neon Serverless Postgres (project: `rapid-hall-03841072`)
@@ -124,7 +137,7 @@ These features are fully implemented and functional:
 - **Hold-and-capture billing**: Quote → hold funds → execute → capture on success / release on failure. Real ledger accounting.
 - **Marketplace search and purchase flow**: Search products → get quote → buy → execute → see results. Full end-to-end sync execution.
 - **Provider Stripe Connect onboarding**: Providers connect their Stripe Express account for payouts.
-- **Per-call earnings tracking**: Every API call records gross, Tolty fee, and net earnings for the provider.
+- **Per-call earnings tracking**: Every API call records gross, Markgit fee, and net earnings for the provider.
 - **Daily auto-payouts**: `setInterval` cron sweeps all providers with active Stripe Connect + ≥$1 unpaid earnings, creates `stripe.transfers.create()` to their connected account.
 - **Provider dashboard**: Shows Stripe account status, 4-column earnings summary, per-call earnings table, payout history.
 - **Webhook handling**: `checkout.session.completed`, `checkout.session.expired`, `account.updated` — all with Stripe signature verification.
@@ -138,7 +151,7 @@ These exist in code but are stubs or need real implementation:
 | Feature | Status | Notes |
 |---------|--------|-------|
 | `POST /v1/wallet/fund` (direct) | **Placeholder** | Inserts a credit ledger entry with no real payment. Bypass for testing. Should be removed or admin-gated in production. |
-| Product execution | **Hardcoded mock** | `executionConfig` on products stores endpoint info but execution is currently a placeholder — doesn't make real HTTP calls to provider APIs. |
+| Product execution | **Basic remote gateway** | Sync provider calls and stored credentials work. Async calls and richer response validation still need implementation. |
 | Search | **Basic** | `ILIKE` text search on product name/description/tags. No embeddings, no semantic ranking. |
 | Provider trust tiers | **Schema only** | `trust_tier` column exists but no verification logic, no gating by tier. |
 | Product status workflow | **Partial** | Status enum exists (`draft → pending_review → active → suspended → archived`) but no review queue or approval flow. |
@@ -148,7 +161,7 @@ These exist in code but are stubs or need real implementation:
 | USDC / crypto payouts | **Schema only** | `provider_payout_configs` table and `chain`/`txHash`/`walletAddress` fields exist but no Bridge/Circle integration. Payouts currently go through Stripe Connect only. |
 | Doc-ingestion agent | **Not built** | The core differentiator — AI reads API docs and generates product cards — is not implemented. Products are currently created manually. |
 | Execution broker agent | **Not built** | AI-powered API call construction from product cards is not implemented. Execution is a placeholder. |
-| CLI | **Not built** | No `tolty` CLI exists yet. |
+| CLI | **Working MVP** | Browser account linking, public search/inspect, wallet status, direct free calls, paid gateway calls, and manifest publishing are implemented. npm/Homebrew release automation is not built yet. |
 | Email/SMS notifications | **Not built** | No notification delivery. |
 | Rate limiting | **Not built** | No request rate limits on the API. |
 | Refund flow | **Not built** | `refunded` status exists but no refund logic. |
@@ -159,7 +172,7 @@ To get a real marketplace where agents can discover, buy, and use APIs with real
 
 1. **Real execution engine** — When a purchase is made, actually call the provider's API using `executionConfig`. Handle auth injection, timeouts, retries, response normalization.
 
-2. **Doc-ingestion agent** — AI agent that reads API documentation from a URL and generates structured product cards (see `docs/provider-manifest-spec.md`). This is the core value prop — providers submit a URL and Tolty does the rest.
+2. **Doc-ingestion agent** — AI agent that reads API documentation from a URL and generates structured product cards (see `docs/provider-manifest-spec.md`). This is the core value prop — providers submit a URL and Markgit does the rest.
 
 3. **Execution broker agent** — AI agent that uses the product card + original docs to construct correct API calls, interpret responses, and normalize output for the consuming agent.
 
@@ -174,13 +187,13 @@ To get a real marketplace where agents can discover, buy, and use APIs with real
 ## Project Structure
 
 ```
-tolty/
+markgit/
 ├── package.json              # Root — pnpm workspace scripts
 ├── pnpm-workspace.yaml       # Workspace config
 ├── .env.example              # Environment template
 ├── .gitignore
 ├── docs/
-│   ├── tolty-product-plan.md          # Full product and architecture plan
+│   ├── markgit-product-plan.md          # Full product and architecture plan
 │   ├── wallet-settlement-model.md     # Billing, holds, captures, payouts spec
 │   └── provider-manifest-spec.md      # Internal product card format spec
 ├── packages/
@@ -215,7 +228,7 @@ tolty/
 │   │   └── package.json
 │   ├── sdk/                           # TypeScript SDK
 │   │   ├── src/
-│   │   │   ├── client.ts             # ToltyClient class
+│   │   │   ├── client.ts             # MarkgitClient class
 │   │   │   ├── types.ts              # All request/response types
 │   │   │   └── index.ts              # Barrel export
 │   │   └── package.json
@@ -238,7 +251,7 @@ tolty/
 
 ## Key Design Decisions
 
-- **Separate charges and transfers**: Tolty collects payment via Stripe Checkout (platform account), then uses `stripe.transfers.create()` to move provider net earnings to their Connect Express account. This gives Tolty full control over the money flow.
+- **Separate charges and transfers**: Markgit collects payment via Stripe Checkout (platform account), then uses `stripe.transfers.create()` to move provider net earnings to their Connect Express account. This gives Markgit full control over the money flow.
 - **Wallet ledger is the source of truth**: Not Stripe's balance. Every movement (credit, hold, capture, release, refund) is an immutable ledger entry. Balance is derived from the ledger.
 - **Idempotent webhook handling**: `stripe_checkout_sessions` table ensures duplicate webhook deliveries don't double-credit wallets.
 - **Daily auto-payouts**: No manual payout requests. A cron sweeps all eligible providers daily and creates Stripe transfers.
@@ -248,7 +261,7 @@ tolty/
 
 Read these for the full vision:
 
-- [`docs/tolty-product-plan.md`](docs/tolty-product-plan.md) — Complete product plan, architecture, security model, billing design, and implementation roadmap
+- [`docs/markgit-product-plan.md`](docs/markgit-product-plan.md) — Complete product plan, architecture, security model, billing design, and implementation roadmap
 - [`docs/wallet-settlement-model.md`](docs/wallet-settlement-model.md) — Wallet ledger, hold/capture, quotes, purchases, refunds, and payout flow
 - [`docs/provider-manifest-spec.md`](docs/provider-manifest-spec.md) — Internal product card format that the doc-ingestion agent generates
 

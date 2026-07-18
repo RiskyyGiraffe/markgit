@@ -8,7 +8,7 @@ const webDir = fs.realpathSync.native(process.cwd());
 const monoRoot = fs.realpathSync.native(path.resolve(webDir, "../.."));
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@tolty/sdk", "@tolty/api"],
+  transpilePackages: ["@markgit/sdk", "@markgit/api"],
   webpack: (config, { isServer }) => {
     // Resolve .js imports to .ts files in workspace packages (ESM TypeScript)
     config.resolve.extensionAlias = {
@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     };
 
     // Fix Windows path-casing: normalise every resolved module path so
-    // "C:\Users\Ryan-CCG\Projects\tolty" and "C:\Users\Ryan-CCG\projects\tolty"
+    // "C:\Users\Ryan-CCG\Projects\markgit" and "C:\Users\Ryan-CCG\projects\markgit"
     // collapse to the single real-cased path.
     class WinCaseNormalizePlugin {
       apply(resolver: any) {

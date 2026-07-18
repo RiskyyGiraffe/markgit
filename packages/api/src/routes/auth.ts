@@ -1,11 +1,30 @@
 import { Hono } from 'hono';
 import { db } from '../db/index.js';
-import { apiKeys } from '../db/schema.js';
+import { apiKeys, users } from '../db/schema.js';
 import { generateApiKey } from '../lib/crypto.js';
 import { ValidationError } from '../lib/errors.js';
 import type { AuthContext } from '../middleware/auth.js';
+import { eq } from 'drizzle-orm';
 
 const auth = new Hono<{ Variables: { auth: AuthContext } }>();
+
+auth.get('/me', async (c) => {
+  const { auth: ctx } = c.var;
+  const [user] = await db
+    .select({ id: users.id, email: users.email, name: users.name })
+    .from(users)
+    .where(eq(users.id, ctx.userId))
+    .limit(1);
+
+  return c.json({
+    user,
+    apiKey: {
+      id: ctx.apiKeyId,
+      permissions: ctx.permissions,
+      budget: ctx.budgetLimits,
+    },
+  });
+});
 
 auth.post('/keys', async (c) => {
   const { auth: ctx } = c.var;

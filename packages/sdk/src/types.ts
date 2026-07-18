@@ -1,6 +1,6 @@
 // ── Client Options ──────────────────────────────────────────────────────
 
-export interface ToltyClientOptions {
+export interface MarkgitClientOptions {
   apiKey: string;
   baseUrl?: string;
 }
@@ -85,6 +85,63 @@ export interface SearchResponse {
   total: number;
 }
 
+export interface ToolCard {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  provider: { id: string; name: string; trustTier: string };
+  usage: { count: number; tracked: boolean };
+  pricing: { type: 'free' | 'per_call'; currency: 'USD'; amount: string };
+  inputSchema: Record<string, unknown> | null;
+  outputSchema: Record<string, unknown> | null;
+  access:
+    | { mode: 'direct'; endpoint: { url: string; method: 'GET' | 'POST' } }
+    | { mode: 'gateway'; endpoint: { path: string; method: 'POST' } };
+  updatedAt: string;
+}
+
+export interface ToolListResponse {
+  tools: ToolCard[];
+  total: number;
+}
+
+export interface ToolCallResponse {
+  id: string;
+  tool: { id: string; slug: string; name: string };
+  status: string;
+  cost: {
+    priceUsd: string;
+    feeUsd: string;
+    totalUsd: string;
+    currency: 'USD';
+  };
+  output: Record<string, unknown> | null;
+  error: { message: string } | null;
+}
+
+export interface SpendControlPreview {
+  approved: boolean;
+  violations: string[];
+  requestedUsd: string;
+  global: Record<string, string | number | null>;
+  tool: Record<string, string | number | boolean | null>;
+}
+
+export interface ToolQuoteResponse {
+  quote: {
+    id: string;
+    priceUsd: string;
+    feeUsd: string;
+    totalUsd: string;
+    expiresAt: string;
+  };
+  tool: { id: string; slug: string; name: string };
+  controls: SpendControlPreview;
+}
+
 export interface ProductSummary {
   id: string;
   name: string;
@@ -94,6 +151,7 @@ export interface ProductSummary {
   pricePerCallUsd: string;
   tags: string[];
   providerId: string;
+  usageCount: number;
 }
 
 // ── Products ────────────────────────────────────────────────────────────
@@ -112,6 +170,7 @@ export interface Product {
   pricePerCallUsd: string;
   tags: string[];
   buyerCredentialConfigured?: boolean;
+  usageCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -146,7 +205,7 @@ export interface Quote {
   productId: string;
   walletId: string;
   priceUsd: string;
-  toltyFeeUsd: string;
+  markgitFeeUsd: string;
   totalUsd: string;
   status: string;
   expiresAt: string;
@@ -329,7 +388,7 @@ export interface EarningEntry {
   purchaseId: string;
   productName: string;
   grossAmountUsd: string;
-  toltyFeeUsd: string;
+  markgitFeeUsd: string;
   netAmountUsd: string;
   payoutId: string | null;
   createdAt: string;

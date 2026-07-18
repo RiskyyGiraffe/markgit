@@ -1,12 +1,12 @@
 "use server";
 
-import { getToltyClient } from "@/lib/tolty-client";
+import { getMarkgitClient } from "@/lib/markgit-client";
 
 export async function executeProduct(
   productId: string,
   input: Record<string, unknown>
 ) {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
 
   // 1. Create quote
   const quote = await client.createQuote({ productId });
@@ -22,12 +22,12 @@ export async function executeProduct(
 }
 
 export async function listPurchases() {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
   return client.listPurchases();
 }
 
 export async function listExecutions() {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
   return client.listExecutions();
 }
 
@@ -40,11 +40,11 @@ export async function saveBuyerCredential(
     value: string;
   }
 ) {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
   return client.setSelfCredential(productId, input);
 }
 
 export async function deleteBuyerCredential(productId: string) {
-  const client = await getToltyClient();
+  const client = await getMarkgitClient();
   return client.deleteSelfCredential(productId);
 }

@@ -1,5 +1,5 @@
 import type {
-  ToltyClientOptions,
+  MarkgitClientOptions,
   ApiErrorResponse,
   CreateApiKeyRequest,
   ApiKey,
@@ -41,25 +41,29 @@ import type {
   ImportTestResponse,
   PublishProviderImportResponse,
   CredentialRequest,
+  ToolCard,
+  ToolListResponse,
+  ToolCallResponse,
+  ToolQuoteResponse,
 } from './types.js';
 
-export class ToltyApiError extends Error {
+export class MarkgitApiError extends Error {
   constructor(
     public statusCode: number,
     public code: string,
     message: string,
   ) {
     super(message);
-    this.name = 'ToltyApiError';
+    this.name = 'MarkgitApiError';
   }
 }
 
-export class ToltyClient {
+export class MarkgitClient {
   private baseUrl: string;
   private apiKey: string;
   private sessionId: string | null = null;
 
-  constructor(options: ToltyClientOptions) {
+  constructor(options: MarkgitClientOptions) {
     this.apiKey = options.apiKey;
     this.baseUrl = (options.baseUrl ?? 'http://localhost:3000').replace(/\/$/, '');
   }
@@ -96,6 +100,33 @@ export class ToltyClient {
 
   async search(request: SearchRequest): Promise<SearchResponse> {
     return this.request('POST', '/v1/search', request);
+  }
+
+  async listTools(query = '', limit = 20, offset = 0): Promise<ToolListResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit), offset: String(offset) });
+    return this.request('GET', `/v1/registry/tools?${params}`);
+  }
+
+  async getTool(identifier: string): Promise<ToolCard> {
+    return this.request('GET', `/v1/registry/tools/${encodeURIComponent(identifier)}`);
+  }
+
+  async quoteTool(identifier: string): Promise<ToolQuoteResponse> {
+    return this.request('POST', `/v1/tools/${encodeURIComponent(identifier)}/quote`, {});
+  }
+
+  async callTool(
+    identifier: string,
+    input: Record<string, unknown>,
+    idempotencyKey: string,
+    quoteId: string,
+  ): Promise<ToolCallResponse> {
+    return this.request(
+      'POST',
+      `/v1/tools/${encodeURIComponent(identifier)}/call`,
+      { input, quoteId },
+      { 'Idempotency-Key': idempotencyKey },
+    );
   }
 
   // ── Products ────────────────────────────────────────────────────────
@@ -265,14 +296,20 @@ export class ToltyClient {
 
   // ── Internal ────────────────────────────────────────────────────────
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    extraHeaders?: Record<string, string>,
+  ): Promise<T> {
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json',
+      ...extraHeaders,
     };
 
     if (this.sessionId) {
-      headers['X-Tolty-Session'] = this.sessionId;
+      headers['X-Markgit-Session'] = this.sessionId;
     }
 
     const response = await fetch(`${this.baseUrl}${path}`, {
@@ -282,7 +319,7 @@ export class ToltyClient {
     });
 
     // Capture session ID from response
-    const newSessionId = response.headers.get('X-Tolty-Session');
+    const newSessionId = response.headers.get('X-Markgit-Session');
     if (newSessionId) {
       this.sessionId = newSessionId;
     }
@@ -292,7 +329,7 @@ export class ToltyClient {
         error: { code: 'UNKNOWN', message: response.statusText },
       }))) as ApiErrorResponse;
 
-      throw new ToltyApiError(
+      throw new MarkgitApiError(
         response.status,
         errorBody.error.code,
         errorBody.error.message,

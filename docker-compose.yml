@@ -4,9 +4,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: tolty
-      POSTGRES_PASSWORD: tolty
-      POSTGRES_DB: tolty
+      POSTGRES_USER: markgit
+      POSTGRES_PASSWORD: markgit
+      POSTGRES_DB: markgit
     volumes:
       - pgdata:/var/lib/postgresql/data
 

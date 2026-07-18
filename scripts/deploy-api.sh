@@ -37,7 +37,7 @@ ssh "${REMOTE_HOST}" "
   corepack prepare pnpm@9.13.1 --activate
   cd '${REMOTE_DIR}'
   corepack pnpm install --frozen-lockfile
-  corepack pnpm --filter @tolty/api build
+  corepack pnpm --filter @markgit/api build
   sudo systemctl daemon-reload
   sudo systemctl enable ${SERVICE_NAME}
   sudo systemctl enable ${WORKER_SERVICE_NAME}

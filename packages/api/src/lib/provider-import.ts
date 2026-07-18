@@ -40,6 +40,7 @@ export interface StaticParam {
 
 export interface ExecutionConfig {
   type: 'http_rest';
+  protocol?: 'markgit.tool/v1';
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   baseUrl: string;
   timeoutMs?: number;

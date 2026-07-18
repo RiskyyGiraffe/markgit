@@ -1,6 +1,6 @@
 "use client";
 
-import type { ExecutionListItem } from "@tolty/sdk";
+import type { ExecutionListItem } from "@markgit/sdk";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

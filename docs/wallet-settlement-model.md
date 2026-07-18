@@ -1,10 +1,10 @@
-# Tolty Wallet, Quote, Purchase, and Settlement Model
+# Markgit Wallet, Quote, Purchase, and Settlement Model
 
 ## 1. Purpose
 
-This spec defines how Tolty handles user spend, provider earnings, quote authorization, purchase execution, refunds, and payouts.
+This spec defines how Markgit handles user spend, provider earnings, quote authorization, purchase execution, refunds, and payouts.
 
-Tolty should use an internal wallet ledger even when Stripe is the payment processor. The wallet is the spend abstraction agents reason about; Stripe is one funding and payout rail behind it.
+Markgit should use an internal wallet ledger even when Stripe is the payment processor. The wallet is the spend abstraction agents reason about; Stripe is one funding and payout rail behind it.
 
 ## 2. Design goals
 
@@ -153,7 +153,7 @@ Required fields:
 - `provider_id`
 - `purchase_id`
 - `gross_amount`
-- `tolty_fee_amount`
+- `markgit_fee_amount`
 - `net_amount`
 - `currency`
 - `status`
@@ -168,7 +168,7 @@ Allowed `status` values:
 
 ### 3.7 Payout
 
-A payout is a remittance from Tolty to a provider.
+A payout is a remittance from Markgit to a provider.
 
 Required fields:
 
@@ -208,7 +208,7 @@ Allowed `status` values:
 
 ## 4. Wallet balances
 
-Tolty should calculate these wallet views:
+Markgit should calculate these wallet views:
 
 - `available_balance`
 - `held_balance`
@@ -230,7 +230,7 @@ Agents should see at least:
 
 ## 5. Funding model
 
-V1 funding sources (inbound — user to Tolty):
+V1 funding sources (inbound — user to Markgit):
 
 - credit card via Stripe
 - ACH via Stripe where available
@@ -245,14 +245,14 @@ Funding flow:
 
 1. user initiates wallet funding
 2. Stripe confirms charge or transfer
-3. Tolty writes `funding_credit`
+3. Markgit writes `funding_credit`
 4. wallet `available_balance` increases
 
-Tolty should never let agents spend against processor events that have not been settled into the wallet ledger.
+Markgit should never let agents spend against processor events that have not been settled into the wallet ledger.
 
 ## 5.1 Payout model
 
-V1 payout method (outbound — Tolty to provider):
+V1 payout method (outbound — Markgit to provider):
 
 - USDC stablecoin to provider-specified wallet address via Bridge (Stripe-owned) or Circle
 
@@ -280,16 +280,16 @@ Payout flow:
 1. purchase is captured and provider earning is created
 2. earning enters `pending` status
 3. after payout delay (7-14 days for new providers), earning moves to `eligible_for_payout`
-4. Tolty batches eligible earnings on payout schedule
-5. Tolty initiates USDC transfer to provider wallet address via Bridge or Circle
+4. Markgit batches eligible earnings on payout schedule
+5. Markgit initiates USDC transfer to provider wallet address via Bridge or Circle
 6. on-chain confirmation updates payout to `paid`
 7. transaction hash is recorded in payout record
 
 Tax and compliance:
 
-- Tolty must still issue 1099s (US) or equivalent for providers above reporting thresholds
+- Markgit must still issue 1099s (US) or equivalent for providers above reporting thresholds
 - provider KYC can be deferred until payout thresholds are reached
-- crypto payouts do not exempt Tolty from tax reporting obligations
+- crypto payouts do not exempt Markgit from tax reporting obligations
 
 ## 6. Quote model
 
@@ -305,7 +305,7 @@ Quotes exist so the agent can inspect price before committing wallet funds.
 
 - every quote must have an expiration time
 - every paid execution must link to a quote, even if the quote is internally generated for a fixed price
-- quotes may include provider-originated ids, but Tolty quote ids are authoritative
+- quotes may include provider-originated ids, but Markgit quote ids are authoritative
 - a quote may be reused only if still valid and explicitly allowed by policy
 
 ### 6.3 Quote response shape
@@ -328,20 +328,20 @@ Suggested fields:
 
 1. agent calls `GET /v1/wallet`
 2. agent calls `POST /v1/quotes`
-3. Tolty evaluates policy and wallet sufficiency
+3. Markgit evaluates policy and wallet sufficiency
 4. if approval is required, purchase moves to `awaiting_approval`
-5. once authorized, Tolty creates a hold
+5. once authorized, Markgit creates a hold
 6. purchase moves to `authorized`
 7. execution starts
 8. purchase moves to `running`
-9. on success, Tolty captures actual amount and releases unused hold
+9. on success, Markgit captures actual amount and releases unused hold
 10. purchase moves to `completed`
 
 ### 7.2 Subscription purchase flow
 
 1. agent requests a subscription quote or price preview
-2. Tolty checks wallet and recurring-budget policy
-3. Tolty authorizes initial hold or first-run charge
+2. Markgit checks wallet and recurring-budget policy
+3. Markgit authorizes initial hold or first-run charge
 4. subscription is created
 5. each run creates its own execution, hold, capture, and provider earning record
 
@@ -349,7 +349,7 @@ Suggested fields:
 
 ### 8.1 Capture rules
 
-Tolty should capture only the actual amount owed after execution completes.
+Markgit should capture only the actual amount owed after execution completes.
 
 Rules:
 
@@ -364,8 +364,8 @@ Provider earning is created only after a purchase capture is successful.
 Formula:
 
 - `gross_amount` = captured amount
-- `tolty_fee_amount` = Tolty marketplace fee
-- `net_amount` = gross amount - tolty_fee_amount - reserves or dispute holds
+- `markgit_fee_amount` = Markgit marketplace fee
+- `net_amount` = gross amount - markgit_fee_amount - reserves or dispute holds
 
 ### 8.3 Settlement timing
 
@@ -416,7 +416,7 @@ Refund flow:
 
 ## 11. Fraud and reserve model
 
-Tolty should keep reserves separate from wallet balances.
+Markgit should keep reserves separate from wallet balances.
 
 Recommended provider controls:
 
@@ -450,11 +450,11 @@ Minimum response fields from `GET /v1/wallet`:
 
 Minimum commands:
 
-- `tolty wallet balance`
-- `tolty wallet fund --amount 100`
-- `tolty products buy product_123 --max-price 25`
-- `tolty purchases show purchase_123`
-- `tolty purchases refund purchase_123`
+- `markgit wallet balance`
+- `markgit wallet fund --amount 100`
+- `markgit products buy product_123 --max-price 25`
+- `markgit purchases show purchase_123`
+- `markgit purchases refund purchase_123`
 
 CLI purchase output should show:
 
@@ -495,11 +495,11 @@ Example:
 
 1. wallet funded with `$100`
 2. agent requests quote for a product with `not_to_exceed = $12`
-3. Tolty creates a `$12` hold
+3. Markgit creates a `$12` hold
 4. execution completes with actual cost `$9.50`
-5. Tolty captures `$9.50`
-6. Tolty releases `$2.50`
-7. Tolty records provider earning on `$9.50`
+5. Markgit captures `$9.50`
+6. Markgit releases `$2.50`
+7. Markgit records provider earning on `$9.50`
 
 Wallet view after completion:
 
@@ -508,7 +508,7 @@ Wallet view after completion:
 
 ## 16. Implementation notes
 
-The main plan in [tolty-product-plan.md](./tolty-product-plan.md) should treat this file as the authoritative contract for:
+The main plan in [markgit-product-plan.md](./markgit-product-plan.md) should treat this file as the authoritative contract for:
 
 - wallet funding
 - quote creation

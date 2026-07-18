@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { Check, Copy, Terminal } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-const installCommand =
-  "git clone https://github.com/RiskyyGiraffe/markgit.git markgit && cd markgit && pnpm install && pnpm dev:all";
+const installCommand = "npm install -g @markgit/cli && markgit login";
 
 export function InstallCommandCard() {
   const [copied, setCopied] = useState(false);
@@ -17,35 +15,30 @@ export function InstallCommandCard() {
   };
 
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-white/75">
-            <Terminal className="size-4 text-cyan-200" />
-            Install markgit locally
-          </div>
-          <p className="max-w-2xl text-sm leading-6 text-white/50">
-            One command to clone the repo, install dependencies, and boot the
-            markgit workspace. Requires Node 20+ and `pnpm`.
-          </p>
-        </div>
-
-        <Button
-          type="button"
-          onClick={handleCopy}
-          variant="outline"
-          className="rounded-full border-white/15 bg-white/[0.03] text-white hover:bg-white/10 hover:text-white"
-        >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-          {copied ? "Copied" : "Copy command"}
-        </Button>
+    <div className="rounded-2xl border border-white/12 bg-white/[0.05] p-3 shadow-2xl shadow-black/30">
+      <div className="flex items-center justify-between px-2 pb-3 pt-1 text-xs text-white/45">
+        <span className="inline-flex items-center gap-2">
+          <Terminal className="size-3.5" />
+          Install and link the CLI
+        </span>
+        <span>npm</span>
       </div>
-
-      <div className="mt-4 overflow-x-auto rounded-[22px] border border-white/8 bg-black/40 px-4 py-4">
-        <code className="font-mono text-[13px] leading-6 text-cyan-50/90">
+      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/35 px-4 py-4">
+        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[13px] text-white/85">
           {installCommand}
         </code>
+        <button
+          type="button"
+          onClick={handleCopy}
+          aria-label="Copy install command"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-white/55 transition hover:bg-white/10 hover:text-white"
+        >
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+        </button>
       </div>
+      <p className="px-2 pb-1 pt-3 text-xs leading-5 text-white/40">
+        Then publish with <code className="text-white/65">markgit onboard markgit-tool.json</code>
+      </p>
     </div>
   );
 }

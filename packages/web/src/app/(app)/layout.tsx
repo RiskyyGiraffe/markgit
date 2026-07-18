@@ -24,7 +24,7 @@ export default async function AppLayout({
   // If the markgit API key cookie is missing, redirect to the provision
   // route handler which can set the cookie and redirect back.
   const cookieStore = await cookies();
-  if (!cookieStore.get("tolty-api-key")) {
+  if (!cookieStore.get("markgit-api-key")) {
     redirect("/api/provision");
   }
 

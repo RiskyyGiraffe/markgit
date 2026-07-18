@@ -12,6 +12,7 @@ import {
 import { ForbiddenError, NotFoundError, ValidationError } from '../lib/errors.js';
 import { createHold, captureHold, releaseHold } from './wallet.js';
 import { runExecution } from './execution-engine.js';
+import { enforceSpendLimits } from './spend-controls.js';
 import { hasBuyerCredential } from './credentials.js';
 import {
   addUsd,
@@ -19,7 +20,7 @@ import {
   ensureResourceOwnership,
 } from '../lib/marketplace-guards.js';
 
-const TOLTY_FEE_RATE = 0.10; // 10%
+const MARKGIT_FEE_RATE = 0.10; // 10%
 const QUOTE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function listPurchases(userId: string, limit = 50, offset = 0) {
@@ -74,7 +75,7 @@ export async function createQuote(userId: string, productId: string, walletId: s
   }
 
   const price = parseFloat(product.pricePerCallUsd);
-  const fee = parseFloat((price * TOLTY_FEE_RATE).toFixed(4));
+  const fee = parseFloat((price * MARKGIT_FEE_RATE).toFixed(4));
   const total = parseFloat((price + fee).toFixed(4));
 
   const [quote] = await db
@@ -84,7 +85,7 @@ export async function createQuote(userId: string, productId: string, walletId: s
       productId,
       walletId,
       priceUsd: price.toFixed(4),
-      toltyFeeUsd: fee.toFixed(4),
+      markgitFeeUsd: fee.toFixed(4),
       totalUsd: total.toFixed(4),
       expiresAt: new Date(Date.now() + QUOTE_TTL_MS),
     })
@@ -158,6 +159,7 @@ export async function createPurchase(
   }
 
   ensureBudgetWithinLimit(apiKey.budgetLimitUsd, apiKey.budgetUsedUsd, quote.totalUsd);
+  await enforceSpendLimits(userId, data.productId, quote.totalUsd);
 
   // Create hold on wallet
   const hold = await createHold(quote.walletId, quote.totalUsd, '00000000-0000-0000-0000-000000000000');
@@ -221,14 +223,16 @@ export async function createPurchase(
 
     // Record provider earnings
     const grossAmount = parseFloat(quote.priceUsd);
-    const toltyFee = parseFloat(quote.toltyFeeUsd);
-    const netAmount = parseFloat((grossAmount - toltyFee).toFixed(4));
+    // The marketplace fee is already added transparently to the buyer's quote.
+    // Do not deduct the same fee a second time from provider earnings.
+    const providerFee = 0;
+    const netAmount = grossAmount;
 
     await db.insert(providerEarnings).values({
       providerId: product.providerId,
       purchaseId: purchase.id,
       grossAmountUsd: grossAmount.toFixed(4),
-      toltyFeeUsd: toltyFee.toFixed(4),
+      markgitFeeUsd: providerFee.toFixed(4),
       netAmountUsd: netAmount.toFixed(4),
       payoutEligibleAt: new Date(),
     });

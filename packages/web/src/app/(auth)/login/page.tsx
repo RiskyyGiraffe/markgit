@@ -13,9 +13,10 @@ import {
 
 export default function LoginPage() {
   const handleSignIn = (provider: "google" | "github") => {
+    const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
     authClient.signIn.social({
       provider,
-      callbackURL: "/dashboard",
+      callbackURL: next,
     });
   };
 

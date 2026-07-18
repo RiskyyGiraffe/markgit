@@ -21,7 +21,8 @@ export const authMiddleware = createMiddleware<{
   }
 
   const rawKey = header.slice(7);
-  if (!rawKey.startsWith('tlty_')) {
+  // Existing pre-rename keys remain valid while all newly issued keys use mkgt_.
+  if (!rawKey.startsWith('mkgt_') && !rawKey.startsWith('tlty_')) {
     throw new UnauthorizedError();
   }
 

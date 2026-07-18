@@ -1,4 +1,4 @@
-# Tolty — Next Steps
+# Markgit — Next Steps
 
 What needs to happen to go from current state to a functional agent API marketplace.
 
@@ -24,7 +24,7 @@ What needs to happen to go from current state to a functional agent API marketpl
 
 ## Phase 1: Real Execution Engine
 
-**Goal**: When a user buys a product, Tolty actually calls the provider's API and returns real results.
+**Goal**: When a user buys a product, Markgit actually calls the provider's API and returns real results.
 
 ### Tasks
 
@@ -150,7 +150,7 @@ This is the core differentiator. See `docs/provider-manifest-spec.md` for the ta
 
 ## Phase 5: Production Deployment
 
-**Goal**: Run Tolty on a real URL with proper infrastructure.
+**Goal**: Run Markgit on a real URL with proper infrastructure.
 
 ### Tasks
 
@@ -235,18 +235,18 @@ This is the core differentiator. See `docs/provider-manifest-spec.md` for the ta
 
 ## Phase 9: CLI
 
-**Goal**: `tolty` command-line tool for testing and operator workflows.
+**Goal**: `markgit` command-line tool for testing and operator workflows.
 
 ```bash
-tolty auth login
-tolty wallet balance
-tolty wallet fund --amount 50
-tolty search "weather api"
-tolty products inspect <id>
-tolty products buy <id> --max-price 0.50
-tolty executions status <id>
-tolty executions result <id>
-tolty providers register --name "My API" --docs-url https://...
+markgit auth login
+markgit wallet balance
+markgit wallet fund --amount 50
+markgit search "weather api"
+markgit products inspect <id>
+markgit products buy <id> --max-price 0.50
+markgit executions status <id>
+markgit executions result <id>
+markgit providers register --name "My API" --docs-url https://...
 ```
 
 Build as a new package: `packages/cli/`

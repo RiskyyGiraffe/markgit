@@ -1,6 +1,6 @@
 import { sql, eq, and, ilike, or, desc, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { products, productSearchEmbeddings } from '../db/schema.js';
+import { products, productSearchEmbeddings, purchases } from '../db/schema.js';
 import { cosineSimilarity, embedQuery, ensureProductEmbeddings } from './embeddings.js';
 
 const semanticLexicon: Record<string, string[]> = {
@@ -139,6 +139,25 @@ async function runSearchQuery(query: string, limit: number, offset: number) {
   return results.map(({ relevance: _relevance, ...product }) => product);
 }
 
+async function attachUsageCounts<T extends { id: string }>(items: T[]) {
+  if (items.length === 0) return [] as Array<T & { usageCount: number }>;
+
+  const rows = await db
+    .select({
+      productId: purchases.productId,
+      usageCount: sql<number>`count(*)::int`,
+    })
+    .from(purchases)
+    .where(and(
+      inArray(purchases.productId, items.map((item) => item.id)),
+      eq(purchases.status, 'completed'),
+    ))
+    .groupBy(purchases.productId);
+  const counts = new Map(rows.map((row) => [row.productId, Number(row.usageCount)]));
+
+  return items.map((item) => ({ ...item, usageCount: counts.get(item.id) ?? 0 }));
+}
+
 export async function searchProducts(query: string, limit = 20, offset = 0) {
   const primaryResults = await runSearchQuery(query, limit * 2, 0);
   const relatedTerms = primaryResults.length >= Math.min(limit, 3) ? [] : await expandSemanticQuery(query);
@@ -156,8 +175,9 @@ export async function searchProducts(query: string, limit = 20, offset = 0) {
   await ensureProductEmbeddings(combined.map((item) => item.id));
   const queryEmbedding = await embedQuery(query);
   if (!queryEmbedding) {
+    const results = await attachUsageCounts(combined.slice(offset, offset + limit));
     return {
-      results: combined.slice(offset, offset + limit),
+      results,
       total: combined.length,
     };
   }
@@ -180,8 +200,11 @@ export async function searchProducts(query: string, limit = 20, offset = 0) {
     })
     .sort((left, right) => right.score - left.score);
 
+  const results = await attachUsageCounts(
+    scored.slice(offset, offset + limit).map((entry) => entry.item),
+  );
   return {
-    results: scored.slice(offset, offset + limit).map((entry) => entry.item),
+    results,
     total: scored.length,
   };
 }

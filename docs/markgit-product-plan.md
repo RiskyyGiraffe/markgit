@@ -1,4 +1,4 @@
-# Tolty Product and Architecture Plan
+# Markgit Product and Architecture Plan
 
 Companion specs:
 
@@ -7,20 +7,20 @@ Companion specs:
 
 ## 1. Product thesis
 
-Tolty is a hosted marketplace and execution contract layer for agents. Any agent should be able to connect to Tolty, search for provider-published APIs or recurring jobs, buy or subscribe to them under clear policy limits, and receive results back in a machine-usable form.
+Markgit is a hosted marketplace and execution contract layer for agents. Any agent should be able to connect to Markgit, search for provider-published APIs or recurring jobs, buy or subscribe to them under clear policy limits, and receive results back in a machine-usable form.
 
-The core idea is not "Tolty is the agent." The core idea is:
+The core idea is not "Markgit is the agent." The core idea is:
 
-- anyone can list an API by pointing Tolty to its docs — no custom integration required
-- Tolty's doc-ingestion agent reads the docs, extracts capabilities, and generates an internal product card
-- Tolty's execution broker agent makes real API calls using the doc-derived understanding
-- agents connect through a standard Tolty protocol to search, buy, and consume API products
+- anyone can list an API by pointing Markgit to its docs — no custom integration required
+- Markgit's doc-ingestion agent reads the docs, extracts capabilities, and generates an internal product card
+- Markgit's execution broker agent makes real API calls using the doc-derived understanding
+- agents connect through a standard Markgit protocol to search, buy, and consume API products
 - users control budgets, permissions, and approvals
-- Tolty handles discovery, trust, billing, subscriptions, payouts, and delivery
+- Markgit handles discovery, trust, billing, subscriptions, payouts, and delivery
 
-The key insight: providers should not have to build anything custom for Tolty. The onboarding friction should be as close to zero as possible — submit your API URL, point to your docs, provide auth credentials, and give us a wallet address for payouts. Tolty's AI does the rest.
+The key insight: providers should not have to build anything custom for Markgit. The onboarding friction should be as close to zero as possible — submit your API URL, point to your docs, provide auth credentials, and give us a wallet address for payouts. Markgit's AI does the rest.
 
-If this works, Tolty becomes the marketplace and control plane between agents and third-party execution providers.
+If this works, Markgit becomes the marketplace and control plane between agents and third-party execution providers.
 
 ## 2. Product principles
 
@@ -30,8 +30,8 @@ If this works, Tolty becomes the marketplace and control plane between agents an
 4. Provider onboarding must be zero-friction: point to docs, provide auth, receive payouts.
 5. External API content is untrusted input, not instructions.
 6. Model and runtime choices should be replaceable; the marketplace should not depend on one provider.
-7. Tolty should be agent-agnostic; first-party agent experiences are useful, but not the product boundary.
-8. Tolty's AI reads and understands provider APIs — providers should never have to write custom integration code.
+7. Markgit should be agent-agnostic; first-party agent experiences are useful, but not the product boundary.
+8. Markgit's AI reads and understands provider APIs — providers should never have to write custom integration code.
 
 ## 3. Target user experience
 
@@ -46,7 +46,7 @@ If this works, Tolty becomes the marketplace and control plane between agents an
 ### Required behaviors
 
 - answer normally if no tool is needed
-- let an external agent search the Tolty marketplace when a tool or recurring job is needed
+- let an external agent search the Markgit marketplace when a tool or recurring job is needed
 - request approval before sensitive actions unless the user pre-approved them
 - let the agent buy a one-time API action or subscribe to a recurring job
 - deliver results back to the agent or user in structured formats
@@ -72,8 +72,8 @@ If this works, Tolty becomes the marketplace and control plane between agents an
 
 ### Explicit non-goals for initial MVP
 
-- Tolty being the only supported agent runtime
-- arbitrary code execution by third-party providers inside Tolty infrastructure
+- Markgit being the only supported agent runtime
+- arbitrary code execution by third-party providers inside Markgit infrastructure
 - autonomous spending with no user-configurable policy controls
 - a completely open marketplace with zero review
 - dozens of pricing models at launch
@@ -90,7 +90,7 @@ If this works, Tolty becomes the marketplace and control plane between agents an
    - result retrieval and callback registration
    - session / execution state access
 
-2. Tolty API / control plane
+2. Markgit API / control plane
    - auth
    - sessions
    - policy engine
@@ -150,7 +150,7 @@ If this works, Tolty becomes the marketplace and control plane between agents an
 
 ### 5.2 Marketplace execution model
 
-Tolty should expose a standard flow that any agent can use:
+Markgit should expose a standard flow that any agent can use:
 
 1. search products or recurring jobs
 2. inspect capability, price, trust tier, and result contract
@@ -165,23 +165,23 @@ Important constraints:
 - every purchase and execution writes an audit record
 - every action includes estimated cost, actual cost, and approval state
 - recurring jobs inherit policy but are still bounded by active budget and trust rules
-- Tolty can pause a job when waiting for webhook, approval, or provider completion
+- Markgit can pause a job when waiting for webhook, approval, or provider completion
 
 ### 5.3 Agent compatibility model
 
-Tolty should not assume one model provider, one agent framework, or one runtime pattern.
+Markgit should not assume one model provider, one agent framework, or one runtime pattern.
 
 Recommended model:
 
-- define a Tolty HTTP API first
+- define a Markgit HTTP API first
 - add SDKs for common agent stacks later
 - expose structured search, quote, buy, subscribe, cancel, and fetch-result endpoints
 - support agent callback URLs and agent polling
-- treat subagents as an external agent concern unless Tolty later offers a hosted runtime
+- treat subagents as an external agent concern unless Markgit later offers a hosted runtime
 
 ### 5.4 Optional first-party runtime
 
-Tolty may still offer its own CLI or hosted runtime later, but that should be built on the same marketplace APIs external agents use.
+Markgit may still offer its own CLI or hosted runtime later, but that should be built on the same marketplace APIs external agents use.
 
 This keeps the core platform honest:
 
@@ -193,7 +193,7 @@ This keeps the core platform honest:
 
 ### 6.1 Core concept
 
-Providers do not expose arbitrary prose to an agent and hope for the best. They publish a structured tool contract that Tolty compiles into a normalized internal tool definition.
+Providers do not expose arbitrary prose to an agent and hope for the best. They publish a structured tool contract that Markgit compiles into a normalized internal tool definition.
 
 The marketplace unit should be a `product`, not just an endpoint.
 
@@ -220,7 +220,7 @@ Each product should also expose one simple entry contract:
 
 ### 6.2 Provider onboarding and doc ingestion
 
-Providers do not write custom manifests or integration code. Tolty's doc-ingestion agent reads existing API documentation and generates an internal product card.
+Providers do not write custom manifests or integration code. Markgit's doc-ingestion agent reads existing API documentation and generates an internal product card.
 
 Minimum viable provider submission for v1:
 
@@ -230,21 +230,21 @@ Minimum viable provider submission for v1:
 - auth credentials (API key, OAuth config, etc.)
 - wallet address for payouts (USDC on supported chain)
 
-Tolty's doc-ingestion agent then:
+Markgit's doc-ingestion agent then:
 
 1. fetches and reads the documentation
 2. extracts endpoints, input/output shapes, auth patterns, rate limits, and pricing
 3. classifies side effects: `read_data`, `write_data`, `send_message`, `schedule_job`, `spend_money`
-4. generates an internal product card in Tolty's normalized manifest format
+4. generates an internal product card in Markgit's normalized manifest format
 5. runs test calls to verify docs match actual API behavior
 6. presents the generated product card to the submitter for review and correction
 7. stores the validated product card and original doc URL
 
-The internal manifest format is defined in [provider-manifest-spec.md](./provider-manifest-spec.md). This is an internal schema that Tolty generates — providers never author it directly.
+The internal manifest format is defined in [provider-manifest-spec.md](./provider-manifest-spec.md). This is an internal schema that Markgit generates — providers never author it directly.
 
 When API docs change:
 
-- Tolty can re-crawl docs on schedule or on-demand
+- Markgit can re-crawl docs on schedule or on-demand
 - the doc-ingestion agent diffs changes and flags material contract changes
 - breaking changes (input/output schema, auth, pricing) create a new product version
 - the submitter is notified and may need to confirm updates
@@ -267,7 +267,7 @@ Recommend a product capability endpoint that returns:
 - sample outputs
 - confidence / applicability hints
 
-An external agent or Tolty's own first-party client can use this endpoint before choosing a product for execution.
+An external agent or Markgit's own first-party client can use this endpoint before choosing a product for execution.
 
 ### 6.4 Search and ranking
 
@@ -289,7 +289,7 @@ The agent should prefer already approved tools unless there is a clear reason no
 
 ### 6.5 One-time APIs vs recurring jobs
 
-Tolty should support two marketplace primitives:
+Markgit should support two marketplace primitives:
 
 - one-time actions
 - recurring jobs / subscriptions
@@ -479,15 +479,15 @@ This is the other hardest part.
 
 ### 8.1 Recommended business model
 
-Tolty should bill the customer and pay providers. Tolty should act as merchant of record for the public marketplace experience. Do not make the user separately contract with every API provider for the main marketplace experience.
+Markgit should bill the customer and pay providers. Markgit should act as merchant of record for the public marketplace experience. Do not make the user separately contract with every API provider for the main marketplace experience.
 
 Recommended default:
 
-- customer prepays or has a billed Tolty account
-- Tolty meters usage per tool call
-- Tolty charges the customer
-- Tolty remits earnings to providers on a payout schedule
-- Tolty keeps a take rate
+- customer prepays or has a billed Markgit account
+- Markgit meters usage per tool call
+- Markgit charges the customer
+- Markgit remits earnings to providers on a payout schedule
+- Markgit keeps a take rate
 
 Why this is the better default:
 
@@ -500,12 +500,12 @@ Why this is the better default:
 
 ### 8.2 Wallet model
 
-Users should have a Tolty spend wallet that the agent can inspect before attempting paid actions.
+Users should have a Markgit spend wallet that the agent can inspect before attempting paid actions.
 
 Recommended v1 design:
 
 - each user or workspace has a wallet balance
-- the wallet is funded through Tolty-managed payment methods
+- the wallet is funded through Markgit-managed payment methods
 - the wallet has an internal ledger, not just a payment processor customer record
 - agent access to balance is policy-controlled
 - purchases create authorization holds before execution
@@ -520,7 +520,7 @@ Why an internal wallet is the right first implementation:
 - clean support for recurring subscriptions
 - easier dispute handling and refunds
 
-If "connect a wallet" later needs to include crypto or third-party stored-value systems, that should be added as funding adapters behind the same Tolty wallet abstraction.
+If "connect a wallet" later needs to include crypto or third-party stored-value systems, that should be added as funding adapters behind the same Markgit wallet abstraction.
 
 The authoritative billing flow and ledger contract is defined in [wallet-settlement-model.md](./wallet-settlement-model.md).
 
@@ -604,24 +604,24 @@ Providers who require traditional bank payouts can opt into Stripe Connect as an
 
 Tax reporting:
 
-- Tolty must still issue 1099s (US) or equivalent for providers earning above thresholds
+- Markgit must still issue 1099s (US) or equivalent for providers earning above thresholds
 - provider KYC can be deferred until payout thresholds are reached rather than required at onboarding
-- crypto payouts do not exempt Tolty from tax reporting obligations
+- crypto payouts do not exempt Markgit from tax reporting obligations
 
 ### 8.7 Marketplace economics questions
 
 You need explicit answers to:
 
-- does Tolty set end-user pricing, or do providers set pricing and Tolty adds a fee?
-- are refunds funded by the provider, Tolty, or split by policy?
+- does Markgit set end-user pricing, or do providers set pricing and Markgit adds a fee?
+- are refunds funded by the provider, Markgit, or split by policy?
 - do users buy credits first, or postpay monthly?
 - can providers offer free test tiers for agent selection?
 - can the agent compare providers by cost in real time?
 
 Recommended v1 answer:
 
-- providers set base pricing within Tolty-defined pricing primitives
-- Tolty adds a visible marketplace fee
+- providers set base pricing within Markgit-defined pricing primitives
+- Markgit adds a visible marketplace fee
 - users can use prepaid credits or invoiced billing if approved
 - providers may offer test calls
 - agent can compare cost estimates before asking approval
@@ -660,7 +660,7 @@ Do not blindly reuse long raw transcripts as system memory. Store normalized sta
 
 ## 10. Integration surfaces
 
-Tolty should present a clean protocol to agents first, then layer first-party interfaces on top.
+Markgit should present a clean protocol to agents first, then layer first-party interfaces on top.
 
 ### 10.1 Agent integration API
 
@@ -686,25 +686,25 @@ The CLI is still useful, but as one client of the marketplace rather than the ar
 Suggested commands:
 
 ```bash
-tolty auth login
-tolty wallet balance
-tolty wallet fund --amount 100
-tolty providers search "flight booking"
-tolty providers approve provider_123
-tolty products inspect product_123
-tolty products buy product_123 --max-price 25
-tolty subscriptions create product_456 --cron "0 9 * * 1" --delivery email
-tolty subscriptions cancel sub_123
-tolty products publish --manifest .\\tolty-product.json
-tolty products retire product_123
-tolty sessions list
-tolty sessions resume sess_123
-tolty policies show
-tolty policies edit
-tolty executions status exec_123
-tolty executions result exec_123
-tolty subscriptions list
-tolty inbox
+markgit auth login
+markgit wallet balance
+markgit wallet fund --amount 100
+markgit providers search "flight booking"
+markgit providers approve provider_123
+markgit products inspect product_123
+markgit products buy product_123 --max-price 25
+markgit subscriptions create product_456 --cron "0 9 * * 1" --delivery email
+markgit subscriptions cancel sub_123
+markgit products publish --manifest .\\markgit-product.json
+markgit products retire product_123
+markgit sessions list
+markgit sessions resume sess_123
+markgit policies show
+markgit policies edit
+markgit executions status exec_123
+markgit executions result exec_123
+markgit subscriptions list
+markgit inbox
 ```
 
 ### 10.3 Delivery model
@@ -722,28 +722,28 @@ This section turns the marketplace idea into a concrete v1 system.
 
 ### 11.1 Core interaction flow
 
-The basic Tolty flow should be:
+The basic Markgit flow should be:
 
 1. provider or user submits API URL, docs URL, auth credentials, and payout wallet address
-2. Tolty's doc-ingestion agent reads the docs and generates an internal product card
-3. Tolty runs test calls to validate docs match actual API behavior
+2. Markgit's doc-ingestion agent reads the docs and generates an internal product card
+3. Markgit runs test calls to validate docs match actual API behavior
 4. submitter reviews and confirms the generated product card
 5. product goes live (or into review queue for public listings)
-6. consuming agent searches Tolty for a capability
-7. Tolty returns normalized products with price, trust, and input schema
+6. consuming agent searches Markgit for a capability
+7. Markgit returns normalized products with price, trust, and input schema
 8. agent inspects one product in detail
 9. agent checks whether it is approved and whether wallet balance is sufficient
 10. agent requests quote if needed
 11. agent asks for approval if policy requires it
 12. agent buys the product or subscribes to it
-13. Tolty's execution broker agent constructs and executes the provider API call
-14. Tolty returns or delivers the result
-15. Tolty settles the charge and updates wallet balance
+13. Markgit's execution broker agent constructs and executes the provider API call
+14. Markgit returns or delivers the result
+15. Markgit settles the charge and updates wallet balance
 16. provider earning is recorded and paid out in USDC on schedule
 
 ### 11.2 Minimum provider submission
 
-To list an API on Tolty, a provider or user submits:
+To list an API on Markgit, a provider or user submits:
 
 - API base URL
 - documentation URL (or pasted/uploaded docs)
@@ -752,7 +752,7 @@ To list an API on Tolty, a provider or user submits:
 - payout wallet address (USDC on supported chain)
 - contact email
 
-Tolty's doc-ingestion agent then generates an internal product card containing:
+Markgit's doc-ingestion agent then generates an internal product card containing:
 
 - product id and version
 - title and summary
@@ -811,10 +811,10 @@ The agent should be able to call:
 Recommended purchase sequence:
 
 1. agent requests quote
-2. Tolty checks active wallet balance and policy
-3. Tolty places a hold for quoted or not-to-exceed amount
+2. Markgit checks active wallet balance and policy
+3. Markgit places a hold for quoted or not-to-exceed amount
 4. provider execution starts
-5. on completion, Tolty settles actual amount
+5. on completion, Markgit settles actual amount
 6. hold remainder is released
 7. provider earning moves into pending payout
 
@@ -826,7 +826,7 @@ Publishing should use the same flow regardless of who posts:
 
 - create provider account
 - create product
-- upload manifest or point Tolty to manifest URL
+- upload manifest or point Markgit to manifest URL
 - validate schema and endpoints
 - assign visibility: private, unlisted, public
 - run review policy
@@ -992,7 +992,7 @@ Delay higher-risk categories until policy and billing are stable:
 
 ## 16. Implementation task list
 
-This is the running task list to get Tolty functional.
+This is the running task list to get Markgit functional.
 
 ### 16.1 Foundation
 
@@ -1037,7 +1037,7 @@ This is the running task list to get Tolty functional.
 
 ### 16.5 Wallet and billing
 
-- create Tolty wallet ledger tables
+- create Markgit wallet ledger tables
 - implement funding flow via Stripe (credit card, ACH)
 - implement wallet balance endpoint
 - implement debit-on-success for v1 (authorization holds deferred to v1.1)
@@ -1120,18 +1120,18 @@ This is the running task list to get Tolty functional.
 
 ### 16.13 CLI
 
-- build `tolty auth login`
-- build `tolty wallet balance`
-- build `tolty wallet fund`
-- build `tolty providers search`
-- build `tolty products inspect`
-- build `tolty providers approve`
-- build `tolty products buy`
-- build `tolty subscriptions create`
-- build `tolty executions status`
-- build `tolty executions result`
-- build `tolty products publish`
-- build `tolty subscriptions list`
+- build `markgit auth login`
+- build `markgit wallet balance`
+- build `markgit wallet fund`
+- build `markgit providers search`
+- build `markgit products inspect`
+- build `markgit providers approve`
+- build `markgit products buy`
+- build `markgit subscriptions create`
+- build `markgit executions status`
+- build `markgit executions result`
+- build `markgit products publish`
+- build `markgit subscriptions list`
 
 ### 16.14 Analytics and ops
 
@@ -1220,7 +1220,7 @@ This is the running task list to get Tolty functional.
 
 ## 19. Open questions to answer before implementation
 
-1. What legal, tax, and compliance obligations follow from Tolty acting as merchant of record in target markets?
+1. What legal, tax, and compliance obligations follow from Markgit acting as merchant of record in target markets?
 2. Which action categories are allowed in MVP: read-only, write, communications, commerce?
 3. Will provider onboarding be invite-only first?
 4. Do we allow providers to bring their own auth flow, or do we standardize around a small approved set?
