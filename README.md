@@ -13,7 +13,7 @@ markgit search "weather"
 markgit balance
 ```
 
-The CLI opens a browser link so the user can connect their account without copying an API key. See [Tool API v1](docs/tool-api.md) for public discovery, direct free calls, paid calls, and provider publishing.
+The CLI opens a browser link so the user can connect their account without copying an API key. See [Tool API v1](docs/tool-api.md) for the invocation contract and [LLM discovery](docs/llm-discovery.md) for JSON, OpenAPI, and `llms.txt` endpoints.
 
 ## Architecture
 
@@ -75,6 +75,10 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | Route | Method | Description |
 |-------|--------|-------------|
 | `/health` | GET | Health check (no auth) |
+| `/v1/registry/tools` | GET | Public searchable tool catalog with schemas, pricing, and usage |
+| `/v1/registry/tools/:slug/docs` | GET | Exact machine-readable request and return contract |
+| `/v1/registry/tools/:slug/openapi.json` | GET | Per-tool OpenAPI 3.1 document |
+| `/v1/registry/llms.txt` | GET | Plain-text LLM registry index |
 | `/webhooks/stripe` | POST | Stripe webhook endpoint (signature-verified, no auth) |
 | `/v1/auth/keys` | POST | Create API key |
 | `/v1/wallet` | GET | Get wallet balance |
@@ -108,6 +112,9 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | History | `/history` | Purchase and execution history |
 | Wallet | `/wallet` | Balance, fund via Stripe, ledger |
 | Provider | `/provider` | Stripe status, earnings, per-call log, payouts |
+| Public tools | `/tools` | Searchable all-tool directory grouped by category |
+| Public tool docs | `/tools/[slug]` | Human and machine-readable schemas and call flow |
+| Documentation | `/docs` | LLM discovery and invocation overview |
 
 ## Database Schema
 
@@ -152,18 +159,18 @@ These exist in code but are stubs or need real implementation:
 |---------|--------|-------|
 | `POST /v1/wallet/fund` (direct) | **Placeholder** | Inserts a credit ledger entry with no real payment. Bypass for testing. Should be removed or admin-gated in production. |
 | Product execution | **Basic remote gateway** | Sync provider calls and stored credentials work. Async calls and richer response validation still need implementation. |
-| Search | **Basic** | `ILIKE` text search on product name/description/tags. No embeddings, no semantic ranking. |
+| Search | **Working MVP** | Full-text, query expansion, and embedding-assisted ranking are implemented. |
 | Provider trust tiers | **Schema only** | `trust_tier` column exists but no verification logic, no gating by tier. |
 | Product status workflow | **Partial** | Status enum exists (`draft → pending_review → active → suspended → archived`) but no review queue or approval flow. |
-| Approval / policy engine | **Not built** | No per-user spending limits, no approval prompts, no permission classes. |
+| Approval / policy engine | **Working MVP** | Exact quotes, explicit CLI approval, API-key budgets, and global/per-tool spend controls are implemented. Rich permission classes remain future work. |
 | Subscriptions / recurring jobs | **Not built** | Schema and flow not implemented. |
 | Async execution (poll/webhook) | **Not built** | Only sync execution exists. |
 | USDC / crypto payouts | **Schema only** | `provider_payout_configs` table and `chain`/`txHash`/`walletAddress` fields exist but no Bridge/Circle integration. Payouts currently go through Stripe Connect only. |
-| Doc-ingestion agent | **Not built** | The core differentiator — AI reads API docs and generates product cards — is not implemented. Products are currently created manually. |
+| Doc-ingestion agent | **Working MVP** | Provider imports can ingest documentation, generate a draft, run a test, and publish after review. More source formats and validation depth remain future work. |
 | Execution broker agent | **Not built** | AI-powered API call construction from product cards is not implemented. Execution is a placeholder. |
 | CLI | **Working MVP** | Browser account linking, public search/inspect, wallet status, direct free calls, paid gateway calls, and manifest publishing are implemented. npm/Homebrew release automation is not built yet. |
 | Email/SMS notifications | **Not built** | No notification delivery. |
-| Rate limiting | **Not built** | No request rate limits on the API. |
+| Rate limiting | **Working MVP** | Global and per-tool per-minute/per-hour controls are enforced on tool calls. Platform-wide abuse protection remains future work. |
 | Refund flow | **Not built** | `refunded` status exists but no refund logic. |
 
 ## What's Needed for Full End-to-End
@@ -172,17 +179,17 @@ To get a real marketplace where agents can discover, buy, and use APIs with real
 
 1. **Real execution engine** — When a purchase is made, actually call the provider's API using `executionConfig`. Handle auth injection, timeouts, retries, response normalization.
 
-2. **Doc-ingestion agent** — AI agent that reads API documentation from a URL and generates structured product cards (see `docs/provider-manifest-spec.md`). This is the core value prop — providers submit a URL and Markgit does the rest.
+2. **Deeper doc ingestion** — Expand the existing import pipeline with more source formats, stronger schema validation, and automated drift detection (see `docs/provider-manifest-spec.md`).
 
 3. **Execution broker agent** — AI agent that uses the product card + original docs to construct correct API calls, interpret responses, and normalize output for the consuming agent.
 
 4. **Better search** — Embeddings-based semantic search with ranking by trust, price, success rate, relevance.
 
-5. **Approval and policy engine** — Per-user spending limits, per-task budgets, approval prompts for high-risk actions, permission classes (`read_data`, `write_data`, `send_message`, `spend_money`).
+5. **Richer permissions** — Extend existing quote approval, budgets, and spend/rate controls with per-task budgets and permission classes (`read_data`, `write_data`, `send_message`, `spend_money`).
 
 6. **Remove direct fund endpoint** — Gate `POST /v1/wallet/fund` to admin-only or remove entirely. All real funding should go through Stripe Checkout.
 
-7. **Production deployment** — The API needs a public URL (not ngrok). Deploy to a cloud provider, set up proper Stripe webhook URLs, configure DNS.
+7. **Production hardening** — Add provider redundancy, database quota monitoring, stronger abuse prevention, and documented recovery procedures.
 
 ## Project Structure
 

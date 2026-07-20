@@ -33,7 +33,9 @@ export function ProductCard({ product }: { product: ProductSummary }) {
           </CardDescription>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Activity className="size-3.5" />
-            Used {product.usageCount.toLocaleString()} {product.usageCount === 1 ? "time" : "times"}
+            {product.uniqueUserCount < 100 ? "Under 100 users" : `${product.uniqueUserCount.toLocaleString()} users`}
+            <span aria-hidden="true">·</span>
+            {product.usageCount < 1000 ? "Under 1K invokes" : `${product.usageCount.toLocaleString()} invokes`}
           </div>
           {product.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

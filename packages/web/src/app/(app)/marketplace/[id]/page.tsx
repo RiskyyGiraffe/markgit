@@ -40,7 +40,10 @@ export default async function ProductDetailPage({
           )}
           <Badge variant="outline">{product.status}</Badge>
           <Badge variant="outline">
-            Used {(product.usageCount ?? 0).toLocaleString()} {(product.usageCount ?? 0) === 1 ? "time" : "times"}
+            {(product.uniqueUserCount ?? 0) < 100 ? "Under 100 users" : `${(product.uniqueUserCount ?? 0).toLocaleString()} users`}
+          </Badge>
+          <Badge variant="outline">
+            {(product.usageCount ?? 0) < 1000 ? "Under 1K invokes" : `${(product.usageCount ?? 0).toLocaleString()} invokes`}
           </Badge>
           {product.tags.map((tag) => (
             <Badge key={tag} variant="outline">

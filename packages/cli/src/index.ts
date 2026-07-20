@@ -218,7 +218,7 @@ async function callTool(args: string[]): Promise<void> {
     };
   }>(`/v1/registry/tools/${encodeURIComponent(identifier)}`, { apiUrl });
 
-  if (tool.access.mode === 'direct' && tool.access.endpoint.url) {
+  if (tool.access.mode === 'direct' && tool.access.endpoint.url && !storedConfig) {
     const url = new URL(tool.access.endpoint.url);
     const options: RequestInit = {
       method: tool.access.endpoint.method,
@@ -238,6 +238,7 @@ async function callTool(args: string[]): Promise<void> {
       status: 'completed',
       cost: { amount: '0.0000', currency: 'USD' },
       output,
+      usageTracking: 'untracked direct call; run `markgit login` to include free calls in public usage metrics',
     }, null, 2));
     return;
   }
@@ -253,7 +254,10 @@ async function callTool(args: string[]): Promise<void> {
     body: JSON.stringify({}),
   });
 
-  console.log(`Price: $${approval.quote.priceUsd} + $${approval.quote.feeUsd} Markgit fee = $${approval.quote.totalUsd} USD`);
+  const isFree = tool.pricing.type === 'free';
+  console.log(isFree
+    ? 'Price: Free · this successful call will count toward Markgit usage metrics'
+    : `Price: $${approval.quote.priceUsd} + $${approval.quote.feeUsd} Markgit fee = $${approval.quote.totalUsd} USD`);
   if (!approval.controls.approved) {
     throw new Error(`Blocked by spend controls: ${approval.controls.violations.join('; ')}`);
   }
@@ -265,7 +269,7 @@ async function callTool(args: string[]): Promise<void> {
     if (Number.parseFloat(approval.quote.totalUsd) > maxCost) {
       throw new Error(`Quoted cost $${approval.quote.totalUsd} exceeds --max-cost $${maxCost.toFixed(4)}`);
     }
-  } else if (!args.includes('--yes')) {
+  } else if (!isFree && !args.includes('--yes')) {
     console.log(`Approval required. Re-run with --yes or --max-cost ${approval.quote.totalUsd}.`);
     return;
   }

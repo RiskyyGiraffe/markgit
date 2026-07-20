@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/login", "/api/auth"];
+const publicPaths = [
+  "/login",
+  "/api/auth",
+  "/tools",
+  "/docs",
+  "/llms.txt",
+  "/.well-known/llms.txt",
+];
 
 function getSessionToken(request: NextRequest) {
   return (

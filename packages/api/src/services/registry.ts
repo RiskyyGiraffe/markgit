@@ -2,6 +2,7 @@ import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products, providers, purchases } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
+import { buildUsageSummary } from '../lib/tool-docs.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -24,6 +25,10 @@ const publicToolSelection = {
     select count(*)::int from ${purchases}
     where ${purchases.productId} = ${products.id} and ${purchases.status} = 'completed'
   )`,
+  uniqueUserCount: sql<number>`(
+    select count(distinct ${purchases.userId})::int from ${purchases}
+    where ${purchases.productId} = ${products.id} and ${purchases.status} = 'completed'
+  )`,
 };
 
 type PublicToolRow = {
@@ -42,6 +47,7 @@ type PublicToolRow = {
   providerName: string;
   providerTrustTier: 'unverified' | 'basic' | 'verified' | 'premium';
   usageCount: number;
+  uniqueUserCount: number;
 };
 
 function toToolCard(row: PublicToolRow) {
@@ -49,9 +55,13 @@ function toToolCard(row: PublicToolRow) {
   const standardizedEndpoint = row.executionConfig?.protocol === 'markgit.tool/v1'
     && typeof row.executionConfig.baseUrl === 'string'
     && (row.executionConfig.method === 'GET' || row.executionConfig.method === 'POST')
-    ? { url: row.executionConfig.baseUrl, method: row.executionConfig.method }
+    ? {
+        url: row.executionConfig.baseUrl,
+        method: row.executionConfig.method as 'GET' | 'POST',
+      }
     : null;
   const isFree = parseFloat(amount) === 0;
+  const usage = buildUsageSummary(Number(row.usageCount), Number(row.uniqueUserCount));
   return {
     id: row.id,
     slug: row.slug,
@@ -64,10 +74,10 @@ function toToolCard(row: PublicToolRow) {
       name: row.providerName,
       trustTier: row.providerTrustTier,
     },
-    usage: { count: Number(row.usageCount), tracked: !isFree || !standardizedEndpoint },
+    usage,
     pricing: isFree
-      ? { type: 'free' as const, currency: 'USD', amount: '0.0000' }
-      : { type: 'per_call' as const, currency: 'USD', amount },
+      ? { type: 'free' as const, currency: 'USD' as const, amount: '0.0000' }
+      : { type: 'per_call' as const, currency: 'USD' as const, amount },
     inputSchema: row.inputSchema,
     outputSchema: row.outputSchema,
     access: isFree && standardizedEndpoint
@@ -76,6 +86,12 @@ function toToolCard(row: PublicToolRow) {
           mode: 'gateway' as const,
           endpoint: { method: 'POST' as const, path: `/v1/tools/${row.slug}/call` },
         },
+    documentation: {
+      json: `/v1/registry/tools/${row.slug}/docs`,
+      openapi: `/v1/registry/tools/${row.slug}/openapi.json`,
+      llms: `/v1/registry/tools/${row.slug}/llms.txt`,
+      human: `/tools/${row.slug}`,
+    },
     updatedAt: row.updatedAt,
   };
 }
@@ -97,13 +113,27 @@ export async function listPublicTools(query = '', limit = 20, offset = 0) {
       )
     : undefined;
 
-  const rows = await selectPublicTools()
-    .where(and(eq(products.status, 'active'), queryFilter))
-    .orderBy(desc(products.updatedAt))
-    .limit(limit)
-    .offset(offset);
+  const where = and(eq(products.status, 'active'), queryFilter);
+  const [rows, totals] = await Promise.all([
+    selectPublicTools()
+      .where(where)
+      .orderBy(desc(products.updatedAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ value: sql<number>`count(*)::int` })
+      .from(products)
+      .where(where),
+  ]);
 
-  return { tools: rows.map(toToolCard), total: rows.length };
+  return { tools: rows.map(toToolCard), total: Number(totals[0]?.value ?? 0) };
+}
+
+export async function listAllPublicTools() {
+  const rows = await selectPublicTools()
+    .where(eq(products.status, 'active'))
+    .orderBy(desc(products.updatedAt));
+  return rows.map(toToolCard);
 }
 
 export async function getPublicTool(identifier: string) {

@@ -16,6 +16,7 @@ export async function listProducts(limit = 50, offset = 0) {
       tags: products.tags,
       providerId: products.providerId,
       usageCount: sql<number>`count(${purchases.id})::int`,
+      uniqueUserCount: sql<number>`count(distinct ${purchases.userId})::int`,
     })
     .from(products)
     .leftJoin(purchases, and(eq(purchases.productId, products.id), eq(purchases.status, 'completed')))
@@ -46,6 +47,7 @@ export async function getProduct(id: string) {
       createdAt: products.createdAt,
       updatedAt: products.updatedAt,
       usageCount: sql<number>`count(${purchases.id})::int`,
+      uniqueUserCount: sql<number>`count(distinct ${purchases.userId})::int`,
     })
     .from(products)
     .leftJoin(purchases, and(eq(purchases.productId, products.id), eq(purchases.status, 'completed')))
