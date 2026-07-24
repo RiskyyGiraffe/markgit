@@ -1,0 +1,1 @@
+CREATE INDEX "mkgt_purchases_product_status_idx" ON "mkgt_purchases" USING btree ("product_id","status");

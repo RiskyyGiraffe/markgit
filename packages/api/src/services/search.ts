@@ -140,12 +140,13 @@ async function runSearchQuery(query: string, limit: number, offset: number) {
 }
 
 async function attachUsageCounts<T extends { id: string }>(items: T[]) {
-  if (items.length === 0) return [] as Array<T & { usageCount: number }>;
+  if (items.length === 0) return [] as Array<T & { usageCount: number; uniqueUserCount: number }>;
 
   const rows = await db
     .select({
       productId: purchases.productId,
       usageCount: sql<number>`count(*)::int`,
+      uniqueUserCount: sql<number>`count(distinct ${purchases.userId})::int`,
     })
     .from(purchases)
     .where(and(
@@ -153,9 +154,16 @@ async function attachUsageCounts<T extends { id: string }>(items: T[]) {
       eq(purchases.status, 'completed'),
     ))
     .groupBy(purchases.productId);
-  const counts = new Map(rows.map((row) => [row.productId, Number(row.usageCount)]));
+  const counts = new Map(rows.map((row) => [row.productId, {
+    usageCount: Number(row.usageCount),
+    uniqueUserCount: Number(row.uniqueUserCount),
+  }]));
 
-  return items.map((item) => ({ ...item, usageCount: counts.get(item.id) ?? 0 }));
+  return items.map((item) => ({
+    ...item,
+    usageCount: counts.get(item.id)?.usageCount ?? 0,
+    uniqueUserCount: counts.get(item.id)?.uniqueUserCount ?? 0,
+  }));
 }
 
 export async function searchProducts(query: string, limit = 20, offset = 0) {

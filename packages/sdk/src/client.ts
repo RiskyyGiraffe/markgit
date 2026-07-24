@@ -45,6 +45,7 @@ import type {
   ToolListResponse,
   ToolCallResponse,
   ToolQuoteResponse,
+  ToolDocumentation,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -109,6 +110,10 @@ export class MarkgitClient {
 
   async getTool(identifier: string): Promise<ToolCard> {
     return this.request('GET', `/v1/registry/tools/${encodeURIComponent(identifier)}`);
+  }
+
+  async getToolDocumentation(identifier: string): Promise<ToolDocumentation> {
+    return this.request('GET', `/v1/registry/tools/${encodeURIComponent(identifier)}/docs`);
   }
 
   async quoteTool(identifier: string): Promise<ToolQuoteResponse> {

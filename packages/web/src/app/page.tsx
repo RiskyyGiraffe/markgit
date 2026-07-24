@@ -10,28 +10,18 @@ import {
   WalletCards,
 } from "lucide-react";
 import { InstallCommandCard } from "@/components/install-command-card";
+import { PublicHeader } from "@/components/public-header";
+import { getAllPublicTools } from "@/lib/public-registry";
 
 export const dynamic = "force-dynamic";
 
 async function getPublicTools(query: string) {
-  const apiUrl = (process.env.MARKGIT_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  const params = new URLSearchParams({ limit: "12" });
-  if (query) params.set("q", query);
-
-  try {
-    const response = await fetch(`${apiUrl}/v1/registry/tools?${params}`, {
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error(`Registry returned ${response.status}`);
-    return (await response.json()) as { tools: ToolCard[]; total: number };
-  } catch {
-    return { tools: [] as ToolCard[], total: 0 };
-  }
+  const registry = await getAllPublicTools(query);
+  return { ...registry, tools: registry.tools.slice(0, 6) };
 }
 
 function usageLabel(tool: ToolCard) {
-  if (!tool.usage.tracked) return "Direct usage isn’t tracked";
-  return `${tool.usage.count.toLocaleString()} ${tool.usage.count === 1 ? "call" : "calls"}`;
+  return `${tool.usage.usersLabel} · ${tool.usage.invocationsLabel}`;
 }
 
 export default async function Home({
@@ -45,25 +35,7 @@ export default async function Home({
 
   return (
     <main className="min-h-screen bg-[#f6f6f1] text-[#171714]">
-      <header className="border-b border-black/10">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="font-display text-xl font-semibold tracking-[-0.05em]">
-            markgit
-          </Link>
-          <nav className="hidden items-center gap-7 text-sm text-black/60 sm:flex">
-            <Link href="#tools" className="transition hover:text-black">Tools</Link>
-            <Link href="#how-it-works" className="transition hover:text-black">How it works</Link>
-            <Link href="#publish" className="transition hover:text-black">Publish</Link>
-          </nav>
-          <Link
-            href="/dashboard"
-            className="inline-flex h-9 items-center gap-2 rounded-full bg-[#171714] px-4 text-sm font-medium text-white transition hover:bg-black/80"
-          >
-            Open dashboard
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <section className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center sm:px-8 sm:pb-20 sm:pt-24">
         <div className="mx-auto max-w-3xl">
@@ -79,7 +51,7 @@ export default async function Home({
             paid tools get approval, metering, and settlement.
           </p>
 
-          <form action="/" method="get" className="mx-auto mt-9 flex max-w-2xl items-center gap-2 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_16px_45px_rgba(0,0,0,0.08)]">
+          <form action="/tools" method="get" className="mx-auto mt-9 flex max-w-2xl items-center gap-2 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_16px_45px_rgba(0,0,0,0.08)]">
             <Search className="ml-3 size-5 shrink-0 text-black/35" />
             <input
               type="search"
@@ -108,14 +80,12 @@ export default async function Home({
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/40">Public registry</p>
               <h2 className="mt-2 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">
-                {query ? `Results for “${query}”` : "Tools ready to call"}
+                {query ? `Results for “${query}”` : "Featured tools"}
               </h2>
             </div>
-            {query && (
-              <Link href="/" className="text-sm text-black/50 underline underline-offset-4 hover:text-black">
-                Clear search
-              </Link>
-            )}
+            <Link href="/tools" className="inline-flex items-center gap-2 text-sm text-black/50 hover:text-black">
+              Browse all {registry.total} tools <ArrowRight className="size-4" />
+            </Link>
           </div>
 
           {registry.tools.length === 0 ? (
@@ -149,7 +119,7 @@ export default async function Home({
                       <Activity className="size-3.5" />
                       {usageLabel(tool)}
                     </span>
-                    <Link href={`/login?next=${encodeURIComponent(`/marketplace/${tool.id}`)}`} className="font-medium text-black hover:underline">
+                    <Link href={`/tools/${tool.slug}`} className="font-medium text-black hover:underline">
                       View tool
                     </Link>
                   </div>

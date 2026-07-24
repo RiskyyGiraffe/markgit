@@ -15,13 +15,13 @@ import {
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 
-export const walletStatusEnum = pgEnum('wallet_status', [
+export const walletStatusEnum = pgEnum('mkgt_wallet_status', [
   'active',
   'frozen',
   'closed',
 ]);
 
-export const purchaseStatusEnum = pgEnum('purchase_status', [
+export const purchaseStatusEnum = pgEnum('mkgt_purchase_status', [
   'created',
   'authorized',
   'running',
@@ -30,7 +30,7 @@ export const purchaseStatusEnum = pgEnum('purchase_status', [
   'refunded',
 ]);
 
-export const executionStatusEnum = pgEnum('execution_status', [
+export const executionStatusEnum = pgEnum('mkgt_execution_status', [
   'pending',
   'running',
   'completed',
@@ -38,13 +38,13 @@ export const executionStatusEnum = pgEnum('execution_status', [
   'timed_out',
 ]);
 
-export const holdStatusEnum = pgEnum('hold_status', [
+export const holdStatusEnum = pgEnum('mkgt_hold_status', [
   'held',
   'captured',
   'released',
 ]);
 
-export const ledgerEntryTypeEnum = pgEnum('ledger_entry_type', [
+export const ledgerEntryTypeEnum = pgEnum('mkgt_ledger_entry_type', [
   'credit',
   'debit',
   'hold',
@@ -53,7 +53,7 @@ export const ledgerEntryTypeEnum = pgEnum('ledger_entry_type', [
   'refund',
 ]);
 
-export const productStatusEnum = pgEnum('product_status', [
+export const productStatusEnum = pgEnum('mkgt_product_status', [
   'draft',
   'pending_review',
   'active',
@@ -61,21 +61,21 @@ export const productStatusEnum = pgEnum('product_status', [
   'archived',
 ]);
 
-export const trustTierEnum = pgEnum('trust_tier', [
+export const trustTierEnum = pgEnum('mkgt_trust_tier', [
   'unverified',
   'basic',
   'verified',
   'premium',
 ]);
 
-export const payoutStatusEnum = pgEnum('payout_status', [
+export const payoutStatusEnum = pgEnum('mkgt_payout_status', [
   'pending',
   'processing',
   'completed',
   'failed',
 ]);
 
-export const importSourceTypeEnum = pgEnum('import_source_type', [
+export const importSourceTypeEnum = pgEnum('mkgt_import_source_type', [
   'openapi_json',
   'openapi_yaml',
   'postman_collection',
@@ -83,7 +83,7 @@ export const importSourceTypeEnum = pgEnum('import_source_type', [
   'unknown',
 ]);
 
-export const importRunStatusEnum = pgEnum('import_run_status', [
+export const importRunStatusEnum = pgEnum('mkgt_import_run_status', [
   'created',
   'fetching',
   'parsed',
@@ -94,46 +94,46 @@ export const importRunStatusEnum = pgEnum('import_run_status', [
   'published',
 ]);
 
-export const credentialAuthTypeEnum = pgEnum('credential_auth_type', [
+export const credentialAuthTypeEnum = pgEnum('mkgt_credential_auth_type', [
   'none',
   'bearer',
   'api_key',
   'basic',
 ]);
 
-export const credentialLocationEnum = pgEnum('credential_location', [
+export const credentialLocationEnum = pgEnum('mkgt_credential_location', [
   'header',
   'query',
   'body',
 ]);
 
-export const quoteStatusEnum = pgEnum('quote_status', [
+export const quoteStatusEnum = pgEnum('mkgt_quote_status', [
   'active',
   'expired',
   'consumed',
 ]);
 
-export const checkoutSessionStatusEnum = pgEnum('checkout_session_status', [
+export const checkoutSessionStatusEnum = pgEnum('mkgt_checkout_session_status', [
   'pending',
   'completed',
   'expired',
 ]);
 
-export const backgroundJobStatusEnum = pgEnum('background_job_status', [
+export const backgroundJobStatusEnum = pgEnum('mkgt_background_job_status', [
   'pending',
   'running',
   'completed',
   'failed',
 ]);
 
-export const deviceAuthorizationStatusEnum = pgEnum('device_authorization_status', [
+export const deviceAuthorizationStatusEnum = pgEnum('mkgt_device_authorization_status', [
   'pending',
   'approved',
   'denied',
   'consumed',
 ]);
 
-export const toolCallRequestStatusEnum = pgEnum('tool_call_request_status', [
+export const toolCallRequestStatusEnum = pgEnum('mkgt_tool_call_request_status', [
   'processing',
   'completed',
   'failed',
@@ -141,7 +141,7 @@ export const toolCallRequestStatusEnum = pgEnum('tool_call_request_status', [
 
 // ── Tables ─────────────────────────────────────────────────────────────────
 
-export const users = pgTable('users', {
+export const users = pgTable('mkgt_users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   name: varchar('name', { length: 255 }),
@@ -149,7 +149,7 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const apiKeys = pgTable('api_keys', {
+export const apiKeys = pgTable('mkgt_api_keys', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   keyHash: varchar('key_hash', { length: 64 }).notNull().unique(),
@@ -164,7 +164,7 @@ export const apiKeys = pgTable('api_keys', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const sessions = pgTable('sessions', {
+export const sessions = pgTable('mkgt_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
@@ -173,7 +173,7 @@ export const sessions = pgTable('sessions', {
   lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const deviceAuthorizations = pgTable('device_authorizations', {
+export const deviceAuthorizations = pgTable('mkgt_device_authorizations', {
   id: uuid('id').defaultRandom().primaryKey(),
   deviceCodeHash: varchar('device_code_hash', { length: 64 }).notNull().unique(),
   userCode: varchar('user_code', { length: 12 }).notNull().unique(),
@@ -186,7 +186,7 @@ export const deviceAuthorizations = pgTable('device_authorizations', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const providers = pgTable('providers', {
+export const providers = pgTable('mkgt_providers', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   name: varchar('name', { length: 255 }).notNull(),
@@ -199,7 +199,7 @@ export const providers = pgTable('providers', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const products = pgTable('products', {
+export const products = pgTable('mkgt_products', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   name: varchar('name', { length: 255 }).notNull(),
@@ -216,7 +216,7 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const providerImportRuns = pgTable('provider_import_runs', {
+export const providerImportRuns = pgTable('mkgt_provider_import_runs', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   docsUrl: varchar('docs_url', { length: 2048 }).notNull(),
@@ -233,7 +233,7 @@ export const providerImportRuns = pgTable('provider_import_runs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const providerCredentials = pgTable('provider_credentials', {
+export const providerCredentials = pgTable('mkgt_provider_credentials', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   productId: uuid('product_id').references(() => products.id),
@@ -245,7 +245,7 @@ export const providerCredentials = pgTable('provider_credentials', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const userProductCredentials = pgTable('user_product_credentials', {
+export const userProductCredentials = pgTable('mkgt_user_product_credentials', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   productId: uuid('product_id').notNull().references(() => products.id),
@@ -257,7 +257,7 @@ export const userProductCredentials = pgTable('user_product_credentials', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const wallets = pgTable('wallets', {
+export const wallets = pgTable('mkgt_wallets', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   label: varchar('label', { length: 255 }).default('default').notNull(),
@@ -266,7 +266,7 @@ export const wallets = pgTable('wallets', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const walletLedgerEntries = pgTable('wallet_ledger_entries', {
+export const walletLedgerEntries = pgTable('mkgt_wallet_ledger_entries', {
   id: uuid('id').defaultRandom().primaryKey(),
   walletId: uuid('wallet_id').notNull().references(() => wallets.id),
   entryType: ledgerEntryTypeEnum('entry_type').notNull(),
@@ -278,7 +278,7 @@ export const walletLedgerEntries = pgTable('wallet_ledger_entries', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const quotes = pgTable('quotes', {
+export const quotes = pgTable('mkgt_quotes', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   productId: uuid('product_id').notNull().references(() => products.id),
@@ -291,7 +291,7 @@ export const quotes = pgTable('quotes', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const holds = pgTable('holds', {
+export const holds = pgTable('mkgt_holds', {
   id: uuid('id').defaultRandom().primaryKey(),
   walletId: uuid('wallet_id').notNull().references(() => wallets.id),
   amountUsd: numeric('amount_usd', { precision: 19, scale: 4 }).notNull(),
@@ -301,7 +301,7 @@ export const holds = pgTable('holds', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const purchases = pgTable('purchases', {
+export const purchases = pgTable('mkgt_purchases', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   productId: uuid('product_id').notNull().references(() => products.id),
@@ -314,10 +314,10 @@ export const purchases = pgTable('purchases', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  index('purchases_product_status_idx').on(table.productId, table.status),
+  index('mkgt_purchases_product_status_idx').on(table.productId, table.status),
 ]);
 
-export const executions = pgTable('executions', {
+export const executions = pgTable('mkgt_executions', {
   id: uuid('id').defaultRandom().primaryKey(),
   purchaseId: uuid('purchase_id').notNull().references(() => purchases.id),
   productId: uuid('product_id').notNull().references(() => products.id),
@@ -330,7 +330,7 @@ export const executions = pgTable('executions', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const toolCallRequests = pgTable('tool_call_requests', {
+export const toolCallRequests = pgTable('mkgt_tool_call_requests', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
@@ -341,10 +341,10 @@ export const toolCallRequests = pgTable('tool_call_requests', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  uniqueIndex('tool_call_requests_user_idempotency_idx').on(table.userId, table.idempotencyKey),
+  uniqueIndex('mkgt_tool_call_requests_user_idempotency_idx').on(table.userId, table.idempotencyKey),
 ]);
 
-export const userSpendControls = pgTable('user_spend_controls', {
+export const userSpendControls = pgTable('mkgt_user_spend_controls', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id).unique(),
   maxPerCallUsd: numeric('max_per_call_usd', { precision: 19, scale: 4 }).default('25').notNull(),
@@ -356,7 +356,7 @@ export const userSpendControls = pgTable('user_spend_controls', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const toolSpendControls = pgTable('tool_spend_controls', {
+export const toolSpendControls = pgTable('mkgt_tool_spend_controls', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   productId: uuid('product_id').notNull().references(() => products.id),
@@ -369,10 +369,10 @@ export const toolSpendControls = pgTable('tool_spend_controls', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  uniqueIndex('tool_spend_controls_user_product_idx').on(table.userId, table.productId),
+  uniqueIndex('mkgt_tool_spend_controls_user_product_idx').on(table.userId, table.productId),
 ]);
 
-export const providerEarnings = pgTable('provider_earnings', {
+export const providerEarnings = pgTable('mkgt_provider_earnings', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   purchaseId: uuid('purchase_id').notNull().references(() => purchases.id),
@@ -384,7 +384,7 @@ export const providerEarnings = pgTable('provider_earnings', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const payouts = pgTable('payouts', {
+export const payouts = pgTable('mkgt_payouts', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   amountUsd: numeric('amount_usd', { precision: 19, scale: 4 }).notNull(),
@@ -401,7 +401,7 @@ export const payouts = pgTable('payouts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const providerPayoutConfigs = pgTable('provider_payout_configs', {
+export const providerPayoutConfigs = pgTable('mkgt_provider_payout_configs', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   chain: varchar('chain', { length: 50 }).notNull(),
@@ -410,7 +410,7 @@ export const providerPayoutConfigs = pgTable('provider_payout_configs', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const backgroundJobs = pgTable('background_jobs', {
+export const backgroundJobs = pgTable('mkgt_background_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
   kind: varchar('kind', { length: 100 }).notNull(),
   status: backgroundJobStatusEnum('status').default('pending').notNull(),
@@ -425,7 +425,7 @@ export const backgroundJobs = pgTable('background_jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const productSearchEmbeddings = pgTable('product_search_embeddings', {
+export const productSearchEmbeddings = pgTable('mkgt_product_search_embeddings', {
   id: uuid('id').defaultRandom().primaryKey(),
   productId: uuid('product_id').notNull().references(() => products.id),
   model: varchar('model', { length: 255 }).notNull(),
@@ -436,7 +436,7 @@ export const productSearchEmbeddings = pgTable('product_search_embeddings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const stripeCheckoutSessions = pgTable('stripe_checkout_sessions', {
+export const stripeCheckoutSessions = pgTable('mkgt_stripe_checkout_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
   walletId: uuid('wallet_id').notNull().references(() => wallets.id),

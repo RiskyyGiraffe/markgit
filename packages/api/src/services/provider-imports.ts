@@ -265,15 +265,10 @@ function buildDraftFromOpenApiDocument(
 
   const inputRequired: string[] = [];
   const inputProperties: Record<string, unknown> = {};
-  const paramMapping: Record<string, { target: 'query' | 'header' | 'body'; param: string }> = {};
+  const paramMapping: Record<string, { target: 'query' | 'header' | 'body' | 'path'; param: string }> = {};
 
   for (const parameter of parameters) {
     if (!parameter?.name || !parameter.in) continue;
-    if (parameter.in === 'path') {
-      warnings.push(`Path parameter ${parameter.name} was ignored in the initial draft`);
-      continue;
-    }
-
     const propertyName = parameter.name;
     inputProperties[propertyName] = {
       type: parameter.schema?.type ?? 'string',
@@ -281,7 +276,7 @@ function buildDraftFromOpenApiDocument(
     };
     if (parameter.required) inputRequired.push(propertyName);
 
-    if (parameter.in === 'query' || parameter.in === 'header') {
+    if (parameter.in === 'query' || parameter.in === 'header' || parameter.in === 'path') {
       paramMapping[propertyName] = {
         target: parameter.in,
         param: parameter.name,

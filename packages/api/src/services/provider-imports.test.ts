@@ -37,13 +37,13 @@ describe('provider imports', () => {
       },
       security: [{ bearerAuth: [] }],
       paths: {
-        '/facts': {
+        '/breeds/{breed}/facts': {
           get: {
             summary: 'Fetch dog facts',
             parameters: [
               {
                 name: 'breed',
-                in: 'query',
+                in: 'path',
                 required: true,
                 schema: { type: 'string' },
                 description: 'Dog breed filter',
@@ -84,8 +84,11 @@ describe('provider imports', () => {
     expect(result.sourceType).toBe('openapi_json');
     expect(result.confidence).toBeGreaterThan(0.9);
     expect(result.draft.name).toBe('Dog Facts API');
-    expect(result.draft.executionConfig.baseUrl).toBe('https://dogs.example.com/facts');
+    expect(result.draft.executionConfig.baseUrl).toBe('https://dogs.example.com/breeds/%7Bbreed%7D/facts');
     expect(result.draft.executionConfig.method).toBe('GET');
+    expect(result.draft.executionConfig.paramMapping).toEqual({
+      breed: { target: 'path', param: 'breed' },
+    });
     expect(result.draft.executionConfig.auth).toEqual({
       mode: 'provider_managed',
       type: 'bearer',

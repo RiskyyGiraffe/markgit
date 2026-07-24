@@ -28,12 +28,12 @@ export interface ExecutionAuthConfig {
 }
 
 export interface ParamMapping {
-  target: 'query' | 'body' | 'header';
+  target: 'query' | 'body' | 'header' | 'path';
   param: string;
 }
 
 export interface StaticParam {
-  target: 'query' | 'body' | 'header';
+  target: 'query' | 'body' | 'header' | 'path';
   param: string;
   value: string;
 }

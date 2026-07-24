@@ -1,6 +1,37 @@
 # Markgit Tool API v1
 
-Markgit is a registry and commerce protocol for tools hosted by their publishers. It is not an agent and it does not host provider implementations.
+Markgit is a public registry and optional commerce protocol for tools hosted by their publishers. It is not an agent runtime and does not host provider implementations.
+
+Production origins:
+
+- Web catalog: `https://markgit.com/tools`
+- API: `https://api.markgit.com`
+- LLM index: `https://markgit.com/llms.txt`
+
+## Machine-readable discovery
+
+Discovery is public and requires no account.
+
+```http
+GET /v1/registry/tools?q=weather&limit=100&offset=0
+GET /v1/registry/tools/{id-or-slug}
+GET /v1/registry/tools/{id-or-slug}/docs
+GET /v1/registry/tools/{id-or-slug}/openapi.json
+GET /v1/registry/tools/{id-or-slug}/llms.txt
+GET /v1/registry/llms.txt
+```
+
+Every tool card includes:
+
+- provider identity and trust tier;
+- price in USD;
+- JSON input and output schemas;
+- direct or gateway access metadata;
+- successful Markgit invocation count and distinct authenticated-user count;
+- privacy-friendly public labels such as `Under 100 users` and `Under 1K invokes`;
+- links to JSON docs, OpenAPI 3.1, plain-text LLM docs, and the human-readable page.
+
+Usage covers successful calls made through Markgit. A free tool can also expose its publisher endpoint directly; calls made entirely outside Markgit cannot be observed or counted.
 
 ## Install and link
 
@@ -9,36 +40,42 @@ npm install -g @markgit/cli
 markgit login
 ```
 
-`markgit login` starts a short-lived device authorization. The CLI opens the portal, the user approves the displayed code, and the API returns a scoped key to that CLI exactly once. The key is stored at `~/.config/markgit/config.json` with owner-only permissions.
+`markgit login` starts short-lived device authorization, opens the portal, and stores the resulting scoped key at `~/.config/markgit/config.json` with owner-only permissions.
 
-## Public discovery
+## Required tracked-call flow
 
-Discovery does not require an account or API key.
-
-```http
-GET /v1/registry/tools?q=weather
-GET /v1/registry/tools/open-meteo-current-weather
-```
-
-Every tool card contains provider identity and trust tier, JSON input/output schemas, transparent USD pricing, and an access mode:
-
-- `direct`: a free standardized tool; call the publisher endpoint without Markgit in the data path.
-- `gateway`: a paid or legacy tool; call the Markgit gateway for wallet authorization and settlement.
-
-## Standard provider endpoint
-
-A directly callable v1 endpoint accepts the JSON object described by `inputSchema` and returns the JSON value described by `outputSchema`.
+### 1. Request an exact quote
 
 ```http
-POST https://publisher.example/tools/weather
+POST /v1/tools/{tool-slug}/quote
+Authorization: Bearer mkgt_...
 Content-Type: application/json
 
-{"city":"New York"}
+{}
 ```
 
-GET tools receive input properties as query parameters. Public endpoints must use HTTPS; localhost HTTP is permitted for development.
+Example response:
 
-## Paid call
+```json
+{
+  "quote": {
+    "id": "quote-id",
+    "priceUsd": "0.0100",
+    "feeUsd": "0.0010",
+    "totalUsd": "0.0110",
+    "expiresAt": "2026-01-01T00:05:00.000Z"
+  },
+  "tool": { "id": "tool-id", "slug": "weather", "name": "Weather" },
+  "controls": {
+    "approved": true,
+    "violations": []
+  }
+}
+```
+
+The caller must verify `controls.approved` and obtain user approval for `quote.totalUsd`, unless an existing maximum-cost policy already authorizes it.
+
+### 2. Call with the approved quote
 
 ```http
 POST /v1/tools/{tool-slug}/call
@@ -46,17 +83,25 @@ Authorization: Bearer mkgt_...
 Idempotency-Key: 2c57b856-7d8e-42b1-9658-e19544c8fdce
 Content-Type: application/json
 
-{"input":{"city":"New York"}}
+{
+  "quoteId": "quote-id",
+  "input": { "city": "New York" }
+}
 ```
 
-Markgit creates the quote and wallet hold internally, calls the publisher, captures on success, and returns one normalized response:
+Normalized response:
 
 ```json
 {
   "id": "execution-id",
   "tool": { "id": "tool-id", "slug": "weather", "name": "Weather" },
   "status": "completed",
-  "cost": { "amount": "0.0110", "currency": "USD" },
+  "cost": {
+    "priceUsd": "0.0100",
+    "feeUsd": "0.0010",
+    "totalUsd": "0.0110",
+    "currency": "USD"
+  },
   "output": { "temperature": 73 },
   "error": null
 }
@@ -64,17 +109,23 @@ Markgit creates the quote and wallet hold internally, calls the publisher, captu
 
 Repeating the same idempotency key returns the stored response without charging or executing again.
 
+Free calls receive a zero-dollar quote. A linked CLI sends free calls through Markgit so successful usage is counted; an unlinked CLI can call a standardized free provider endpoint directly without tracking.
+
 ## Publish a hosted tool
 
-Validate against [`../packages/tool-spec/markgit-tool.schema.json`](../packages/tool-spec/markgit-tool.schema.json), then publish with an authenticated provider account:
+Validate against [`../packages/tool-spec/markgit-tool.schema.json`](../packages/tool-spec/markgit-tool.schema.json), then onboard it:
 
-```http
-POST /v1/tools
-Authorization: Bearer mkgt_...
-Content-Type: application/json
+```bash
+markgit onboard ./markgit-tool.json
+```
 
+Manifest example:
+
+```json
 {
+  "$schema": "./packages/tool-spec/markgit-tool.schema.json",
   "schemaVersion": "1",
+  "provider": { "name": "Example Tools" },
   "name": "Weather lookup",
   "slug": "weather-lookup",
   "description": "Returns current weather for a city.",
@@ -85,14 +136,15 @@ Content-Type: application/json
   "inputSchema": {
     "type": "object",
     "required": ["city"],
-    "properties": { "city": { "type": "string" } }
+    "properties": { "city": { "type": "string", "example": "New York" } }
   },
   "outputSchema": {
     "type": "object",
+    "required": ["temperature"],
     "properties": { "temperature": { "type": "number" } }
   },
   "pricing": { "amountPerCallUsd": "0.0100" }
 }
 ```
 
-The initial listing is a draft and follows the existing review/publish workflow.
+Examples and defaults in JSON Schema are used to generate representative request and response examples for agents.

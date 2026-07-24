@@ -28,6 +28,8 @@ This expects:
 
 The script copies the local root `.env` into `/etc/markgit/api.env`. Update that file on the server when Stripe or database secrets change.
 Set `PUBLIC_WEB_URL=https://markgit.com` there so CLI login links open the production web portal.
+`DATABASE_URL` must be the Supabase transaction-pooler URL on port `6543`; all
+Markgit objects in the shared database are prefixed `mkgt_`.
 
 Validate the service:
 

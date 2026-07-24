@@ -93,14 +93,65 @@ export interface ToolCard {
   category: string | null;
   tags: string[];
   provider: { id: string; name: string; trustTier: string };
-  usage: { count: number; tracked: boolean };
+  usage: {
+    count: number;
+    uniqueUsers: number;
+    tracked: true;
+    coverage: 'markgit_calls';
+    invocationsLabel: string;
+    usersLabel: string;
+  };
   pricing: { type: 'free' | 'per_call'; currency: 'USD'; amount: string };
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
   access:
     | { mode: 'direct'; endpoint: { url: string; method: 'GET' | 'POST' } }
     | { mode: 'gateway'; endpoint: { path: string; method: 'POST' } };
+  documentation: {
+    json: string;
+    openapi: string;
+    llms: string;
+    human: string;
+  };
   updatedAt: string;
+}
+
+export interface ToolDocumentation {
+  schemaVersion: 'markgit.tool-docs/v1';
+  tool: Omit<ToolCard, 'inputSchema' | 'outputSchema' | 'access' | 'documentation'>;
+  documentation: {
+    metadata: string;
+    json: string;
+    openapi: string;
+    llms: string;
+  };
+  invocation: {
+    flow: string[];
+    quote: {
+      method: 'POST';
+      url: string;
+      authentication: string;
+      requestBody: Record<string, never>;
+      responseSchema: Record<string, unknown>;
+    };
+    call: {
+      method: 'POST';
+      url: string;
+      authentication: string;
+      requiredHeaders: Record<string, string>;
+      requestSchema: Record<string, unknown>;
+      requestExample: Record<string, unknown>;
+      responseSchema: Record<string, unknown>;
+      responseExample: Record<string, unknown>;
+    };
+    direct: {
+      note: string;
+      method: 'GET' | 'POST';
+      url: string;
+      inputSchema: Record<string, unknown> | null;
+      outputSchema: Record<string, unknown> | null;
+    } | null;
+  };
 }
 
 export interface ToolListResponse {
@@ -152,6 +203,7 @@ export interface ProductSummary {
   tags: string[];
   providerId: string;
   usageCount: number;
+  uniqueUserCount: number;
 }
 
 // ── Products ────────────────────────────────────────────────────────────
@@ -171,6 +223,7 @@ export interface Product {
   tags: string[];
   buyerCredentialConfigured?: boolean;
   usageCount?: number;
+  uniqueUserCount?: number;
   createdAt: string;
   updatedAt: string;
 }
