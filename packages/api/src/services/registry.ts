@@ -52,12 +52,27 @@ type PublicToolRow = {
 
 function toToolCard(row: PublicToolRow) {
   const amount = row.pricePerCallUsd;
-  const standardizedEndpoint = row.executionConfig?.protocol === 'markgit.tool/v1'
-    && typeof row.executionConfig.baseUrl === 'string'
-    && (row.executionConfig.method === 'GET' || row.executionConfig.method === 'POST')
+  const config = row.executionConfig;
+  const method = config?.method;
+  const mappingEntries = Object.entries(
+    (config?.paramMapping as Record<string, { target?: string; param?: string }> | undefined) ?? {},
+  );
+  const expectedDirectTarget = method === 'GET' ? 'query' : 'body';
+  const directMappingsAreLossless = mappingEntries.every(
+    ([field, mapping]) => mapping.target === expectedDirectTarget && mapping.param === field,
+  );
+  const hasStaticParams = Array.isArray(config?.staticParams) && config.staticParams.length > 0;
+  const hasPathTemplate = typeof config?.baseUrl === 'string'
+    && (/\{[^}]+\}/.test(config.baseUrl) || /%7B.+%7D/i.test(config.baseUrl));
+  const standardizedEndpoint = config?.protocol === 'markgit.tool/v1'
+    && typeof config.baseUrl === 'string'
+    && (method === 'GET' || method === 'POST')
+    && directMappingsAreLossless
+    && !hasStaticParams
+    && !hasPathTemplate
     ? {
-        url: row.executionConfig.baseUrl,
-        method: row.executionConfig.method as 'GET' | 'POST',
+        url: config.baseUrl,
+        method: method as 'GET' | 'POST',
       }
     : null;
   const isFree = parseFloat(amount) === 0;

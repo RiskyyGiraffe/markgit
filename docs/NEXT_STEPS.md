@@ -106,7 +106,7 @@ This is the core differentiator. See `docs/provider-manifest-spec.md` for the ta
 ### Tasks
 
 1. **Add embeddings** — Generate embeddings for product name, description, capabilities, tags
-   - Store in Neon with `pgvector` extension
+   - Store in Supabase Postgres with `pgvector` or the current portable JSON embedding fallback
    - New column on `products`: `embedding vector(1536)` (or whatever dimension)
 
 2. **Semantic search endpoint** — Update `POST /v1/search` to:

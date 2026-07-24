@@ -28,8 +28,8 @@ packages/
   tool-spec/ → Open JSON Schema for publisher-hosted tools
 ```
 
-**Database**: Neon Serverless Postgres (project: `rapid-hall-03841072`)
-**ORM**: Drizzle (schema-first, migrations via direct SQL on Neon)
+**Database**: Supabase Postgres through the transaction pooler
+**ORM**: Drizzle with versioned migrations; every Markgit database object is namespaced with `mkgt_`
 **Payments**: Stripe (Checkout for wallet funding, Connect Express for vendor payouts)
 **Auth**: API key-based (Bearer token), keys stored as SHA-256 hashes
 
@@ -60,7 +60,7 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Description | Where to get it |
 |----------|-------------|-----------------|
-| `DATABASE_URL` | Neon Postgres connection string | [Neon Console](https://console.neon.tech) |
+| `DATABASE_URL` | Supabase transaction-pooler connection string | [Supabase database settings](https://supabase.com/dashboard) |
 | `PORT` | API server port (default: 3000) | — |
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_test_...` or `sk_live_...`) | [Stripe Dashboard → API keys](https://dashboard.stripe.com/apikeys) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) | [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks) |
@@ -105,7 +105,7 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 
 | Page | Path | Description |
 |------|------|-------------|
-| Login | `/login` | Auth (Better Auth via Neon Auth) |
+| Login | `/login` | Better Auth stored in `mkgt_auth_*` Supabase tables |
 | Dashboard | `/dashboard` | Overview |
 | Marketplace | `/marketplace` | Browse and search products |
 | Product Detail | `/marketplace/[id]` | View product, get quote, purchase |
@@ -120,21 +120,22 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 
 Key tables (defined in `packages/api/src/db/schema.ts`):
 
-- `users` — email-based accounts
-- `api_keys` — hashed API keys with permissions and budget limits
-- `sessions` — API session tracking
-- `providers` — vendor accounts (with Stripe Connect fields)
-- `products` — marketplace listings (price, schema, execution config)
-- `wallets` — user spend wallets
-- `wallet_ledger_entries` — every credit/debit/hold/capture/release/refund
-- `quotes` — priced offers with expiration
-- `holds` — wallet fund reservations
-- `purchases` — purchase lifecycle (created → authorized → running → completed/failed)
-- `executions` — API call records (input, output, status, timing)
-- `provider_earnings` — per-purchase earnings breakdown (gross, fee, net)
-- `payouts` — disbursement records (Stripe transfer ID)
-- `provider_payout_configs` — USDC wallet addresses (for future crypto payouts)
-- `stripe_checkout_sessions` — idempotent webhook handling for Checkout
+- `mkgt_users` — email-based accounts
+- `mkgt_api_keys` — hashed API keys with permissions and budget limits
+- `mkgt_sessions` — API session tracking
+- `mkgt_providers` — vendor accounts (with Stripe Connect fields)
+- `mkgt_products` — marketplace listings (price, schema, execution config)
+- `mkgt_wallets` — user spend wallets
+- `mkgt_wallet_ledger_entries` — every credit/debit/hold/capture/release/refund
+- `mkgt_quotes` — priced offers with expiration
+- `mkgt_holds` — wallet fund reservations
+- `mkgt_purchases` — purchase lifecycle (created → authorized → running → completed/failed)
+- `mkgt_executions` — API call records (input, output, status, timing)
+- `mkgt_provider_import_runs` — AI/OpenAPI import, review, and test history
+- `mkgt_provider_earnings` — per-purchase earnings breakdown (gross, fee, net)
+- `mkgt_payouts` — disbursement records (Stripe transfer ID)
+- `mkgt_provider_payout_configs` — USDC wallet addresses (for future crypto payouts)
+- `mkgt_stripe_checkout_sessions` — idempotent webhook handling for Checkout
 
 ## What's Working (Real)
 
@@ -283,8 +284,25 @@ Read these for the full vision:
 
 Test card: `4242 4242 4242 4242` (any future expiry, any CVC)
 
-## Neon Database
+## Supabase Database
 
-Project ID: `rapid-hall-03841072`
+Use Supabase's transaction-pooler connection string on port `6543`. The API and
+web clients disable prepared statements for pooler compatibility.
 
-Schema migrations are applied via direct SQL on Neon (not Drizzle migrations). The schema source of truth is `packages/api/src/db/schema.ts`.
+All Markgit tables, enums, indexes, and the migration journal use the `mkgt_`
+prefix so the database can safely be shared with other test projects. Apply
+versioned migrations with:
+
+```bash
+pnpm db:migrate
+```
+
+The schema source of truth is `packages/api/src/db/schema.ts`; Better Auth tables
+are defined in `packages/web/auth-schema.ts`. Historical Neon migrations remain
+available in Git history; the active migration journal now targets Supabase only.
+
+To import, review, test, and publish the curated free public APIs:
+
+```bash
+MARKGIT_API_URL=http://localhost:3000 pnpm onboard:public-apis
+```

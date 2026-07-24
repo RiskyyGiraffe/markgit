@@ -1,11 +1,11 @@
 {
-  "id": "bbfda998-1246-4fa5-8204-7e93efc0307b",
-  "prevId": "ac0d7f78-1607-44df-a950-3ef6379539ee",
+  "id": "b6d336f9-0118-40b3-9f9b-158fe437a88d",
+  "prevId": "72e0044e-207b-4571-b0cf-e2dad8b38811",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.api_keys": {
-      "name": "api_keys",
+    "public.mkgt_api_keys": {
+      "name": "mkgt_api_keys",
       "schema": "",
       "columns": {
         "id": {
@@ -87,10 +87,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "api_keys_user_id_users_id_fk": {
-          "name": "api_keys_user_id_users_id_fk",
-          "tableFrom": "api_keys",
-          "tableTo": "users",
+        "mkgt_api_keys_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_api_keys_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_api_keys",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -103,8 +103,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "api_keys_key_hash_unique": {
-          "name": "api_keys_key_hash_unique",
+        "mkgt_api_keys_key_hash_unique": {
+          "name": "mkgt_api_keys_key_hash_unique",
           "nullsNotDistinct": false,
           "columns": [
             "key_hash"
@@ -115,8 +115,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.background_jobs": {
-      "name": "background_jobs",
+    "public.mkgt_background_jobs": {
+      "name": "mkgt_background_jobs",
       "schema": "",
       "columns": {
         "id": {
@@ -134,7 +134,7 @@
         },
         "status": {
           "name": "status",
-          "type": "background_job_status",
+          "type": "mkgt_background_job_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -209,8 +209,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.device_authorizations": {
-      "name": "device_authorizations",
+    "public.mkgt_device_authorizations": {
+      "name": "mkgt_device_authorizations",
       "schema": "",
       "columns": {
         "id": {
@@ -241,7 +241,7 @@
         },
         "status": {
           "name": "status",
-          "type": "device_authorization_status",
+          "type": "mkgt_device_authorization_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -281,10 +281,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "device_authorizations_user_id_users_id_fk": {
-          "name": "device_authorizations_user_id_users_id_fk",
-          "tableFrom": "device_authorizations",
-          "tableTo": "users",
+        "mkgt_device_authorizations_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_device_authorizations_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_device_authorizations",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -297,15 +297,15 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "device_authorizations_device_code_hash_unique": {
-          "name": "device_authorizations_device_code_hash_unique",
+        "mkgt_device_authorizations_device_code_hash_unique": {
+          "name": "mkgt_device_authorizations_device_code_hash_unique",
           "nullsNotDistinct": false,
           "columns": [
             "device_code_hash"
           ]
         },
-        "device_authorizations_user_code_unique": {
-          "name": "device_authorizations_user_code_unique",
+        "mkgt_device_authorizations_user_code_unique": {
+          "name": "mkgt_device_authorizations_user_code_unique",
           "nullsNotDistinct": false,
           "columns": [
             "user_code"
@@ -316,8 +316,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.executions": {
-      "name": "executions",
+    "public.mkgt_executions": {
+      "name": "mkgt_executions",
       "schema": "",
       "columns": {
         "id": {
@@ -341,7 +341,7 @@
         },
         "status": {
           "name": "status",
-          "type": "execution_status",
+          "type": "mkgt_execution_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -387,10 +387,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "executions_purchase_id_purchases_id_fk": {
-          "name": "executions_purchase_id_purchases_id_fk",
-          "tableFrom": "executions",
-          "tableTo": "purchases",
+        "mkgt_executions_purchase_id_mkgt_purchases_id_fk": {
+          "name": "mkgt_executions_purchase_id_mkgt_purchases_id_fk",
+          "tableFrom": "mkgt_executions",
+          "tableTo": "mkgt_purchases",
           "columnsFrom": [
             "purchase_id"
           ],
@@ -400,10 +400,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "executions_product_id_products_id_fk": {
-          "name": "executions_product_id_products_id_fk",
-          "tableFrom": "executions",
-          "tableTo": "products",
+        "mkgt_executions_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_executions_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_executions",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -420,8 +420,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.holds": {
-      "name": "holds",
+    "public.mkgt_holds": {
+      "name": "mkgt_holds",
       "schema": "",
       "columns": {
         "id": {
@@ -445,7 +445,7 @@
         },
         "status": {
           "name": "status",
-          "type": "hold_status",
+          "type": "mkgt_hold_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -474,10 +474,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "holds_wallet_id_wallets_id_fk": {
-          "name": "holds_wallet_id_wallets_id_fk",
-          "tableFrom": "holds",
-          "tableTo": "wallets",
+        "mkgt_holds_wallet_id_mkgt_wallets_id_fk": {
+          "name": "mkgt_holds_wallet_id_mkgt_wallets_id_fk",
+          "tableFrom": "mkgt_holds",
+          "tableTo": "mkgt_wallets",
           "columnsFrom": [
             "wallet_id"
           ],
@@ -494,8 +494,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.payouts": {
-      "name": "payouts",
+    "public.mkgt_payouts": {
+      "name": "mkgt_payouts",
       "schema": "",
       "columns": {
         "id": {
@@ -519,7 +519,7 @@
         },
         "status": {
           "name": "status",
-          "type": "payout_status",
+          "type": "mkgt_payout_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -591,10 +591,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "payouts_provider_id_providers_id_fk": {
-          "name": "payouts_provider_id_providers_id_fk",
-          "tableFrom": "payouts",
-          "tableTo": "providers",
+        "mkgt_payouts_provider_id_mkgt_providers_id_fk": {
+          "name": "mkgt_payouts_provider_id_mkgt_providers_id_fk",
+          "tableFrom": "mkgt_payouts",
+          "tableTo": "mkgt_providers",
           "columnsFrom": [
             "provider_id"
           ],
@@ -611,8 +611,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.product_search_embeddings": {
-      "name": "product_search_embeddings",
+    "public.mkgt_product_search_embeddings": {
+      "name": "mkgt_product_search_embeddings",
       "schema": "",
       "columns": {
         "id": {
@@ -669,10 +669,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "product_search_embeddings_product_id_products_id_fk": {
-          "name": "product_search_embeddings_product_id_products_id_fk",
-          "tableFrom": "product_search_embeddings",
-          "tableTo": "products",
+        "mkgt_product_search_embeddings_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_product_search_embeddings_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_product_search_embeddings",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -689,8 +689,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.products": {
-      "name": "products",
+    "public.mkgt_products": {
+      "name": "mkgt_products",
       "schema": "",
       "columns": {
         "id": {
@@ -732,7 +732,7 @@
         },
         "status": {
           "name": "status",
-          "type": "product_status",
+          "type": "mkgt_product_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -786,10 +786,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "products_provider_id_providers_id_fk": {
-          "name": "products_provider_id_providers_id_fk",
-          "tableFrom": "products",
-          "tableTo": "providers",
+        "mkgt_products_provider_id_mkgt_providers_id_fk": {
+          "name": "mkgt_products_provider_id_mkgt_providers_id_fk",
+          "tableFrom": "mkgt_products",
+          "tableTo": "mkgt_providers",
           "columnsFrom": [
             "provider_id"
           ],
@@ -802,8 +802,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "products_slug_unique": {
-          "name": "products_slug_unique",
+        "mkgt_products_slug_unique": {
+          "name": "mkgt_products_slug_unique",
           "nullsNotDistinct": false,
           "columns": [
             "slug"
@@ -814,8 +814,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_credentials": {
-      "name": "provider_credentials",
+    "public.mkgt_provider_credentials": {
+      "name": "mkgt_provider_credentials",
       "schema": "",
       "columns": {
         "id": {
@@ -839,14 +839,14 @@
         },
         "auth_type": {
           "name": "auth_type",
-          "type": "credential_auth_type",
+          "type": "mkgt_credential_auth_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "location": {
           "name": "location",
-          "type": "credential_location",
+          "type": "mkgt_credential_location",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -880,10 +880,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "provider_credentials_provider_id_providers_id_fk": {
-          "name": "provider_credentials_provider_id_providers_id_fk",
-          "tableFrom": "provider_credentials",
-          "tableTo": "providers",
+        "mkgt_provider_credentials_provider_id_mkgt_providers_id_fk": {
+          "name": "mkgt_provider_credentials_provider_id_mkgt_providers_id_fk",
+          "tableFrom": "mkgt_provider_credentials",
+          "tableTo": "mkgt_providers",
           "columnsFrom": [
             "provider_id"
           ],
@@ -893,10 +893,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "provider_credentials_product_id_products_id_fk": {
-          "name": "provider_credentials_product_id_products_id_fk",
-          "tableFrom": "provider_credentials",
-          "tableTo": "products",
+        "mkgt_provider_credentials_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_provider_credentials_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_provider_credentials",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -913,8 +913,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_earnings": {
-      "name": "provider_earnings",
+    "public.mkgt_provider_earnings": {
+      "name": "mkgt_provider_earnings",
       "schema": "",
       "columns": {
         "id": {
@@ -976,10 +976,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "provider_earnings_provider_id_providers_id_fk": {
-          "name": "provider_earnings_provider_id_providers_id_fk",
-          "tableFrom": "provider_earnings",
-          "tableTo": "providers",
+        "mkgt_provider_earnings_provider_id_mkgt_providers_id_fk": {
+          "name": "mkgt_provider_earnings_provider_id_mkgt_providers_id_fk",
+          "tableFrom": "mkgt_provider_earnings",
+          "tableTo": "mkgt_providers",
           "columnsFrom": [
             "provider_id"
           ],
@@ -989,10 +989,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "provider_earnings_purchase_id_purchases_id_fk": {
-          "name": "provider_earnings_purchase_id_purchases_id_fk",
-          "tableFrom": "provider_earnings",
-          "tableTo": "purchases",
+        "mkgt_provider_earnings_purchase_id_mkgt_purchases_id_fk": {
+          "name": "mkgt_provider_earnings_purchase_id_mkgt_purchases_id_fk",
+          "tableFrom": "mkgt_provider_earnings",
+          "tableTo": "mkgt_purchases",
           "columnsFrom": [
             "purchase_id"
           ],
@@ -1002,10 +1002,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "provider_earnings_payout_id_payouts_id_fk": {
-          "name": "provider_earnings_payout_id_payouts_id_fk",
-          "tableFrom": "provider_earnings",
-          "tableTo": "payouts",
+        "mkgt_provider_earnings_payout_id_mkgt_payouts_id_fk": {
+          "name": "mkgt_provider_earnings_payout_id_mkgt_payouts_id_fk",
+          "tableFrom": "mkgt_provider_earnings",
+          "tableTo": "mkgt_payouts",
           "columnsFrom": [
             "payout_id"
           ],
@@ -1022,8 +1022,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_import_runs": {
-      "name": "provider_import_runs",
+    "public.mkgt_provider_import_runs": {
+      "name": "mkgt_provider_import_runs",
       "schema": "",
       "columns": {
         "id": {
@@ -1053,7 +1053,7 @@
         },
         "source_type": {
           "name": "source_type",
-          "type": "import_source_type",
+          "type": "mkgt_import_source_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1061,7 +1061,7 @@
         },
         "status": {
           "name": "status",
-          "type": "import_run_status",
+          "type": "mkgt_import_run_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1123,10 +1123,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "provider_import_runs_provider_id_providers_id_fk": {
-          "name": "provider_import_runs_provider_id_providers_id_fk",
-          "tableFrom": "provider_import_runs",
-          "tableTo": "providers",
+        "mkgt_provider_import_runs_provider_id_mkgt_providers_id_fk": {
+          "name": "mkgt_provider_import_runs_provider_id_mkgt_providers_id_fk",
+          "tableFrom": "mkgt_provider_import_runs",
+          "tableTo": "mkgt_providers",
           "columnsFrom": [
             "provider_id"
           ],
@@ -1143,8 +1143,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_payout_configs": {
-      "name": "provider_payout_configs",
+    "public.mkgt_provider_payout_configs": {
+      "name": "mkgt_provider_payout_configs",
       "schema": "",
       "columns": {
         "id": {
@@ -1189,10 +1189,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "provider_payout_configs_provider_id_providers_id_fk": {
-          "name": "provider_payout_configs_provider_id_providers_id_fk",
-          "tableFrom": "provider_payout_configs",
-          "tableTo": "providers",
+        "mkgt_provider_payout_configs_provider_id_mkgt_providers_id_fk": {
+          "name": "mkgt_provider_payout_configs_provider_id_mkgt_providers_id_fk",
+          "tableFrom": "mkgt_provider_payout_configs",
+          "tableTo": "mkgt_providers",
           "columnsFrom": [
             "provider_id"
           ],
@@ -1209,8 +1209,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.providers": {
-      "name": "providers",
+    "public.mkgt_providers": {
+      "name": "mkgt_providers",
       "schema": "",
       "columns": {
         "id": {
@@ -1246,7 +1246,7 @@
         },
         "trust_tier": {
           "name": "trust_tier",
-          "type": "trust_tier",
+          "type": "mkgt_trust_tier",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1282,10 +1282,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "providers_user_id_users_id_fk": {
-          "name": "providers_user_id_users_id_fk",
-          "tableFrom": "providers",
-          "tableTo": "users",
+        "mkgt_providers_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_providers_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_providers",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1302,8 +1302,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.purchases": {
-      "name": "purchases",
+    "public.mkgt_purchases": {
+      "name": "mkgt_purchases",
       "schema": "",
       "columns": {
         "id": {
@@ -1351,7 +1351,7 @@
         },
         "status": {
           "name": "status",
-          "type": "purchase_status",
+          "type": "mkgt_purchase_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1378,12 +1378,34 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "mkgt_purchases_product_status_idx": {
+          "name": "mkgt_purchases_product_status_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "purchases_user_id_users_id_fk": {
-          "name": "purchases_user_id_users_id_fk",
-          "tableFrom": "purchases",
-          "tableTo": "users",
+        "mkgt_purchases_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_purchases_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_purchases",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1393,10 +1415,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "purchases_product_id_products_id_fk": {
-          "name": "purchases_product_id_products_id_fk",
-          "tableFrom": "purchases",
-          "tableTo": "products",
+        "mkgt_purchases_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_purchases_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_purchases",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -1406,10 +1428,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "purchases_quote_id_quotes_id_fk": {
-          "name": "purchases_quote_id_quotes_id_fk",
-          "tableFrom": "purchases",
-          "tableTo": "quotes",
+        "mkgt_purchases_quote_id_mkgt_quotes_id_fk": {
+          "name": "mkgt_purchases_quote_id_mkgt_quotes_id_fk",
+          "tableFrom": "mkgt_purchases",
+          "tableTo": "mkgt_quotes",
           "columnsFrom": [
             "quote_id"
           ],
@@ -1419,10 +1441,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "purchases_hold_id_holds_id_fk": {
-          "name": "purchases_hold_id_holds_id_fk",
-          "tableFrom": "purchases",
-          "tableTo": "holds",
+        "mkgt_purchases_hold_id_mkgt_holds_id_fk": {
+          "name": "mkgt_purchases_hold_id_mkgt_holds_id_fk",
+          "tableFrom": "mkgt_purchases",
+          "tableTo": "mkgt_holds",
           "columnsFrom": [
             "hold_id"
           ],
@@ -1432,10 +1454,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "purchases_wallet_id_wallets_id_fk": {
-          "name": "purchases_wallet_id_wallets_id_fk",
-          "tableFrom": "purchases",
-          "tableTo": "wallets",
+        "mkgt_purchases_wallet_id_mkgt_wallets_id_fk": {
+          "name": "mkgt_purchases_wallet_id_mkgt_wallets_id_fk",
+          "tableFrom": "mkgt_purchases",
+          "tableTo": "mkgt_wallets",
           "columnsFrom": [
             "wallet_id"
           ],
@@ -1452,8 +1474,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.quotes": {
-      "name": "quotes",
+    "public.mkgt_quotes": {
+      "name": "mkgt_quotes",
       "schema": "",
       "columns": {
         "id": {
@@ -1501,7 +1523,7 @@
         },
         "status": {
           "name": "status",
-          "type": "quote_status",
+          "type": "mkgt_quote_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1523,10 +1545,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "quotes_user_id_users_id_fk": {
-          "name": "quotes_user_id_users_id_fk",
-          "tableFrom": "quotes",
-          "tableTo": "users",
+        "mkgt_quotes_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_quotes_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_quotes",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1536,10 +1558,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "quotes_product_id_products_id_fk": {
-          "name": "quotes_product_id_products_id_fk",
-          "tableFrom": "quotes",
-          "tableTo": "products",
+        "mkgt_quotes_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_quotes_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_quotes",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -1549,10 +1571,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "quotes_wallet_id_wallets_id_fk": {
-          "name": "quotes_wallet_id_wallets_id_fk",
-          "tableFrom": "quotes",
-          "tableTo": "wallets",
+        "mkgt_quotes_wallet_id_mkgt_wallets_id_fk": {
+          "name": "mkgt_quotes_wallet_id_mkgt_wallets_id_fk",
+          "tableFrom": "mkgt_quotes",
+          "tableTo": "mkgt_wallets",
           "columnsFrom": [
             "wallet_id"
           ],
@@ -1569,8 +1591,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sessions": {
-      "name": "sessions",
+    "public.mkgt_sessions": {
+      "name": "mkgt_sessions",
       "schema": "",
       "columns": {
         "id": {
@@ -1616,10 +1638,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "sessions_user_id_users_id_fk": {
-          "name": "sessions_user_id_users_id_fk",
-          "tableFrom": "sessions",
-          "tableTo": "users",
+        "mkgt_sessions_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_sessions_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_sessions",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1629,10 +1651,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "sessions_api_key_id_api_keys_id_fk": {
-          "name": "sessions_api_key_id_api_keys_id_fk",
-          "tableFrom": "sessions",
-          "tableTo": "api_keys",
+        "mkgt_sessions_api_key_id_mkgt_api_keys_id_fk": {
+          "name": "mkgt_sessions_api_key_id_mkgt_api_keys_id_fk",
+          "tableFrom": "mkgt_sessions",
+          "tableTo": "mkgt_api_keys",
           "columnsFrom": [
             "api_key_id"
           ],
@@ -1649,8 +1671,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.stripe_checkout_sessions": {
-      "name": "stripe_checkout_sessions",
+    "public.mkgt_stripe_checkout_sessions": {
+      "name": "mkgt_stripe_checkout_sessions",
       "schema": "",
       "columns": {
         "id": {
@@ -1686,7 +1708,7 @@
         },
         "status": {
           "name": "status",
-          "type": "checkout_session_status",
+          "type": "mkgt_checkout_session_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1708,10 +1730,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "stripe_checkout_sessions_user_id_users_id_fk": {
-          "name": "stripe_checkout_sessions_user_id_users_id_fk",
-          "tableFrom": "stripe_checkout_sessions",
-          "tableTo": "users",
+        "mkgt_stripe_checkout_sessions_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_stripe_checkout_sessions_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_stripe_checkout_sessions",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1721,10 +1743,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "stripe_checkout_sessions_wallet_id_wallets_id_fk": {
-          "name": "stripe_checkout_sessions_wallet_id_wallets_id_fk",
-          "tableFrom": "stripe_checkout_sessions",
-          "tableTo": "wallets",
+        "mkgt_stripe_checkout_sessions_wallet_id_mkgt_wallets_id_fk": {
+          "name": "mkgt_stripe_checkout_sessions_wallet_id_mkgt_wallets_id_fk",
+          "tableFrom": "mkgt_stripe_checkout_sessions",
+          "tableTo": "mkgt_wallets",
           "columnsFrom": [
             "wallet_id"
           ],
@@ -1737,8 +1759,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "stripe_checkout_sessions_stripe_session_id_unique": {
-          "name": "stripe_checkout_sessions_stripe_session_id_unique",
+        "mkgt_stripe_checkout_sessions_stripe_session_id_unique": {
+          "name": "mkgt_stripe_checkout_sessions_stripe_session_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "stripe_session_id"
@@ -1749,8 +1771,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.tool_call_requests": {
-      "name": "tool_call_requests",
+    "public.mkgt_tool_call_requests": {
+      "name": "mkgt_tool_call_requests",
       "schema": "",
       "columns": {
         "id": {
@@ -1786,7 +1808,7 @@
         },
         "status": {
           "name": "status",
-          "type": "tool_call_request_status",
+          "type": "mkgt_tool_call_request_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -1814,8 +1836,8 @@
         }
       },
       "indexes": {
-        "tool_call_requests_user_idempotency_idx": {
-          "name": "tool_call_requests_user_idempotency_idx",
+        "mkgt_tool_call_requests_user_idempotency_idx": {
+          "name": "mkgt_tool_call_requests_user_idempotency_idx",
           "columns": [
             {
               "expression": "user_id",
@@ -1837,10 +1859,10 @@
         }
       },
       "foreignKeys": {
-        "tool_call_requests_user_id_users_id_fk": {
-          "name": "tool_call_requests_user_id_users_id_fk",
-          "tableFrom": "tool_call_requests",
-          "tableTo": "users",
+        "mkgt_tool_call_requests_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_tool_call_requests_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_tool_call_requests",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1850,10 +1872,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "tool_call_requests_api_key_id_api_keys_id_fk": {
-          "name": "tool_call_requests_api_key_id_api_keys_id_fk",
-          "tableFrom": "tool_call_requests",
-          "tableTo": "api_keys",
+        "mkgt_tool_call_requests_api_key_id_mkgt_api_keys_id_fk": {
+          "name": "mkgt_tool_call_requests_api_key_id_mkgt_api_keys_id_fk",
+          "tableFrom": "mkgt_tool_call_requests",
+          "tableTo": "mkgt_api_keys",
           "columnsFrom": [
             "api_key_id"
           ],
@@ -1863,10 +1885,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "tool_call_requests_product_id_products_id_fk": {
-          "name": "tool_call_requests_product_id_products_id_fk",
-          "tableFrom": "tool_call_requests",
-          "tableTo": "products",
+        "mkgt_tool_call_requests_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_tool_call_requests_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_tool_call_requests",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -1883,8 +1905,140 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user_product_credentials": {
-      "name": "user_product_credentials",
+    "public.mkgt_tool_spend_controls": {
+      "name": "mkgt_tool_spend_controls",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allowed": {
+          "name": "allowed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "max_per_call_usd": {
+          "name": "max_per_call_usd",
+          "type": "numeric(19, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "daily_limit_usd": {
+          "name": "daily_limit_usd",
+          "type": "numeric(19, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthly_limit_usd": {
+          "name": "monthly_limit_usd",
+          "type": "numeric(19, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_per_minute": {
+          "name": "rate_limit_per_minute",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_per_hour": {
+          "name": "rate_limit_per_hour",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "mkgt_tool_spend_controls_user_product_idx": {
+          "name": "mkgt_tool_spend_controls_user_product_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mkgt_tool_spend_controls_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_tool_spend_controls_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_tool_spend_controls",
+          "tableTo": "mkgt_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "mkgt_tool_spend_controls_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_tool_spend_controls_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_tool_spend_controls",
+          "tableTo": "mkgt_products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mkgt_user_product_credentials": {
+      "name": "mkgt_user_product_credentials",
       "schema": "",
       "columns": {
         "id": {
@@ -1908,14 +2062,14 @@
         },
         "auth_type": {
           "name": "auth_type",
-          "type": "credential_auth_type",
+          "type": "mkgt_credential_auth_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "location": {
           "name": "location",
-          "type": "credential_location",
+          "type": "mkgt_credential_location",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1949,10 +2103,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_product_credentials_user_id_users_id_fk": {
-          "name": "user_product_credentials_user_id_users_id_fk",
-          "tableFrom": "user_product_credentials",
-          "tableTo": "users",
+        "mkgt_user_product_credentials_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_user_product_credentials_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_user_product_credentials",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -1962,10 +2116,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "user_product_credentials_product_id_products_id_fk": {
-          "name": "user_product_credentials_product_id_products_id_fk",
-          "tableFrom": "user_product_credentials",
-          "tableTo": "products",
+        "mkgt_user_product_credentials_product_id_mkgt_products_id_fk": {
+          "name": "mkgt_user_product_credentials_product_id_mkgt_products_id_fk",
+          "tableFrom": "mkgt_user_product_credentials",
+          "tableTo": "mkgt_products",
           "columnsFrom": [
             "product_id"
           ],
@@ -1982,8 +2136,105 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users": {
-      "name": "users",
+    "public.mkgt_user_spend_controls": {
+      "name": "mkgt_user_spend_controls",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_per_call_usd": {
+          "name": "max_per_call_usd",
+          "type": "numeric(19, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'25'"
+        },
+        "daily_limit_usd": {
+          "name": "daily_limit_usd",
+          "type": "numeric(19, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'100'"
+        },
+        "monthly_limit_usd": {
+          "name": "monthly_limit_usd",
+          "type": "numeric(19, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1000'"
+        },
+        "rate_limit_per_minute": {
+          "name": "rate_limit_per_minute",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 60
+        },
+        "rate_limit_per_hour": {
+          "name": "rate_limit_per_hour",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1000
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mkgt_user_spend_controls_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_user_spend_controls_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_user_spend_controls",
+          "tableTo": "mkgt_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mkgt_user_spend_controls_user_id_unique": {
+          "name": "mkgt_user_spend_controls_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mkgt_users": {
+      "name": "mkgt_users",
       "schema": "",
       "columns": {
         "id": {
@@ -2024,8 +2275,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_email_unique": {
-          "name": "users_email_unique",
+        "mkgt_users_email_unique": {
+          "name": "mkgt_users_email_unique",
           "nullsNotDistinct": false,
           "columns": [
             "email"
@@ -2036,8 +2287,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.wallet_ledger_entries": {
-      "name": "wallet_ledger_entries",
+    "public.mkgt_wallet_ledger_entries": {
+      "name": "mkgt_wallet_ledger_entries",
       "schema": "",
       "columns": {
         "id": {
@@ -2055,7 +2306,7 @@
         },
         "entry_type": {
           "name": "entry_type",
-          "type": "ledger_entry_type",
+          "type": "mkgt_ledger_entry_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -2100,10 +2351,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "wallet_ledger_entries_wallet_id_wallets_id_fk": {
-          "name": "wallet_ledger_entries_wallet_id_wallets_id_fk",
-          "tableFrom": "wallet_ledger_entries",
-          "tableTo": "wallets",
+        "mkgt_wallet_ledger_entries_wallet_id_mkgt_wallets_id_fk": {
+          "name": "mkgt_wallet_ledger_entries_wallet_id_mkgt_wallets_id_fk",
+          "tableFrom": "mkgt_wallet_ledger_entries",
+          "tableTo": "mkgt_wallets",
           "columnsFrom": [
             "wallet_id"
           ],
@@ -2120,8 +2371,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.wallets": {
-      "name": "wallets",
+    "public.mkgt_wallets": {
+      "name": "mkgt_wallets",
       "schema": "",
       "columns": {
         "id": {
@@ -2146,7 +2397,7 @@
         },
         "status": {
           "name": "status",
-          "type": "wallet_status",
+          "type": "mkgt_wallet_status",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -2169,10 +2420,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "wallets_user_id_users_id_fk": {
-          "name": "wallets_user_id_users_id_fk",
-          "tableFrom": "wallets",
-          "tableTo": "users",
+        "mkgt_wallets_user_id_mkgt_users_id_fk": {
+          "name": "mkgt_wallets_user_id_mkgt_users_id_fk",
+          "tableFrom": "mkgt_wallets",
+          "tableTo": "mkgt_users",
           "columnsFrom": [
             "user_id"
           ],
@@ -2188,11 +2439,366 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.mkgt_auth_accounts": {
+      "name": "mkgt_auth_accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "mkgt_auth_accounts_user_id_idx": {
+          "name": "mkgt_auth_accounts_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mkgt_auth_accounts_user_id_mkgt_auth_users_id_fk": {
+          "name": "mkgt_auth_accounts_user_id_mkgt_auth_users_id_fk",
+          "tableFrom": "mkgt_auth_accounts",
+          "tableTo": "mkgt_auth_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mkgt_auth_sessions": {
+      "name": "mkgt_auth_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "mkgt_auth_sessions_user_id_idx": {
+          "name": "mkgt_auth_sessions_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mkgt_auth_sessions_user_id_mkgt_auth_users_id_fk": {
+          "name": "mkgt_auth_sessions_user_id_mkgt_auth_users_id_fk",
+          "tableFrom": "mkgt_auth_sessions",
+          "tableTo": "mkgt_auth_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mkgt_auth_sessions_token_unique": {
+          "name": "mkgt_auth_sessions_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mkgt_auth_users": {
+      "name": "mkgt_auth_users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mkgt_auth_users_email_unique": {
+          "name": "mkgt_auth_users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mkgt_auth_verifications": {
+      "name": "mkgt_auth_verifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "mkgt_auth_verifications_identifier_idx": {
+          "name": "mkgt_auth_verifications_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
-    "public.background_job_status": {
-      "name": "background_job_status",
+    "public.mkgt_background_job_status": {
+      "name": "mkgt_background_job_status",
       "schema": "public",
       "values": [
         "pending",
@@ -2201,8 +2807,8 @@
         "failed"
       ]
     },
-    "public.checkout_session_status": {
-      "name": "checkout_session_status",
+    "public.mkgt_checkout_session_status": {
+      "name": "mkgt_checkout_session_status",
       "schema": "public",
       "values": [
         "pending",
@@ -2210,8 +2816,8 @@
         "expired"
       ]
     },
-    "public.credential_auth_type": {
-      "name": "credential_auth_type",
+    "public.mkgt_credential_auth_type": {
+      "name": "mkgt_credential_auth_type",
       "schema": "public",
       "values": [
         "none",
@@ -2220,8 +2826,8 @@
         "basic"
       ]
     },
-    "public.credential_location": {
-      "name": "credential_location",
+    "public.mkgt_credential_location": {
+      "name": "mkgt_credential_location",
       "schema": "public",
       "values": [
         "header",
@@ -2229,8 +2835,8 @@
         "body"
       ]
     },
-    "public.device_authorization_status": {
-      "name": "device_authorization_status",
+    "public.mkgt_device_authorization_status": {
+      "name": "mkgt_device_authorization_status",
       "schema": "public",
       "values": [
         "pending",
@@ -2239,8 +2845,8 @@
         "consumed"
       ]
     },
-    "public.execution_status": {
-      "name": "execution_status",
+    "public.mkgt_execution_status": {
+      "name": "mkgt_execution_status",
       "schema": "public",
       "values": [
         "pending",
@@ -2250,8 +2856,8 @@
         "timed_out"
       ]
     },
-    "public.hold_status": {
-      "name": "hold_status",
+    "public.mkgt_hold_status": {
+      "name": "mkgt_hold_status",
       "schema": "public",
       "values": [
         "held",
@@ -2259,8 +2865,8 @@
         "released"
       ]
     },
-    "public.import_run_status": {
-      "name": "import_run_status",
+    "public.mkgt_import_run_status": {
+      "name": "mkgt_import_run_status",
       "schema": "public",
       "values": [
         "created",
@@ -2273,8 +2879,8 @@
         "published"
       ]
     },
-    "public.import_source_type": {
-      "name": "import_source_type",
+    "public.mkgt_import_source_type": {
+      "name": "mkgt_import_source_type",
       "schema": "public",
       "values": [
         "openapi_json",
@@ -2284,8 +2890,8 @@
         "unknown"
       ]
     },
-    "public.ledger_entry_type": {
-      "name": "ledger_entry_type",
+    "public.mkgt_ledger_entry_type": {
+      "name": "mkgt_ledger_entry_type",
       "schema": "public",
       "values": [
         "credit",
@@ -2296,8 +2902,8 @@
         "refund"
       ]
     },
-    "public.payout_status": {
-      "name": "payout_status",
+    "public.mkgt_payout_status": {
+      "name": "mkgt_payout_status",
       "schema": "public",
       "values": [
         "pending",
@@ -2306,8 +2912,8 @@
         "failed"
       ]
     },
-    "public.product_status": {
-      "name": "product_status",
+    "public.mkgt_product_status": {
+      "name": "mkgt_product_status",
       "schema": "public",
       "values": [
         "draft",
@@ -2317,8 +2923,8 @@
         "archived"
       ]
     },
-    "public.purchase_status": {
-      "name": "purchase_status",
+    "public.mkgt_purchase_status": {
+      "name": "mkgt_purchase_status",
       "schema": "public",
       "values": [
         "created",
@@ -2329,8 +2935,8 @@
         "refunded"
       ]
     },
-    "public.quote_status": {
-      "name": "quote_status",
+    "public.mkgt_quote_status": {
+      "name": "mkgt_quote_status",
       "schema": "public",
       "values": [
         "active",
@@ -2338,8 +2944,8 @@
         "consumed"
       ]
     },
-    "public.tool_call_request_status": {
-      "name": "tool_call_request_status",
+    "public.mkgt_tool_call_request_status": {
+      "name": "mkgt_tool_call_request_status",
       "schema": "public",
       "values": [
         "processing",
@@ -2347,8 +2953,8 @@
         "failed"
       ]
     },
-    "public.trust_tier": {
-      "name": "trust_tier",
+    "public.mkgt_trust_tier": {
+      "name": "mkgt_trust_tier",
       "schema": "public",
       "values": [
         "unverified",
@@ -2357,8 +2963,8 @@
         "premium"
       ]
     },
-    "public.wallet_status": {
-      "name": "wallet_status",
+    "public.mkgt_wallet_status": {
+      "name": "mkgt_wallet_status",
       "schema": "public",
       "values": [
         "active",

@@ -61,9 +61,33 @@ async function callUpstream(
   input: Record<string, unknown>,
   credential: RuntimeCredential | null,
 ): Promise<Record<string, unknown>> {
-  const url = new URL(config.baseUrl);
+  let resolvedBaseUrl = config.baseUrl;
   const headers: Record<string, string> = {};
   const bodyParams: Record<string, unknown> = {};
+
+  for (const [inputField, mapping] of Object.entries(config.paramMapping ?? {})) {
+    if (mapping.target !== 'path') continue;
+    const value = input[inputField];
+    if (value === undefined) continue;
+    const encodedValue = encodeURIComponent(String(value));
+    resolvedBaseUrl = resolvedBaseUrl
+      .replaceAll(`{${mapping.param}}`, encodedValue)
+      .replaceAll(encodeURIComponent(`{${mapping.param}}`), encodedValue);
+  }
+
+  for (const param of config.staticParams ?? []) {
+    if (param.target !== 'path') continue;
+    const encodedValue = encodeURIComponent(param.value);
+    resolvedBaseUrl = resolvedBaseUrl
+      .replaceAll(`{${param.param}}`, encodedValue)
+      .replaceAll(encodeURIComponent(`{${param.param}}`), encodedValue);
+  }
+
+  if (/\{[^}]+\}|%7B[^%]+%7D/i.test(resolvedBaseUrl)) {
+    throw new Error('Upstream URL contains an unresolved path parameter');
+  }
+
+  const url = new URL(resolvedBaseUrl);
 
   if (config.paramMapping) {
     for (const [inputField, mapping] of Object.entries(config.paramMapping)) {
@@ -71,6 +95,8 @@ async function callUpstream(
       if (value === undefined) continue;
 
       switch (mapping.target) {
+        case 'path':
+          break;
         case 'query':
           url.searchParams.set(mapping.param, String(value));
           break;
@@ -87,6 +113,8 @@ async function callUpstream(
   if (config.staticParams) {
     for (const param of config.staticParams) {
       switch (param.target) {
+        case 'path':
+          break;
         case 'query':
           url.searchParams.set(param.param, param.value);
           break;
