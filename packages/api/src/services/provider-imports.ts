@@ -801,6 +801,7 @@ export async function publishProviderImportRun(userId: string, importRunId: stri
       providerId: provider.id,
       name: draft.name,
       slug,
+      logoUrl: draft.logoUrl,
       description: draft.description,
       category: draft.category,
       status: 'active',

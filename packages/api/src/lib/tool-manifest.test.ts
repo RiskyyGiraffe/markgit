@@ -34,4 +34,22 @@ describe('tool manifest', () => {
       endpoint: { ...validManifest.endpoint, url: 'http://tools.example.com/weather' },
     })).toThrow('must use HTTPS');
   });
+
+  it('accepts a secure publisher logo and normalizes it', () => {
+    expect(validateToolManifest({
+      ...validManifest,
+      logoUrl: 'https://cdn.example.com/weather.svg',
+    }).logoUrl).toBe('https://cdn.example.com/weather.svg');
+  });
+
+  it('rejects unsafe logo URLs', () => {
+    expect(() => validateToolManifest({
+      ...validManifest,
+      logoUrl: 'javascript:alert(1)',
+    })).toThrow('logoUrl must use HTTPS');
+    expect(() => validateToolManifest({
+      ...validManifest,
+      logoUrl: 'https://token:secret@cdn.example.com/weather.svg',
+    })).toThrow('must not contain credentials');
+  });
 });

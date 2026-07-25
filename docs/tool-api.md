@@ -128,6 +128,7 @@ Manifest example:
   "provider": { "name": "Example Tools" },
   "name": "Weather lookup",
   "slug": "weather-lookup",
+  "logoUrl": "https://example.com/weather-logo.svg",
   "description": "Returns current weather for a city.",
   "endpoint": {
     "url": "https://publisher.example/tools/weather",

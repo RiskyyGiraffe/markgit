@@ -1,4 +1,5 @@
 import { ValidationError } from './errors.js';
+import { normalizeOptionalLogoUrl } from './public-asset-url.js';
 
 export type AuthMode = 'none' | 'provider_managed' | 'buyer_supplied';
 export type AuthType = 'none' | 'bearer' | 'api_key' | 'basic';
@@ -52,6 +53,7 @@ export interface ExecutionConfig {
 export interface ProductDraft {
   name: string;
   slug: string;
+  logoUrl?: string;
   description?: string;
   category?: string;
   pricePerCallUsd: string;
@@ -134,6 +136,7 @@ export function normalizeDraft(input: Partial<ProductDraft>, fallbackBaseUrl: st
   return {
     name: input.name.trim(),
     slug,
+    logoUrl: normalizeOptionalLogoUrl(input.logoUrl),
     description: input.description?.trim(),
     category: input.category?.trim(),
     pricePerCallUsd: input.pricePerCallUsd ?? '0.2500',

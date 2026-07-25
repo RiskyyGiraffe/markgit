@@ -8,6 +8,7 @@
   },
   "name": "Local Text Analyzer",
   "slug": "local-text-analyzer",
+  "logoUrl": "https://raw.githubusercontent.com/RiskyyGiraffe/markgit/main/examples/fastapi-tool/logo.svg",
   "description": "Counts words and characters and can uppercase the supplied text.",
   "category": "text",
   "tags": ["text", "analysis", "local", "fastapi"],

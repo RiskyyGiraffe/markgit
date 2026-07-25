@@ -60,6 +60,7 @@ products.post('/', async (c) => {
   const body = await c.req.json<{
     name: string;
     slug: string;
+    logoUrl?: string;
     description?: string;
     category?: string;
     inputSchema?: Record<string, unknown>;

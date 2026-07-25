@@ -204,6 +204,7 @@ export const products = pgTable('mkgt_products', {
   providerId: uuid('provider_id').notNull().references(() => providers.id),
   name: varchar('name', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull().unique(),
+  logoUrl: varchar('logo_url', { length: 2048 }),
   description: text('description'),
   category: varchar('category', { length: 100 }),
   status: productStatusEnum('status').default('draft').notNull(),

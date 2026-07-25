@@ -45,6 +45,7 @@ export async function reviewProviderImport(
   input: {
     name?: string;
     slug?: string;
+    logoUrl?: string;
     description?: string;
     category?: string;
     pricePerCallUsd?: string;
@@ -85,6 +86,7 @@ export async function publishProviderImport(
     draft?: {
       name?: string;
       slug?: string;
+      logoUrl?: string;
       description?: string;
       category?: string;
       pricePerCallUsd?: string;
@@ -111,6 +113,7 @@ export async function publishProviderImport(
 export async function createProviderProduct(input: {
   name: string;
   slug: string;
+  logoUrl?: string;
   description?: string;
   category?: string;
   pricePerCallUsd: string;

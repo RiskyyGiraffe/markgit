@@ -1,0 +1,1 @@
+ALTER TABLE "mkgt_products" ADD COLUMN "logo_url" varchar(2048);
