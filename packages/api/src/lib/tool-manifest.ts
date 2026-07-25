@@ -1,9 +1,11 @@
 import { ValidationError } from './errors.js';
+import { normalizeOptionalLogoUrl } from './public-asset-url.js';
 
 export type ToolManifest = {
   schemaVersion: '1';
   name: string;
   slug: string;
+  logoUrl?: string;
   description: string;
   category?: string;
   tags?: string[];
@@ -43,6 +45,9 @@ export function validateToolManifest(value: unknown): ToolManifest {
   }
   if (!manifest.description?.trim()) {
     throw new ValidationError('description is required');
+  }
+  if (manifest.logoUrl) {
+    manifest.logoUrl = normalizeOptionalLogoUrl(manifest.logoUrl);
   }
   if (!manifest.endpoint || !['GET', 'POST'].includes(manifest.endpoint.method)) {
     throw new ValidationError('endpoint.method must be GET or POST');

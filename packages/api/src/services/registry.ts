@@ -10,6 +10,7 @@ const publicToolSelection = {
   id: products.id,
   slug: products.slug,
   name: products.name,
+  logoUrl: products.logoUrl,
   description: products.description,
   category: products.category,
   tags: products.tags,
@@ -35,6 +36,7 @@ type PublicToolRow = {
   id: string;
   slug: string;
   name: string;
+  logoUrl: string | null;
   description: string | null;
   category: string | null;
   tags: string[];
@@ -81,6 +83,7 @@ function toToolCard(row: PublicToolRow) {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    logoUrl: row.logoUrl,
     description: row.description,
     category: row.category,
     tags: row.tags,

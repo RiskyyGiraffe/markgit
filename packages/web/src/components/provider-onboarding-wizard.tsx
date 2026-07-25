@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 type DraftState = {
   name: string;
   slug: string;
+  logoUrl: string;
   description: string;
   category: string;
   pricePerCallUsd: string;
@@ -65,6 +66,7 @@ function buildDraftState(run: ProviderImportRun | null): DraftState {
   return {
     name: typeof draft.name === "string" ? draft.name : "",
     slug: typeof draft.slug === "string" ? draft.slug : "",
+    logoUrl: typeof draft.logoUrl === "string" ? draft.logoUrl : "",
     description: typeof draft.description === "string" ? draft.description : "",
     category: typeof draft.category === "string" ? draft.category : "",
     pricePerCallUsd:
@@ -189,6 +191,7 @@ export function ProviderOnboardingWizard({
       const run = await reviewProviderImport(currentRun.id, {
         name: draftState.name,
         slug: draftState.slug,
+        logoUrl: draftState.logoUrl || undefined,
         description: draftState.description || undefined,
         category: draftState.category || undefined,
         pricePerCallUsd: draftState.pricePerCallUsd,
@@ -268,6 +271,7 @@ export function ProviderOnboardingWizard({
         draft: {
           name: draftState.name,
           slug: draftState.slug,
+          logoUrl: draftState.logoUrl || undefined,
           description: draftState.description || undefined,
           category: draftState.category || undefined,
           pricePerCallUsd: draftState.pricePerCallUsd,
@@ -562,6 +566,20 @@ export function ProviderOnboardingWizard({
                     }
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Logo URL (optional)</Label>
+                <Input
+                  type="url"
+                  value={draftState.logoUrl}
+                  onChange={(event) =>
+                    setDraftState((prev) => ({ ...prev, logoUrl: event.target.value }))
+                  }
+                  placeholder="https://example.com/logo.svg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  HTTPS only. A category-aware mark is shown when this is empty or unavailable.
+                </p>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">

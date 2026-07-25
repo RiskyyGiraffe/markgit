@@ -109,6 +109,7 @@ async function runSearchQuery(query: string, limit: number, offset: number) {
       id: products.id,
       name: products.name,
       slug: products.slug,
+      logoUrl: products.logoUrl,
       description: products.description,
       category: products.category,
       pricePerCallUsd: products.pricePerCallUsd,

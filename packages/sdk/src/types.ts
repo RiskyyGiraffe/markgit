@@ -89,6 +89,7 @@ export interface ToolCard {
   id: string;
   slug: string;
   name: string;
+  logoUrl: string | null;
   description: string | null;
   category: string | null;
   tags: string[];
@@ -197,6 +198,7 @@ export interface ProductSummary {
   id: string;
   name: string;
   slug: string;
+  logoUrl: string | null;
   description: string | null;
   category: string | null;
   pricePerCallUsd: string;
@@ -213,6 +215,7 @@ export interface Product {
   providerId: string;
   name: string;
   slug: string;
+  logoUrl: string | null;
   description: string | null;
   category: string | null;
   status: string;
@@ -231,6 +234,7 @@ export interface Product {
 export interface CreateProductRequest {
   name: string;
   slug: string;
+  logoUrl?: string;
   description?: string;
   category?: string;
   inputSchema?: Record<string, unknown>;
@@ -483,6 +487,7 @@ export interface CreateProviderImportRequest {
 export interface ReviewProviderImportRequest {
   name?: string;
   slug?: string;
+  logoUrl?: string;
   description?: string;
   category?: string;
   pricePerCallUsd?: string;

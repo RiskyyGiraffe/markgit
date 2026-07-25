@@ -16,39 +16,39 @@ const formats = [
 
 export default function DocsPage() {
   return (
-    <main className="min-h-screen bg-[#f8f8f5] text-[#171714]">
+    <main className="min-h-screen bg-[#101213] text-[#f1f2f2]">
       <PublicHeader />
       <div className="mx-auto max-w-5xl px-5 pb-24 pt-14 sm:px-8 sm:pt-20">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs text-black/50">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs text-[#aeb2b4]">
             <Bot className="size-3.5" /> Built for people and agents
           </div>
           <h1 className="mt-5 font-display text-4xl font-medium tracking-[-0.06em] sm:text-6xl">Docs an LLM can use directly.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-black/55 sm:text-lg">
+          <p className="mt-6 max-w-2xl text-base leading-8 text-[#92979a] sm:text-lg">
             Every listing publishes its request schema, expected output, exact pricing flow, normalized return envelope, usage coverage, and provider identity in JSON, OpenAPI, and plain text.
           </p>
         </div>
 
-        <section className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-black/10 bg-black/10 md:grid-cols-3">
+        <section className="mt-14 grid gap-px overflow-hidden rounded-xl border border-white/[0.075] bg-white/[0.075] md:grid-cols-3">
           {formats.map((format) => {
             const Icon = format.icon;
             const href = `${markgitApiUrl}${format.path}`;
             return (
-              <a key={format.name} href={href} className="bg-[#f8f8f5] p-6 transition hover:bg-white">
+              <a key={format.name} href={href} className="bg-[#131516] p-6 transition hover:bg-[#171a1c]">
                 <Icon className="size-5" />
                 <h2 className="mt-7 font-semibold">{format.name}</h2>
-                <p className="mt-2 min-h-20 text-sm leading-6 text-black/50">{format.body}</p>
-                <code className="mt-5 block break-all text-[11px] text-black/38">{format.path}</code>
+                <p className="mt-2 min-h-20 text-sm leading-6 text-[#858b8f]">{format.body}</p>
+                <code className="mt-5 block break-all text-[11px] text-[#5f6569]">{format.path}</code>
               </a>
             );
           })}
         </section>
 
-        <section className="grid gap-10 border-b border-black/10 py-16 lg:grid-cols-[0.8fr_1.2fr]">
+        <section className="grid gap-10 border-b border-white/[0.075] py-16 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/35">Invocation contract</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f6569]">Invocation contract</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-[-0.045em]">Approval is explicit.</h2>
-            <p className="mt-4 text-sm leading-7 text-black/50">Agents never have to guess the charge. The quote response contains the provider price, Markgit fee, exact total, expiration, and policy decision.</p>
+            <p className="mt-4 text-sm leading-7 text-[#858b8f]">Agents never have to guess the charge. The quote response contains the provider price, Markgit fee, exact total, expiration, and policy decision.</p>
           </div>
           <div className="space-y-4">
             {[
@@ -59,9 +59,9 @@ export default function DocsPage() {
             ].map((step) => {
               const Icon = step.icon;
               return (
-                <div key={step.title} className="grid grid-cols-[40px_1fr] gap-4 rounded-2xl border border-black/8 bg-white p-5">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-black/[0.045]"><Icon className="size-4" /></span>
-                  <div><h3 className="font-medium">{step.title}</h3><p className="mt-1 text-sm leading-6 text-black/48">{step.body}</p></div>
+                <div key={step.title} className="grid grid-cols-[40px_1fr] gap-4 rounded-xl border border-white/[0.075] bg-[#131516] p-5">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-white/[0.055]"><Icon className="size-4" /></span>
+                  <div><h3 className="font-medium">{step.title}</h3><p className="mt-1 text-sm leading-6 text-[#858b8f]">{step.body}</p></div>
                 </div>
               );
             })}
@@ -70,7 +70,7 @@ export default function DocsPage() {
 
         <section className="pt-14">
           <h2 className="text-2xl font-semibold tracking-[-0.035em]">Start with the registry</h2>
-          <pre className="mt-5 overflow-auto rounded-2xl bg-[#171714] p-5 text-sm leading-7 text-white/75"><code>{`curl ${markgitApiUrl}/v1/registry/tools?limit=100\n\n# LLM-friendly index\ncurl ${markgitApiUrl}/v1/registry/llms.txt\n\n# Exact schemas for one tool\ncurl ${markgitApiUrl}/v1/registry/tools/{slug}/docs`}</code></pre>
+          <pre className="mt-5 overflow-auto rounded-xl border border-white/[0.075] bg-[#0b0d0e] p-5 text-sm leading-7 text-[#c3c7c9]"><code>{`curl ${markgitApiUrl}/v1/registry/tools?limit=100\n\n# LLM-friendly index\ncurl ${markgitApiUrl}/v1/registry/llms.txt\n\n# Exact schemas for one tool\ncurl ${markgitApiUrl}/v1/registry/tools/{slug}/docs`}</code></pre>
         </section>
       </div>
     </main>

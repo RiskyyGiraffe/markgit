@@ -40,6 +40,7 @@ tools.post('/', async (c) => {
     providerId: provider.id,
     name: manifest.name,
     slug: manifest.slug,
+    logoUrl: manifest.logoUrl,
     description: manifest.description,
     category: manifest.category,
     tags: manifest.tags,

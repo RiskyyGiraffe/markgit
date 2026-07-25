@@ -2,6 +2,7 @@ import { and, eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products, purchases } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
+import { normalizeOptionalLogoUrl } from '../lib/public-asset-url.js';
 import { ensureProductEmbeddings } from './embeddings.js';
 
 export async function listProducts(limit = 50, offset = 0) {
@@ -10,6 +11,7 @@ export async function listProducts(limit = 50, offset = 0) {
       id: products.id,
       name: products.name,
       slug: products.slug,
+      logoUrl: products.logoUrl,
       description: products.description,
       category: products.category,
       pricePerCallUsd: products.pricePerCallUsd,
@@ -36,6 +38,7 @@ export async function getProduct(id: string) {
       providerId: products.providerId,
       name: products.name,
       slug: products.slug,
+      logoUrl: products.logoUrl,
       description: products.description,
       category: products.category,
       status: products.status,
@@ -80,6 +83,7 @@ export async function createProduct(data: {
   providerId: string;
   name: string;
   slug: string;
+  logoUrl?: string;
   description?: string;
   category?: string;
   inputSchema?: Record<string, unknown>;
@@ -88,10 +92,12 @@ export async function createProduct(data: {
   pricePerCallUsd: string;
   tags?: string[];
 }) {
+  const logoUrl = normalizeOptionalLogoUrl(data.logoUrl);
   const [product] = await db
     .insert(products)
     .values({
       ...data,
+      logoUrl,
       tags: data.tags ?? [],
     })
     .returning();

@@ -44,6 +44,7 @@ export function ProviderProductForm() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [pricePerCallUsd, setPricePerCallUsd] = useState("0.2500");
@@ -60,6 +61,7 @@ export function ProviderProductForm() {
       await createProviderProduct({
         name,
         slug,
+        logoUrl: logoUrl || undefined,
         description: description || undefined,
         category: category || undefined,
         pricePerCallUsd,
@@ -74,6 +76,7 @@ export function ProviderProductForm() {
       toast.success("Product created as draft");
       setName("");
       setSlug("");
+      setLogoUrl("");
       setDescription("");
       setCategory("");
     } catch (err) {
@@ -110,6 +113,19 @@ export function ProviderProductForm() {
                 placeholder="my-api-product"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="product-logo-url">Logo URL (optional)</Label>
+            <Input
+              id="product-logo-url"
+              type="url"
+              value={logoUrl}
+              onChange={(event) => setLogoUrl(event.target.value)}
+              placeholder="https://example.com/logo.svg"
+            />
+            <p className="text-xs text-muted-foreground">
+              HTTPS only. Markgit uses a category-aware default if it is omitted or unavailable.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="product-description">Description</Label>
