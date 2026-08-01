@@ -66,6 +66,7 @@ import type {
   SkillDocumentation,
   SkillManifest,
   PublishSkillResponse,
+  LeaderboardResponse,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -260,6 +261,11 @@ export class MarkgitClient {
 
   async getSkillDocumentation(identifier: string): Promise<SkillDocumentation> {
     return this.request('GET', `/v1/registry/skills/${encodeURIComponent(identifier)}/docs`);
+  }
+
+  async getLeaderboard(limit = 10): Promise<LeaderboardResponse> {
+    const normalized = Math.max(1, Math.min(100, Math.floor(limit)));
+    return this.request('GET', `/v1/registry/leaderboard?limit=${normalized}`);
   }
 
   // ── Products ────────────────────────────────────────────────────────

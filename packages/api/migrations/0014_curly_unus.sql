@@ -1,0 +1,1 @@
+ALTER TABLE "mkgt_products" ADD COLUMN "source_metadata" jsonb;

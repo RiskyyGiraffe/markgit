@@ -17,6 +17,7 @@
     "db:migrate": "node --env-file=../../.env ./node_modules/drizzle-kit/bin.cjs migrate",
     "db:seed": "tsx --env-file=../../.env src/db/seed.ts",
     "db:seed:official-skills": "tsx --env-file=../../.env src/db/seed-official-skills.ts",
+    "db:seed:official-mcps": "tsx --env-file=../../.env src/db/seed-official-mcps.ts",
     "test": "vitest run"
   },
   "dependencies": {

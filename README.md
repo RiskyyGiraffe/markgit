@@ -86,10 +86,13 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | `/v1/registry/tools/:slug/versions` | GET | Immutable manifest-version history |
 | `/v1/registry/mcps` | GET | Public remote MCP server catalog |
 | `/v1/registry/mcps/:slug/docs` | GET | Direct connection, authentication, tool surface, and trust |
+| `/v1/registry/mcps/:slug/review.md` | GET | Ingested first-party README snapshot for human and agent review |
 | `/v1/mcps` | POST | Publish a provider-hosted MCP manifest as a draft |
 | `/v1/registry/skills` | GET | Public source-hosted agent skill catalog |
 | `/v1/registry/skills/:slug/docs` | GET | Skill provenance, package contents, compatibility, and install guidance |
+| `/v1/registry/skills/:slug/review.md` | GET | Ingested SKILL.md snapshot from the immutable source revision |
 | `/v1/skills` | POST | Publish a source-hosted skill manifest as a draft |
+| `/v1/registry/leaderboard` | GET | Independent rankings for tools, harnesses, MCPs, and skills with explicit metrics |
 | `/v1/registry/llms.txt` | GET | Plain-text LLM registry index |
 | `/webhooks/stripe` | POST | Stripe webhook endpoint (signature-verified, no auth) |
 | `/v1/auth/keys` | POST | Create API key |
@@ -128,6 +131,7 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | Product Detail | `/marketplace/[id]` | View product, get quote, purchase |
 | History | `/history` | Purchase and execution history |
 | Wallet | `/wallet` | Balance, fund via Stripe, ledger |
+| Leaderboard | `/leaderboard` | Transparent per-category rankings without mixing unlike metrics |
 | Provider | `/provider` | Stripe status, earnings, per-call log, payouts |
 | Public tools | `/tools` | Searchable all-tool directory grouped by category |
 | Public tool docs | `/tools/[slug]` | Human and machine-readable schemas and call flow |

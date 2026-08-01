@@ -16,6 +16,7 @@ export async function PublicHeader() {
         </Link>
         <nav className="hidden items-center gap-6 text-[13px] text-muted-foreground sm:flex">
           <Link href="/tools" className="transition hover:text-foreground">Marketplace</Link>
+          <Link href="/leaderboard" className="transition hover:text-foreground">Leaderboard</Link>
           <Link href="/docs" className="transition hover:text-foreground">Docs</Link>
           <a href="/llms.txt" className="transition hover:text-foreground">llms.txt</a>
         </nav>

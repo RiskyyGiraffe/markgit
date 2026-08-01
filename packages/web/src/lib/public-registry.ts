@@ -1,4 +1,4 @@
-import type { HarnessCard, HarnessDocumentation, McpCard, McpDocumentation, SkillCard, SkillDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
+import type { HarnessCard, HarnessDocumentation, LeaderboardResponse, McpCard, McpDocumentation, SkillCard, SkillDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
 
 export const markgitApiUrl = (process.env.MARKGIT_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -145,4 +145,15 @@ export async function getPublicSkillDocumentation(identifier: string) {
   const response = await fetch(`${markgitApiUrl}/v1/registry/skills/${encodeURIComponent(identifier)}/docs`, { cache: "no-store" });
   if (!response.ok) return null;
   return response.json() as Promise<SkillDocumentation>;
+}
+
+export async function getPublicLeaderboard(limit = 10) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/leaderboard?limit=${limit}`, { cache: "no-store" });
+  if (!response.ok) return null;
+  return response.json() as Promise<LeaderboardResponse>;
+}
+
+export async function getPublicReviewMarkdown(kind: "skills" | "mcps", identifier: string) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/${kind}/${encodeURIComponent(identifier)}/review.md`, { cache: "no-store" });
+  return response.ok ? response.text() : null;
 }

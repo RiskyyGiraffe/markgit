@@ -3,6 +3,7 @@ import { db } from '../db/index.js';
 import { products, providerOriginVerifications, providers } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
 import type { McpConfig } from '../lib/mcp-manifest.js';
+import { publicSourceMetadata, type IndexedSourceMetadata } from '../lib/source-metadata.js';
 import { computeToolPolicy, endpointMatchesVerifiedOrigin, normalizeToolCapabilities, type ToolCapabilities } from '../lib/tool-policy.js';
 import { listProductVersions } from './product-versions.js';
 
@@ -18,6 +19,7 @@ const selection = {
   tags: products.tags,
   executionConfig: products.executionConfig,
   mcpConfig: products.mcpConfig,
+  sourceMetadata: products.sourceMetadata,
   capabilities: products.capabilities,
   manifestDigest: products.manifestDigest,
   currentVersion: products.currentVersion,
@@ -45,6 +47,7 @@ type Row = {
   tags: string[];
   executionConfig: Record<string, unknown> | null;
   mcpConfig: Record<string, unknown> | null;
+  sourceMetadata: Record<string, unknown> | null;
   capabilities: ToolCapabilities | null;
   manifestDigest: string | null;
   currentVersion: number;
@@ -90,6 +93,8 @@ function toCard(row: Row) {
     pricing: { type: 'free' as const, chargedByMarkgit: false as const, currency: 'USD' as const, amount: '0.0000' },
     server: config.server,
     features: config.features,
+    source: config.source ?? null,
+    sourceMetadata: publicSourceMetadata(row.sourceMetadata as unknown as IndexedSourceMetadata | null),
     connect: {
       protocol: 'mcp' as const,
       transport: config.server.transport,
@@ -97,10 +102,11 @@ function toCard(row: Row) {
       auth: config.server.auth,
       proxiedByMarkgit: false as const,
     },
-    usage: { tracked: false as const, label: 'New' },
+    usage: { tracked: false as const, label: 'Source popularity' },
     documentation: {
       json: `/v1/registry/mcps/${row.slug}/docs`,
       llms: `/v1/registry/mcps/${row.slug}/llms.txt`,
+      review: `/v1/registry/mcps/${row.slug}/review.md`,
       human: `/mcps/${row.slug}`,
     },
     updatedAt: row.updatedAt,
@@ -145,6 +151,20 @@ export async function getPublicMcp(identifier: string) {
   )).limit(1);
   if (!row) throw new NotFoundError('MCP server');
   return toCard(row);
+}
+
+export async function getPublicMcpReview(identifier: string) {
+  const identifierFilter = UUID_PATTERN.test(identifier) ? eq(products.id, identifier) : eq(products.slug, identifier);
+  const [row] = await db.select({ sourceMetadata: products.sourceMetadata }).from(products).where(and(
+    eq(products.status, 'active'),
+    eq(products.kind, 'mcp'),
+    ne(products.moderationStatus, 'quarantined'),
+    identifierFilter,
+  )).limit(1);
+  if (!row) throw new NotFoundError('MCP server');
+  const metadata = row.sourceMetadata as unknown as IndexedSourceMetadata | null;
+  if (!metadata?.review.markdown) throw new NotFoundError('MCP review markdown');
+  return metadata.review;
 }
 
 export async function listPublicMcpVersions(identifier: string) {

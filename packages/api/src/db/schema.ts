@@ -264,6 +264,7 @@ export const products = pgTable('mkgt_products', {
   harnessConfig: jsonb('harness_config').$type<Record<string, unknown>>(),
   mcpConfig: jsonb('mcp_config').$type<Record<string, unknown>>(),
   skillConfig: jsonb('skill_config').$type<Record<string, unknown>>(),
+  sourceMetadata: jsonb('source_metadata').$type<Record<string, unknown>>(),
   capabilities: jsonb('capabilities').$type<ToolCapabilities>(),
   manifestDigest: varchar('manifest_digest', { length: 64 }),
   currentVersion: integer('current_version').default(1).notNull(),

@@ -478,6 +478,16 @@ export interface McpManifest {
   category?: string;
   tags?: string[];
   provider?: { name: string; description?: string; websiteUrl?: string };
+  source?: {
+    publisher?: string;
+    repositoryUrl: string;
+    url: string;
+    revision: string;
+    path?: string;
+    registryName?: string;
+    registryVersion?: string;
+    registryUrl?: string;
+  };
   server: {
     url: string;
     transport: 'streamable_http' | 'sse';
@@ -511,6 +521,8 @@ export interface McpCard {
   pricing: { type: 'free'; chargedByMarkgit: false; currency: 'USD'; amount: '0.0000' };
   server: McpManifest['server'];
   features: McpManifest['features'];
+  source: McpManifest['source'] | null;
+  sourceMetadata: PublicIndexedSourceMetadata | null;
   connect: {
     protocol: 'mcp';
     transport: McpManifest['server']['transport'];
@@ -518,8 +530,8 @@ export interface McpCard {
     auth: McpManifest['server']['auth'];
     proxiedByMarkgit: false;
   };
-  usage: { tracked: false; label: 'New' };
-  documentation: { json: string; llms: string; human: string };
+  usage: { tracked: false; label: 'Source popularity' };
+  documentation: { json: string; llms: string; review: string; human: string };
   updatedAt: string;
 }
 
@@ -538,12 +550,20 @@ export interface McpDocumentation {
   schemaVersion: 'markgit.mcp-docs/v1';
   mcp: Record<string, unknown>;
   connection: McpCard['connect'] & { direct: true; note: string };
-  documentation: { metadata: string; json: string; llms: string; human: string };
+  documentation: { metadata: string; json: string; llms: string; review: string; human: string };
 }
 
 // ── Agent skills ─────────────────────────────────────────────────────
 
 export type SkillCompatibility = 'agent-skills' | 'codex' | 'claude-code';
+
+export interface PublicIndexedSourceMetadata {
+  repository: { owner: string; name: string; url: string; revision: string; sourceUrl: string; updatedAt: string | null };
+  review: { filename: string; path: string; rawUrl: string; sha256: string; available: boolean };
+  popularity: { source: 'github'; stars: number };
+  discovery: { source: 'official_mcp_registry' | 'publisher_repository'; registryName?: string; registryVersion?: string; registryUpdatedAt?: string; registryUrl?: string };
+  refreshedAt: string;
+}
 
 export interface SkillManifest {
   schemaVersion: '1';
@@ -591,8 +611,9 @@ export interface SkillCard {
   contents: { scripts: boolean; references: boolean; assets: boolean };
   pricing: { type: 'free'; chargedByMarkgit: false; currency: 'USD'; amount: '0.0000' };
   provenance: { sourceHosted: true; indexedByMarkgit: true; publisher: string | null; repository: string; revision: string };
-  usage: { tracked: false; label: 'New' };
-  documentation: { json: string; llms: string; human: string };
+  sourceMetadata: PublicIndexedSourceMetadata | null;
+  usage: { tracked: false; label: 'Source popularity' };
+  documentation: { json: string; llms: string; review: string; human: string };
   updatedAt: string;
 }
 
@@ -611,7 +632,33 @@ export interface SkillDocumentation {
   schemaVersion: 'markgit.skill-docs/v1';
   skill: SkillCard;
   safety: { sourceHosted: true; autoInstall: false; guidance: string };
-  documentation: { metadata: string; json: string; llms: string; human: string; source: string };
+  documentation: { metadata: string; json: string; llms: string; review: string; human: string; source: string };
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  kind: 'tool' | 'harness' | 'mcp' | 'skill';
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  provider: string;
+  logoUrl: string | null;
+  value: number;
+  metric: 'markgit_completed_calls' | 'markgit_completed_runs' | 'github_stars';
+  metricLabel: string;
+  sourceUrl: string | null;
+  updatedAt: string;
+}
+
+export interface LeaderboardResponse {
+  schemaVersion: 'markgit.leaderboard/v1';
+  generatedAt: string;
+  methodology: { separation: string; tools: string; harnesses: string; mcps: string; skills: string; tieBreak: string };
+  categories: Record<'tools' | 'harnesses' | 'mcps' | 'skills', {
+    metric: LeaderboardEntry['metric'];
+    entries: LeaderboardEntry[];
+  }>;
 }
 
 export interface ProductSummary {
@@ -647,6 +694,7 @@ export interface Product {
   harnessConfig: Record<string, unknown> | null;
   mcpConfig: Record<string, unknown> | null;
   skillConfig: Record<string, unknown> | null;
+  sourceMetadata: Record<string, unknown> | null;
   capabilities: ToolCapabilities | null;
   manifestDigest: string | null;
   currentVersion: number;

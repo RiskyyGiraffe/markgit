@@ -1,10 +1,12 @@
 import { eq } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import { parse as parseYaml } from 'yaml';
 import { db } from './index.js';
 import { products, providers, users } from './schema.js';
 import { manifestSkillConfig, skillExecutionConfig, validateSkillManifest, type SkillManifest } from '../lib/skill-manifest.js';
 import { normalizeToolCapabilities } from '../lib/tool-policy.js';
 import { ensureProductVersion } from '../services/product-versions.js';
+import type { IndexedSourceMetadata } from '../lib/source-metadata.js';
 
 type SourceSkill = {
   slug: string;
@@ -59,15 +61,19 @@ async function providerFor(userId: string, publisher: SourceSkill['publisher'], 
 async function main() {
   let [owner] = await db.select().from(users).where(eq(users.email, 'admin@markgit.dev')).limit(1);
   if (!owner) [owner] = await db.insert(users).values({ email: 'admin@markgit.dev', name: 'Markgit Registry' }).returning();
-  const revisions = new Map<string, string>();
+  const repositories = new Map<string, { revision: string; updatedAt: string | null; stars: number }>();
 
   for (const source of catalog) {
-    let revision = revisions.get(source.repo);
-    if (!revision) {
-      const commit = await githubJson<{ sha: string }>(`/repos/${source.repo}/commits/main`);
-      revision = commit.sha;
-      revisions.set(source.repo, revision);
+    let repository = repositories.get(source.repo);
+    if (!repository) {
+      const [commit, repo] = await Promise.all([
+        githubJson<{ sha: string; commit: { committer: { date: string | null } } }>(`/repos/${source.repo}/commits/main`),
+        githubJson<{ stargazers_count: number }>(`/repos/${source.repo}`),
+      ]);
+      repository = { revision: commit.sha, updatedAt: commit.commit.committer.date, stars: repo.stargazers_count };
+      repositories.set(source.repo, repository);
     }
+    const revision = repository.revision;
     const [skillFile, directory] = await Promise.all([
       fetch(`https://raw.githubusercontent.com/${source.repo}/${revision}/${source.path}/SKILL.md`).then(async (response) => {
         if (!response.ok) throw new Error(`${source.path}/SKILL.md returned ${response.status}`);
@@ -107,6 +113,29 @@ async function main() {
     const provider = await providerFor(owner.id, source.publisher, source.repo);
     const [existing] = await db.select().from(products).where(eq(products.slug, source.slug)).limit(1);
     const executionConfig = skillExecutionConfig(manifest);
+    const [repositoryOwner, repositoryName] = source.repo.split('/');
+    const rawUrl = `https://raw.githubusercontent.com/${source.repo}/${revision}/${source.path}/SKILL.md`;
+    const sourceMetadata = {
+      schemaVersion: 'markgit.indexed-source/v1',
+      repository: {
+        owner: repositoryOwner,
+        name: repositoryName,
+        url: `https://github.com/${source.repo}`,
+        revision,
+        sourceUrl: manifest.source.url,
+        updatedAt: repository.updatedAt,
+      },
+      review: {
+        filename: 'SKILL.md',
+        path: `${source.path}/SKILL.md`,
+        rawUrl,
+        sha256: createHash('sha256').update(skillFile).digest('hex'),
+        markdown: skillFile,
+      },
+      popularity: { source: 'github', stars: repository.stars },
+      discovery: { source: 'publisher_repository' },
+      refreshedAt: new Date().toISOString(),
+    } satisfies IndexedSourceMetadata;
     const values = {
       providerId: provider.id,
       name: manifest.name,
@@ -118,6 +147,7 @@ async function main() {
       tags: manifest.tags ?? [],
       executionConfig,
       skillConfig: manifestSkillConfig(manifest) as unknown as Record<string, unknown>,
+      sourceMetadata: sourceMetadata as unknown as Record<string, unknown>,
       capabilities: normalizeToolCapabilities({
         readOnly: true,
         openWorld: false,

@@ -1,0 +1,30 @@
+name: Refresh indexed catalog
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.13.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Refresh source-hosted skills
+        run: pnpm --filter @markgit/api exec tsx src/db/seed-official-skills.ts
+      - name: Refresh provider-hosted MCP servers
+        run: pnpm --filter @markgit/api exec tsx src/db/seed-official-mcps.ts

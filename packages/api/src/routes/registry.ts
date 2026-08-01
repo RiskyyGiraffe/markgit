@@ -24,9 +24,10 @@ import {
   listPublicHarnessVersions,
 } from '../services/harness-registry.js';
 import { buildMcpDocumentation, buildMcpLlmsText, buildMcpRegistryLlmsText } from '../lib/mcp-docs.js';
-import { getPublicMcp, listAllPublicMcps, listPublicMcps, listPublicMcpVersions } from '../services/mcp-registry.js';
+import { getPublicMcp, getPublicMcpReview, listAllPublicMcps, listPublicMcps, listPublicMcpVersions } from '../services/mcp-registry.js';
 import { buildSkillDocumentation, buildSkillLlmsText, buildSkillRegistryLlmsText } from '../lib/skill-docs.js';
-import { getPublicSkill, listAllPublicSkills, listPublicSkills, listPublicSkillVersions } from '../services/skill-registry.js';
+import { getPublicSkill, getPublicSkillReview, listAllPublicSkills, listPublicSkills, listPublicSkillVersions } from '../services/skill-registry.js';
+import { buildLeaderboard } from '../services/leaderboard.js';
 
 const registry = new Hono();
 
@@ -74,6 +75,7 @@ registry.get('/', (c) => c.json({
     skillSearch: 'GET /v1/registry/skills?q={query}',
     skillInspect: 'GET /v1/registry/skills/{id-or-slug}',
     skillDocs: 'GET /v1/registry/skills/{id-or-slug}/docs',
+    leaderboard: 'GET /v1/registry/leaderboard',
     skillPublish: 'POST /v1/skills',
   },
 }));
@@ -81,9 +83,14 @@ registry.get('/', (c) => c.json({
 registry.get('/llms.txt', async (c) => {
   const [tools, harnesses, mcps, skills] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses(), listAllPublicMcps(), listAllPublicSkills()]);
   const origin = publicOrigin(c);
-  return c.text(`${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}\n${buildSkillRegistryLlmsText(skills, origin)}`, 200, {
+  return c.text(`# Markgit rankings\n\n- Transparent per-category leaderboard: ${origin}/v1/registry/leaderboard\n- Tool and harness metrics are Markgit-observed; MCP and skill metrics are labeled source-repository popularity.\n\n${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}\n${buildSkillRegistryLlmsText(skills, origin)}`, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
+});
+
+registry.get('/leaderboard', async (c) => {
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '10', 10) || 10, 1), 100);
+  return c.json(await buildLeaderboard(limit));
 });
 
 registry.get('/skills', async (c) => {
@@ -100,6 +107,14 @@ registry.get('/skills/:identifier/docs', async (c) => {
 registry.get('/skills/:identifier/llms.txt', async (c) => {
   const skill = await getPublicSkill(c.req.param('identifier'));
   return c.text(buildSkillLlmsText(skill, publicOrigin(c)), 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+});
+
+registry.get('/skills/:identifier/review.md', async (c) => {
+  const review = await getPublicSkillReview(c.req.param('identifier'));
+  return c.text(review.markdown, 200, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'X-Markgit-Source-SHA256': review.sha256,
+  });
 });
 
 registry.get('/skills/:identifier/versions', async (c) => c.json(await listPublicSkillVersions(c.req.param('identifier'))));
@@ -119,6 +134,14 @@ registry.get('/mcps/:identifier/docs', async (c) => {
 registry.get('/mcps/:identifier/llms.txt', async (c) => {
   const mcp = await getPublicMcp(c.req.param('identifier'));
   return c.text(buildMcpLlmsText(mcp, publicOrigin(c)), 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+});
+
+registry.get('/mcps/:identifier/review.md', async (c) => {
+  const review = await getPublicMcpReview(c.req.param('identifier'));
+  return c.text(review.markdown, 200, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'X-Markgit-Source-SHA256': review.sha256,
+  });
 });
 
 registry.get('/mcps/:identifier/versions', async (c) => c.json(await listPublicMcpVersions(c.req.param('identifier'))));

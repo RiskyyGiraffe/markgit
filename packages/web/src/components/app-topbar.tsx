@@ -21,6 +21,7 @@ const nav = [
   { label: "Harnesses", href: "/harnesses", matches: ["/harnesses"] },
   { label: "MCPs", href: "/mcps", matches: ["/mcps"] },
   { label: "Skills", href: "/skills", matches: ["/skills"] },
+  { label: "Leaderboard", href: "/leaderboard", matches: ["/leaderboard"] },
   { label: "Quicklist", href: "/dashboard", matches: ["/dashboard"] },
   { label: "Provider", href: "/provider", matches: ["/provider"] },
   { label: "Docs", href: "/docs", matches: ["/docs"] },

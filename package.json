@@ -15,6 +15,8 @@
     "db:seed": "pnpm --filter @markgit/api db:seed",
     "onboard:public-apis": "node scripts/onboard-public-apis.mjs",
     "onboard:official-skills": "pnpm --filter @markgit/api db:seed:official-skills",
+    "onboard:official-mcps": "pnpm --filter @markgit/api db:seed:official-mcps",
+    "refresh:catalog": "pnpm onboard:official-skills && pnpm onboard:official-mcps",
     "test": "pnpm -r test",
     "deploy:api": "./scripts/deploy-api.sh"
   },

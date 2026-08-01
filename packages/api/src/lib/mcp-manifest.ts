@@ -18,6 +18,16 @@ export type McpManifest = {
   category?: string;
   tags?: string[];
   provider?: { name: string; description?: string; websiteUrl?: string };
+  source?: {
+    publisher?: string;
+    repositoryUrl: string;
+    url: string;
+    revision: string;
+    path?: string;
+    registryName?: string;
+    registryVersion?: string;
+    registryUrl?: string;
+  };
   server: {
     url: string;
     transport: McpTransport;
@@ -35,6 +45,7 @@ export type McpConfig = {
   protocol: 'mcp';
   server: McpManifest['server'];
   features: McpManifest['features'];
+  source?: McpManifest['source'];
 };
 
 function httpsUrl(raw: string, field: string): URL {
@@ -97,6 +108,17 @@ export function validateMcpManifest(value: unknown): McpManifest {
   if (manifest.provider && !manifest.provider.name?.trim()) {
     throw new ValidationError('provider.name is required when provider metadata is included');
   }
+  if (manifest.source) {
+    manifest.source.repositoryUrl = httpsUrl(manifest.source.repositoryUrl, 'source.repositoryUrl').toString();
+    manifest.source.url = httpsUrl(manifest.source.url, 'source.url').toString();
+    if (manifest.source.registryUrl) manifest.source.registryUrl = httpsUrl(manifest.source.registryUrl, 'source.registryUrl').toString();
+    if (!manifest.source.revision?.trim() || manifest.source.revision.length > 255) {
+      throw new ValidationError('source.revision is required and must be at most 255 characters');
+    }
+    if (manifest.source.path && (manifest.source.path.startsWith('/') || manifest.source.path.split('/').includes('..'))) {
+      throw new ValidationError('source.path must be repository-relative');
+    }
+  }
   normalizeToolCapabilities({
     readOnly: true,
     openWorld: true,
@@ -113,7 +135,7 @@ export function validateMcpManifest(value: unknown): McpManifest {
 }
 
 export function manifestMcpConfig(manifest: McpManifest): McpConfig {
-  return { protocol: 'mcp', server: manifest.server, features: manifest.features };
+  return { protocol: 'mcp', server: manifest.server, features: manifest.features, ...(manifest.source ? { source: manifest.source } : {}) };
 }
 
 export function manifestMcpCapabilities(manifest: McpManifest) {

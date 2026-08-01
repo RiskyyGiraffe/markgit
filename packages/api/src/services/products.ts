@@ -53,6 +53,7 @@ export async function getProduct(id: string) {
       harnessConfig: products.harnessConfig,
       mcpConfig: products.mcpConfig,
       skillConfig: products.skillConfig,
+      sourceMetadata: products.sourceMetadata,
       capabilities: products.capabilities,
       manifestDigest: products.manifestDigest,
       currentVersion: products.currentVersion,
@@ -104,6 +105,7 @@ export async function createProduct(data: {
   harnessConfig?: Record<string, unknown>;
   mcpConfig?: Record<string, unknown>;
   skillConfig?: Record<string, unknown>;
+  sourceMetadata?: Record<string, unknown>;
   capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   pricePerCallUsd: string;
   tags?: string[];
