@@ -21,6 +21,7 @@ import { moderationRoutes } from './routes/moderation.js';
 import { harnessRoutes } from './routes/harnesses.js';
 import { harnessRunRoutes } from './routes/harness-runs.js';
 import { harnessCallbackRoutes } from './routes/harness-callbacks.js';
+import { mcpRoutes } from './routes/mcps.js';
 import {
   AppError,
   PermissionError,
@@ -60,6 +61,7 @@ v1.route('/executions', executionRoutes);
 v1.route('/tools', toolRoutes);
 v1.route('/harnesses', harnessRoutes);
 v1.route('/harness-runs', harnessRunRoutes);
+v1.route('/mcps', mcpRoutes);
 v1.route('/spend-controls', spendControlRoutes);
 v1.route('/providers', providerStripeRoutes);
 v1.route('/providers', providerRoutes);

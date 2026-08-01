@@ -229,6 +229,36 @@ async function inspectHarness(identifier: string | undefined): Promise<void> {
   console.log(JSON.stringify(harness, null, 2));
 }
 
+async function searchMcps(args: string[]): Promise<void> {
+  const query = args.join(' ').trim();
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const result = await request<{ mcps: Array<{
+    slug: string;
+    name: string;
+    description: string | null;
+    provider: { name: string };
+    server: { transport: string; auth: { mode: string } };
+    features: { tools: unknown[]; resources: boolean; prompts: boolean };
+    trust: { endpoint: { status: string } };
+  }> }>(`/v1/registry/mcps?q=${encodeURIComponent(query)}`, { apiUrl });
+  if (!result.mcps.length) {
+    console.log('No matching MCP servers.');
+    return;
+  }
+  for (const mcp of result.mcps) {
+    console.log(`${mcp.slug}  ${mcp.server.transport}  ${mcp.trust.endpoint.status}`);
+    console.log(`  ${mcp.name} by ${mcp.provider.name} · ${mcp.features.tools.length} declared tools · auth ${mcp.server.auth.mode}`);
+    if (mcp.description) console.log(`  ${mcp.description}`);
+  }
+}
+
+async function inspectMcp(identifier: string | undefined): Promise<void> {
+  if (!identifier) throw new Error('Usage: markgit mcp inspect <mcp-slug>');
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const mcp = await request<Record<string, unknown>>(`/v1/registry/mcps/${encodeURIComponent(identifier)}`, { apiUrl });
+  console.log(JSON.stringify(mcp, null, 2));
+}
+
 async function runHarness(args: string[]): Promise<void> {
   const identifier = args[0];
   if (!identifier) throw new Error('Usage: markgit harness run <harness-slug> --input \'{"goal":"..."}\' [--yes]');
@@ -691,6 +721,41 @@ async function harnessCommand(args: string[]): Promise<void> {
   }
 }
 
+async function publishMcp(args: string[], activate = false): Promise<void> {
+  const manifestPath = args[0];
+  if (!manifestPath) throw new Error('Usage: markgit mcp publish <markgit-mcp.json>');
+  const config = await loadConfig();
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as PublishManifest;
+  try {
+    await request('/v1/providers', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
+  } catch (error) {
+    if ((error as { status?: number }).status !== 404) throw error;
+    await request('/v1/providers', {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+      body: JSON.stringify(manifest.provider ?? { name: 'Local Markgit Provider' }),
+    });
+  }
+  const result = await request<{ mcp: { id: string; slug: string; status: string }; created: boolean }>('/v1/mcps', {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST', body: JSON.stringify(manifest),
+  });
+  if (activate) {
+    if (result.mcp.status === 'draft') await request(`/v1/products/${result.mcp.id}/submit`, { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' });
+    if (['draft', 'pending_review'].includes(result.mcp.status)) await request(`/v1/products/${result.mcp.id}/publish`, { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' });
+  }
+  console.log(JSON.stringify({ ...result, status: activate ? 'active' : result.mcp.status }, null, 2));
+}
+
+async function mcpCommand(args: string[]): Promise<void> {
+  const [command, ...rest] = args;
+  switch (command) {
+    case 'search': return searchMcps(rest);
+    case 'inspect': return inspectMcp(rest[0]);
+    case 'publish': return publishMcp(rest);
+    case 'onboard': return publishMcp(rest, true);
+    default: throw new Error('Usage: markgit mcp <search|inspect|publish|onboard>');
+  }
+}
+
 function help(): void {
   console.log(`Markgit — a thin client for searchable, metered agent tools
 
@@ -712,6 +777,10 @@ Usage:
   markgit harness cancel <id>    Request cancellation of a running loop
   markgit harness publish <file> Publish a harness draft with explicit access
   markgit harness onboard <file> Publish and activate a harness
+  markgit mcp search [query]     Search provider-hosted MCP servers
+  markgit mcp inspect <slug>     Show transport, auth, trust, and declared tools
+  markgit mcp publish <file>     Publish an MCP server as a draft
+  markgit mcp onboard <file>     Publish and activate an MCP server
   markgit limits                 Show global spend and rate controls
   markgit limits set [limits]    Set --per-call, --daily, --monthly, --rpm, --rph
   markgit limits tool <slug>     View/set limits; use --allow, --block, or --inherit
@@ -740,6 +809,7 @@ async function main(): Promise<void> {
     case 'publish': return publish(args);
     case 'onboard': return publish(args, true);
     case 'harness': return harnessCommand(args);
+    case 'mcp': return mcpCommand(args);
     case 'limits': return limits(args);
     case 'earnings': return earnings();
     case 'verify-origin': return verifyOrigin(args);

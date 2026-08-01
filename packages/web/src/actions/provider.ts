@@ -128,6 +128,14 @@ export async function createProviderProduct(input: {
   return product;
 }
 
+export async function createProviderMcp(input: import("@markgit/sdk").McpManifest) {
+  const client = await getMarkgitClient();
+  const result = await client.publishMcp(input);
+  revalidatePath("/provider");
+  revalidatePath("/mcps");
+  return result;
+}
+
 export async function submitProviderProduct(productId: string) {
   const client = await getMarkgitClient();
   const product = await client.submitProduct(productId);

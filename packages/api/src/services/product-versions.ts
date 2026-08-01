@@ -16,11 +16,12 @@ type VersionableProduct = {
   logoUrl: string | null;
   description: string | null;
   category: string | null;
-  kind: 'tool' | 'harness';
+  kind: 'tool' | 'harness' | 'mcp';
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
   executionConfig: Record<string, unknown> | null;
   harnessConfig: Record<string, unknown> | null;
+  mcpConfig: Record<string, unknown> | null;
   capabilities: ToolCapabilities | null;
   pricePerCallUsd: string;
   tags: string[];
@@ -32,7 +33,9 @@ export function buildVersionManifest(product: VersionableProduct, capabilities: 
   return {
     schemaVersion: product.kind === 'harness'
       ? 'markgit.harness-version/v1'
-      : 'markgit.tool-version/v1',
+      : product.kind === 'mcp'
+        ? 'markgit.mcp-version/v1'
+        : 'markgit.tool-version/v1',
     productId: product.id,
     providerId: product.providerId,
     name: product.name,
@@ -46,8 +49,9 @@ export function buildVersionManifest(product: VersionableProduct, capabilities: 
     outputSchema: product.outputSchema,
     executionConfig: product.executionConfig,
     ...(product.kind === 'harness' ? { harnessConfig: product.harnessConfig } : {}),
+    ...(product.kind === 'mcp' ? { mcpConfig: product.mcpConfig } : {}),
     capabilities,
-    pricing: product.kind === 'harness'
+    pricing: product.kind !== 'tool'
       ? { chargedByMarkgit: false, amountUsd: '0.0000', currency: 'USD' }
       : { amountPerCallUsd: product.pricePerCallUsd, currency: 'USD' },
   } satisfies Record<string, unknown>;

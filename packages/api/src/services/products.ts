@@ -51,6 +51,7 @@ export async function getProduct(id: string) {
       outputSchema: products.outputSchema,
       executionConfig: products.executionConfig,
       harnessConfig: products.harnessConfig,
+      mcpConfig: products.mcpConfig,
       capabilities: products.capabilities,
       manifestDigest: products.manifestDigest,
       currentVersion: products.currentVersion,
@@ -95,11 +96,12 @@ export async function createProduct(data: {
   logoUrl?: string;
   description?: string;
   category?: string;
-  kind?: 'tool' | 'harness';
+  kind?: 'tool' | 'harness' | 'mcp';
   inputSchema?: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
   executionConfig?: Record<string, unknown>;
   harnessConfig?: Record<string, unknown>;
+  mcpConfig?: Record<string, unknown>;
   capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   pricePerCallUsd: string;
   tags?: string[];

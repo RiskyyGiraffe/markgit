@@ -430,6 +430,81 @@ export interface HarnessDocumentation {
   providerContract: Record<string, unknown>;
 }
 
+// ── MCP servers ───────────────────────────────────────────────────────
+
+export interface McpManifest {
+  schemaVersion: '1';
+  kind: 'mcp';
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  description: string;
+  category?: string;
+  tags?: string[];
+  provider?: { name: string; description?: string; websiteUrl?: string };
+  server: {
+    url: string;
+    transport: 'streamable_http' | 'sse';
+    auth: { mode: 'none' | 'oauth2' | 'user_supplied'; instructionsUrl?: string };
+  };
+  features: {
+    tools: Array<{ name: string; description?: string }>;
+    resources: boolean;
+    prompts: boolean;
+  };
+  capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
+}
+
+export interface McpCard {
+  kind: 'mcp';
+  id: string;
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  provider: { id: string; name: string; trustTier: string };
+  version: ToolCard['version'];
+  trust: {
+    provider: { tier: string };
+    endpoint: { status: 'verified' | 'unverified'; origin: string };
+  };
+  risk: ToolCard['risk'];
+  policy: ToolPolicyDecision;
+  pricing: { type: 'free'; chargedByMarkgit: false; currency: 'USD'; amount: '0.0000' };
+  server: McpManifest['server'];
+  features: McpManifest['features'];
+  connect: {
+    protocol: 'mcp';
+    transport: McpManifest['server']['transport'];
+    url: string;
+    auth: McpManifest['server']['auth'];
+    proxiedByMarkgit: false;
+  };
+  usage: { tracked: false; label: 'New' };
+  documentation: { json: string; llms: string; human: string };
+  updatedAt: string;
+}
+
+export interface McpListResponse {
+  mcps: McpCard[];
+  total: number;
+}
+
+export interface PublishMcpResponse {
+  mcp: Product;
+  created: boolean;
+  next: string;
+}
+
+export interface McpDocumentation {
+  schemaVersion: 'markgit.mcp-docs/v1';
+  mcp: Record<string, unknown>;
+  connection: McpCard['connect'] & { direct: true; note: string };
+  documentation: { metadata: string; json: string; llms: string; human: string };
+}
+
 export interface ProductSummary {
   id: string;
   name: string;
@@ -454,13 +529,14 @@ export interface Product {
   logoUrl: string | null;
   description: string | null;
   category: string | null;
-  kind: 'tool' | 'harness';
+  kind: 'tool' | 'harness' | 'mcp';
   status: string;
   moderationStatus: string;
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
   executionConfig: Record<string, unknown> | null;
   harnessConfig: Record<string, unknown> | null;
+  mcpConfig: Record<string, unknown> | null;
   capabilities: ToolCapabilities | null;
   manifestDigest: string | null;
   currentVersion: number;

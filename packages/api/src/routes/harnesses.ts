@@ -25,7 +25,7 @@ harnesses.post('/', async (c) => {
   const manifest = validateHarnessManifest(await c.req.json<unknown>());
   const existing = await getProductBySlug(manifest.slug);
   if (existing) {
-    if (existing.kind !== 'harness') throw new ConflictError(`The slug "${manifest.slug}" belongs to a tool`);
+    if (existing.kind !== 'harness') throw new ConflictError(`The slug "${manifest.slug}" belongs to another listing type`);
     if (existing.providerId !== provider.id) throw new ConflictError(`The harness slug "${manifest.slug}" is already in use`);
     return c.json({
       harness: existing,

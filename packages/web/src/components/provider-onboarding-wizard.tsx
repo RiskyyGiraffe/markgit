@@ -23,6 +23,7 @@ import {
   testProviderImport,
 } from "@/actions/provider";
 import { ProviderProductForm } from "@/components/provider-product-form";
+import { ProviderMcpForm } from "@/components/provider-mcp-form";
 import { ProviderProductsTable } from "@/components/provider-products-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -496,6 +497,8 @@ export function ProviderOnboardingWizard({
           ) : null}
         </CardContent>
       </Card>
+
+      {provider ? <ProviderMcpForm /> : null}
 
       {currentRun && (
         <>

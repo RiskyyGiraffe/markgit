@@ -9,6 +9,7 @@ export const API_PERMISSIONS = [
   'harnesses:run',
   'harnesses:monitor',
   'harnesses:publish',
+  'mcps:publish',
   'wallet:read',
   'wallet:fund',
   'history:read',
@@ -31,6 +32,7 @@ export const CLI_PERMISSIONS: ApiPermission[] = [
   'harnesses:run',
   'harnesses:monitor',
   'harnesses:publish',
+  'mcps:publish',
   'wallet:read',
   'wallet:fund',
   'history:read',
@@ -122,6 +124,8 @@ export function requiredPermission(method: string, rawPath: string): ApiPermissi
   if (verb === 'POST' && /^\/harnesses\/[^/]+\/runs$/.test(path)) return 'harnesses:run';
   if (verb === 'GET' && /^\/harness-runs(?:\/[^/]+(?:\/events)?)?$/.test(path)) return 'harnesses:monitor';
   if (verb === 'POST' && /^\/harness-runs\/[^/]+\/cancel$/.test(path)) return 'harnesses:run';
+
+  if (verb === 'POST' && path === '/mcps') return 'mcps:publish';
 
   if (verb === 'GET' && /^\/spend-controls(?:\/tools\/[^/]+)?$/.test(path)) return 'spend:read';
   if (

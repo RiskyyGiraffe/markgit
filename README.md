@@ -1,6 +1,6 @@
-# Markgit — Tool Registry and Commerce API
+# Markgit — Agent Tool, Harness, and MCP Registry
 
-Markgit is a thin standardization and marketplace layer for tools used by people and agents. Tool publishers host their own endpoints. Free standardized tools can be called directly; paid tools use Markgit only for wallet authorization, metering, and settlement. Markgit is not a separate agent runtime.
+Markgit is a thin standardization and marketplace layer for tools, durable agent harnesses, and remote MCP servers. Publishers host their own endpoints and compute. Free standardized tools can be called directly; paid tools use Markgit only for wallet authorization, metering, and settlement. Harnesses and MCP traffic are never charged by Markgit.
 
 **Repo**: [github.com/RiskyyGiraffe/markgit](https://github.com/RiskyyGiraffe/markgit)
 
@@ -13,7 +13,7 @@ markgit search "weather"
 markgit balance
 ```
 
-The CLI opens a browser link so the user can connect their account without copying an API key. See [Tool API v1](docs/tool-api.md) for the invocation contract and [LLM discovery](docs/llm-discovery.md) for JSON, OpenAPI, and `llms.txt` endpoints.
+The CLI opens a browser link so the user can connect their account without copying an API key. See [Tool API v1](docs/tool-api.md), [MCP publishing](docs/mcp-api.md), and [LLM discovery](docs/llm-discovery.md) for the public contracts.
 
 ## Architecture
 
@@ -83,6 +83,9 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | `/v1/registry/tools/:slug/docs` | GET | Exact machine-readable request and return contract |
 | `/v1/registry/tools/:slug/openapi.json` | GET | Per-tool OpenAPI 3.1 document |
 | `/v1/registry/tools/:slug/versions` | GET | Immutable manifest-version history |
+| `/v1/registry/mcps` | GET | Public remote MCP server catalog |
+| `/v1/registry/mcps/:slug/docs` | GET | Direct connection, authentication, tool surface, and trust |
+| `/v1/mcps` | POST | Publish a provider-hosted MCP manifest as a draft |
 | `/v1/registry/llms.txt` | GET | Plain-text LLM registry index |
 | `/webhooks/stripe` | POST | Stripe webhook endpoint (signature-verified, no auth) |
 | `/v1/auth/keys` | POST | Create API key |
@@ -122,6 +125,8 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | Provider | `/provider` | Stripe status, earnings, per-call log, payouts |
 | Public tools | `/tools` | Searchable all-tool directory grouped by category |
 | Public tool docs | `/tools/[slug]` | Human and machine-readable schemas and call flow |
+| Public harnesses | `/harnesses` | Searchable durable agent-loop directory |
+| Public MCPs | `/mcps` | Searchable provider-hosted MCP directory |
 | Documentation | `/docs` | LLM discovery and invocation overview |
 
 ## Database Schema
@@ -133,6 +138,7 @@ Key tables (defined in `packages/api/src/db/schema.ts`):
 - `mkgt_sessions` — API session tracking
 - `mkgt_providers` — vendor accounts (with Stripe Connect fields)
 - `mkgt_products` — marketplace listings (price, schema, execution config)
+- `mkgt_products.mcp_config` — direct MCP transport, authentication, and declared feature surface
 - `mkgt_product_versions` — immutable, digest-addressed tool manifests
 - `mkgt_provider_origin_verifications` — time-limited endpoint ownership proofs
 - `mkgt_user_tool_approvals` — first-use approvals bound to an exact manifest digest

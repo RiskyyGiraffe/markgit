@@ -53,6 +53,11 @@ import type {
   HarnessDocumentation,
   HarnessManifest,
   PublishHarnessResponse,
+  McpCard,
+  McpListResponse,
+  McpDocumentation,
+  McpManifest,
+  PublishMcpResponse,
   OriginVerificationChallenge,
 } from './types.js';
 
@@ -196,6 +201,25 @@ export class MarkgitClient {
 
   async cancelHarnessRun(runId: string): Promise<HarnessRun> {
     return this.request('POST', `/v1/harness-runs/${encodeURIComponent(runId)}/cancel`, {});
+  }
+
+  // ── MCP servers ───────────────────────────────────────────────────
+
+  async listMcps(query = '', limit = 20, offset = 0): Promise<McpListResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit), offset: String(offset) });
+    return this.request('GET', `/v1/registry/mcps?${params}`);
+  }
+
+  async publishMcp(manifest: McpManifest): Promise<PublishMcpResponse> {
+    return this.request('POST', '/v1/mcps', manifest);
+  }
+
+  async getMcp(identifier: string): Promise<McpCard> {
+    return this.request('GET', `/v1/registry/mcps/${encodeURIComponent(identifier)}`);
+  }
+
+  async getMcpDocumentation(identifier: string): Promise<McpDocumentation> {
+    return this.request('GET', `/v1/registry/mcps/${encodeURIComponent(identifier)}/docs`);
   }
 
   // ── Products ────────────────────────────────────────────────────────

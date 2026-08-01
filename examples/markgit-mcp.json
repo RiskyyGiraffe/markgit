@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1",
+  "kind": "mcp",
+  "name": "Example Search MCP",
+  "slug": "example-search-mcp",
+  "description": "An example remote MCP server with one declared search tool.",
+  "category": "research",
+  "tags": ["search", "research"],
+  "provider": { "name": "Example MCP Provider" },
+  "server": {
+    "url": "https://mcp.example.com/mcp",
+    "transport": "streamable_http",
+    "auth": {
+      "mode": "oauth2",
+      "instructionsUrl": "https://mcp.example.com/docs/auth"
+    }
+  },
+  "features": {
+    "tools": [{ "name": "search", "description": "Search public web sources." }],
+    "resources": false,
+    "prompts": false
+  }
+}

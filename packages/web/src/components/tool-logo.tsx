@@ -46,6 +46,19 @@ function fallbackIcon(name: string, category?: string | null, tags: string[] = [
   return Wrench;
 }
 
+function fallbackTone(name: string, category?: string | null, tags: string[] = []) {
+  const value = [name, category, ...tags].filter(Boolean).join(" ").toLowerCase();
+  if (/(exchange|currency|finance|bank|money|payment)/.test(value)) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+  if (/(holiday|calendar|schedule|date|time)/.test(value)) return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
+  if (/(weather|climate|forecast|location|map|travel|country|global)/.test(value)) return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+  if (/(search|research|lookup|discover|data|database|storage|sql)/.test(value)) return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
+  if (/(image|photo|media|video|ai|agent|generation|creative)/.test(value)) return "bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300";
+  if (/(email|mail|message|communication|text|document|pdf|write|content)/.test(value)) return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  if (/(security|identity|risk|verify)/.test(value)) return "bg-teal-500/10 text-teal-700 dark:text-teal-300";
+  if (/(developer|code|api|programming|mcp)/.test(value)) return "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300";
+  return "bg-muted text-muted-foreground";
+}
+
 const dimensions = {
   sm: "size-9 rounded-[10px]",
   md: "size-11 rounded-xl",
@@ -68,13 +81,15 @@ export function ToolLogo({
 }: ToolLogoProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const Icon = fallbackIcon(name, category, tags);
+  const tone = fallbackTone(name, category, tags);
 
   useEffect(() => setImageFailed(false), [logoUrl]);
 
   return (
     <span
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden border border-white/[0.09] bg-[#202326] text-[#d9dcde] shadow-[0_1px_2px_rgba(0,0,0,0.35)]",
+        "relative flex shrink-0 items-center justify-center overflow-hidden border border-border bg-background shadow-sm",
+        !logoUrl || imageFailed ? tone : null,
         dimensions[size],
         className,
       )}

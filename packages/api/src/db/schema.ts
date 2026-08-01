@@ -65,6 +65,7 @@ export const productStatusEnum = pgEnum('mkgt_product_status', [
 export const productKindEnum = pgEnum('mkgt_product_kind', [
   'tool',
   'harness',
+  'mcp',
 ]);
 
 export const harnessRunStatusEnum = pgEnum('mkgt_harness_run_status', [
@@ -260,6 +261,7 @@ export const products = pgTable('mkgt_products', {
   outputSchema: jsonb('output_schema').$type<Record<string, unknown>>(),
   executionConfig: jsonb('execution_config').$type<Record<string, unknown>>(),
   harnessConfig: jsonb('harness_config').$type<Record<string, unknown>>(),
+  mcpConfig: jsonb('mcp_config').$type<Record<string, unknown>>(),
   capabilities: jsonb('capabilities').$type<ToolCapabilities>(),
   manifestDigest: varchar('manifest_digest', { length: 64 }),
   currentVersion: integer('current_version').default(1).notNull(),

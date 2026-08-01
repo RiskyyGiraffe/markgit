@@ -23,13 +23,15 @@ import {
   listPublicHarnesses,
   listPublicHarnessVersions,
 } from '../services/harness-registry.js';
+import { buildMcpDocumentation, buildMcpLlmsText, buildMcpRegistryLlmsText } from '../lib/mcp-docs.js';
+import { getPublicMcp, listAllPublicMcps, listPublicMcps, listPublicMcpVersions } from '../services/mcp-registry.js';
 
 const registry = new Hono();
 
 registry.get('/', (c) => c.json({
   name: 'Markgit Agent Marketplace Registry',
   version: '1',
-  description: 'Public discovery and optional commerce for atomic tools, plus free durable harnesses with transparent access and monitoring.',
+  description: 'Public discovery and optional commerce for atomic tools, plus free durable harnesses and direct MCP servers.',
   authentication: {
     discovery: 'none',
     paidCalls: 'Bearer API key',
@@ -50,16 +52,39 @@ registry.get('/', (c) => c.json({
     harnessLlms: 'GET /v1/registry/harnesses/{id-or-slug}/llms.txt',
     harnessStart: 'POST /v1/harnesses/{id-or-slug}/runs',
     harnessMonitor: 'GET /v1/harness-runs/{runId}',
+    mcpSearch: 'GET /v1/registry/mcps?q={query}',
+    mcpInspect: 'GET /v1/registry/mcps/{id-or-slug}',
+    mcpDocs: 'GET /v1/registry/mcps/{id-or-slug}/docs',
+    mcpPublish: 'POST /v1/mcps',
   },
 }));
 
 registry.get('/llms.txt', async (c) => {
-  const [tools, harnesses] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses()]);
+  const [tools, harnesses, mcps] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses(), listAllPublicMcps()]);
   const origin = new URL(c.req.url).origin;
-  return c.text(`${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}`, 200, {
+  return c.text(`${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}`, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
 });
+
+registry.get('/mcps', async (c) => {
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 100);
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0);
+  return c.json(await listPublicMcps(c.req.query('q') ?? '', limit, offset));
+});
+
+registry.get('/mcps/:identifier/docs', async (c) => {
+  const mcp = await getPublicMcp(c.req.param('identifier'));
+  return c.json(buildMcpDocumentation(mcp, new URL(c.req.url).origin));
+});
+
+registry.get('/mcps/:identifier/llms.txt', async (c) => {
+  const mcp = await getPublicMcp(c.req.param('identifier'));
+  return c.text(buildMcpLlmsText(mcp, new URL(c.req.url).origin), 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+});
+
+registry.get('/mcps/:identifier/versions', async (c) => c.json(await listPublicMcpVersions(c.req.param('identifier'))));
+registry.get('/mcps/:identifier', async (c) => c.json(await getPublicMcp(c.req.param('identifier'))));
 
 registry.get('/harnesses', async (c) => {
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 100);

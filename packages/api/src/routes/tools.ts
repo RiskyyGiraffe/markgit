@@ -25,7 +25,7 @@ tools.post('/', async (c) => {
   const existing = await getProductBySlug(manifest.slug);
   if (existing) {
     if (existing.kind !== 'tool') {
-      throw new ConflictError(`The slug "${manifest.slug}" belongs to a harness`);
+      throw new ConflictError(`The slug "${manifest.slug}" belongs to another listing type`);
     }
     if (existing.providerId !== provider.id) {
       throw new ConflictError(`The tool slug "${manifest.slug}" is already in use`);

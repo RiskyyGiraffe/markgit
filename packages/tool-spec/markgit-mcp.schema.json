@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://markgit.com/schemas/mcp/v1.json",
+  "title": "Markgit Provider-Hosted MCP Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "name", "slug", "description", "server", "features"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "schemaVersion": { "const": "1" },
+    "kind": { "const": "mcp" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 255 },
+    "logoUrl": { "type": "string", "format": "uri" },
+    "description": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "maxLength": 100 },
+    "tags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "description": { "type": "string" },
+        "websiteUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "transport", "auth"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "transport": { "enum": ["streamable_http", "sse"] },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": { "enum": ["none", "oauth2", "user_supplied"] },
+            "instructionsUrl": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tools", "resources", "prompts"],
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "resources": { "type": "boolean" },
+        "prompts": { "type": "boolean" }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "readOnly": { "type": "boolean" },
+        "destructive": { "type": "boolean" },
+        "idempotent": { "type": "boolean" },
+        "openWorld": { "type": "boolean" },
+        "readsPrivateData": { "type": "boolean" },
+        "seesUntrustedContent": { "type": "boolean" },
+        "writesExternalData": { "type": "boolean" },
+        "sendsMessages": { "type": "boolean" },
+        "spendsMoney": { "type": "boolean" },
+        "executesCode": { "type": "boolean" },
+        "requiresUserCredential": { "type": "boolean" },
+        "allowedOutboundDomains": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "dataRetention": { "enum": ["none", "transient", "stored", "unknown"] }
+      }
+    }
+  }
+}

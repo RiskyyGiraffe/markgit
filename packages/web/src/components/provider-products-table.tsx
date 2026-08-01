@@ -31,6 +31,7 @@ type ProviderProduct = {
   name: string;
   slug: string;
   status: string;
+  kind: "tool" | "harness" | "mcp";
   pricePerCallUsd: string;
   updatedAt: string;
 };
@@ -80,6 +81,7 @@ export function ProviderProductsTable({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Updated</TableHead>
                 <TableHead>Actions</TableHead>
@@ -102,7 +104,8 @@ export function ProviderProductsTable({
                         {product.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>${parseFloat(product.pricePerCallUsd).toFixed(4)}</TableCell>
+                    <TableCell className="capitalize">{product.kind}</TableCell>
+                    <TableCell>{product.kind === "tool" ? `$${parseFloat(product.pricePerCallUsd).toFixed(4)}` : "Free"}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(product.updatedAt).toLocaleString()}
                     </TableCell>

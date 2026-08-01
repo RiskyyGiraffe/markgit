@@ -16,6 +16,8 @@ import {
 import { hasBuyerCredential, upsertProviderCredential, upsertUserCredential, deleteUserCredential } from '../services/credentials.js';
 import type { ToolCapabilities } from '../lib/tool-policy.js';
 import { getPublicTool } from '../services/registry.js';
+import { getPublicHarness } from '../services/harness-registry.js';
+import { getPublicMcp } from '../services/mcp-registry.js';
 
 const products = new Hono<{ Variables: { auth: AuthContext } }>();
 
@@ -51,7 +53,13 @@ products.get('/:id', async (c) => {
     'none') as string;
   const buyerCredentialConfigured =
     authMode === 'buyer_supplied' ? await hasBuyerCredential(ctx.userId, product.id) : false;
-  const publicEvidence = product.status === 'active' ? await getPublicTool(product.slug) : null;
+  const publicEvidence = product.status === 'active'
+    ? product.kind === 'harness'
+      ? await getPublicHarness(product.slug)
+      : product.kind === 'mcp'
+        ? await getPublicMcp(product.slug)
+        : await getPublicTool(product.slug)
+    : null;
   return c.json({
     ...product,
     buyerCredentialConfigured,
