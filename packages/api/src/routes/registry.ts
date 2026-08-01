@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import {
   getPublicTool,
   listAllPublicTools,
@@ -27,6 +27,19 @@ import { buildMcpDocumentation, buildMcpLlmsText, buildMcpRegistryLlmsText } fro
 import { getPublicMcp, listAllPublicMcps, listPublicMcps, listPublicMcpVersions } from '../services/mcp-registry.js';
 
 const registry = new Hono();
+
+function publicOrigin(c: Context) {
+  const requestUrl = new URL(c.req.url);
+  const forwardedProtocol = c.req.header('x-forwarded-proto')?.split(',', 1)[0]?.trim().toLowerCase();
+  const forwardedHost = c.req.header('x-forwarded-host')?.split(',', 1)[0]?.trim().toLowerCase();
+  const protocol = forwardedProtocol === 'https' || forwardedProtocol === 'http'
+    ? forwardedProtocol
+    : requestUrl.protocol.slice(0, -1);
+  const host = forwardedHost && /^[a-z0-9.-]+(?::\d{1,5})?$/.test(forwardedHost)
+    ? forwardedHost
+    : requestUrl.host;
+  return `${protocol}://${host}`;
+}
 
 registry.get('/', (c) => c.json({
   name: 'Markgit Agent Marketplace Registry',
@@ -61,7 +74,7 @@ registry.get('/', (c) => c.json({
 
 registry.get('/llms.txt', async (c) => {
   const [tools, harnesses, mcps] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses(), listAllPublicMcps()]);
-  const origin = new URL(c.req.url).origin;
+  const origin = publicOrigin(c);
   return c.text(`${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}`, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
@@ -75,12 +88,12 @@ registry.get('/mcps', async (c) => {
 
 registry.get('/mcps/:identifier/docs', async (c) => {
   const mcp = await getPublicMcp(c.req.param('identifier'));
-  return c.json(buildMcpDocumentation(mcp, new URL(c.req.url).origin));
+  return c.json(buildMcpDocumentation(mcp, publicOrigin(c)));
 });
 
 registry.get('/mcps/:identifier/llms.txt', async (c) => {
   const mcp = await getPublicMcp(c.req.param('identifier'));
-  return c.text(buildMcpLlmsText(mcp, new URL(c.req.url).origin), 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  return c.text(buildMcpLlmsText(mcp, publicOrigin(c)), 200, { 'Content-Type': 'text/plain; charset=utf-8' });
 });
 
 registry.get('/mcps/:identifier/versions', async (c) => c.json(await listPublicMcpVersions(c.req.param('identifier'))));
@@ -94,17 +107,17 @@ registry.get('/harnesses', async (c) => {
 
 registry.get('/harnesses/:identifier/docs', async (c) => {
   const harness = await getPublicHarness(c.req.param('identifier'));
-  return c.json(buildHarnessDocumentation(harness, new URL(c.req.url).origin));
+  return c.json(buildHarnessDocumentation(harness, publicOrigin(c)));
 });
 
 registry.get('/harnesses/:identifier/openapi.json', async (c) => {
   const harness = await getPublicHarness(c.req.param('identifier'));
-  return c.json(buildHarnessOpenApi(harness, new URL(c.req.url).origin));
+  return c.json(buildHarnessOpenApi(harness, publicOrigin(c)));
 });
 
 registry.get('/harnesses/:identifier/llms.txt', async (c) => {
   const harness = await getPublicHarness(c.req.param('identifier'));
-  return c.text(buildHarnessLlmsText(harness, new URL(c.req.url).origin), 200, {
+  return c.text(buildHarnessLlmsText(harness, publicOrigin(c)), 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
 });
@@ -123,17 +136,17 @@ registry.get('/tools', async (c) => {
 
 registry.get('/tools/:identifier/docs', async (c) => {
   const tool = await getPublicTool(c.req.param('identifier'));
-  return c.json(buildToolDocumentation(tool, new URL(c.req.url).origin));
+  return c.json(buildToolDocumentation(tool, publicOrigin(c)));
 });
 
 registry.get('/tools/:identifier/openapi.json', async (c) => {
   const tool = await getPublicTool(c.req.param('identifier'));
-  return c.json(buildToolOpenApi(tool, new URL(c.req.url).origin));
+  return c.json(buildToolOpenApi(tool, publicOrigin(c)));
 });
 
 registry.get('/tools/:identifier/llms.txt', async (c) => {
   const tool = await getPublicTool(c.req.param('identifier'));
-  return c.text(buildToolLlmsText(tool, new URL(c.req.url).origin), 200, {
+  return c.text(buildToolLlmsText(tool, publicOrigin(c)), 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
 });
