@@ -62,6 +62,21 @@ export const productStatusEnum = pgEnum('mkgt_product_status', [
   'archived',
 ]);
 
+export const productKindEnum = pgEnum('mkgt_product_kind', [
+  'tool',
+  'harness',
+]);
+
+export const harnessRunStatusEnum = pgEnum('mkgt_harness_run_status', [
+  'pending',
+  'starting',
+  'running',
+  'waiting',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+
 export const trustTierEnum = pgEnum('mkgt_trust_tier', [
   'unverified',
   'basic',
@@ -238,11 +253,13 @@ export const products = pgTable('mkgt_products', {
   logoUrl: varchar('logo_url', { length: 2048 }),
   description: text('description'),
   category: varchar('category', { length: 100 }),
+  kind: productKindEnum('kind').default('tool').notNull(),
   status: productStatusEnum('status').default('draft').notNull(),
   moderationStatus: moderationStatusEnum('moderation_status').default('clear').notNull(),
   inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
   outputSchema: jsonb('output_schema').$type<Record<string, unknown>>(),
   executionConfig: jsonb('execution_config').$type<Record<string, unknown>>(),
+  harnessConfig: jsonb('harness_config').$type<Record<string, unknown>>(),
   capabilities: jsonb('capabilities').$type<ToolCapabilities>(),
   manifestDigest: varchar('manifest_digest', { length: 64 }),
   currentVersion: integer('current_version').default(1).notNull(),
@@ -258,6 +275,7 @@ export const productVersions = pgTable('mkgt_product_versions', {
   version: integer('version').notNull(),
   manifestDigest: varchar('manifest_digest', { length: 64 }).notNull(),
   manifest: jsonb('manifest').$type<Record<string, unknown>>().notNull(),
+  kind: productKindEnum('kind').default('tool').notNull(),
   capabilities: jsonb('capabilities').$type<ToolCapabilities>().notNull(),
   endpointOrigin: varchar('endpoint_origin', { length: 2048 }).notNull(),
   pricePerCallUsd: numeric('price_per_call_usd', { precision: 19, scale: 4 }).notNull(),
@@ -395,6 +413,50 @@ export const executions = pgTable('mkgt_executions', {
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const harnessRuns = pgTable('mkgt_harness_runs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  quoteId: uuid('quote_id').references(() => quotes.id),
+  purchaseId: uuid('purchase_id').references(() => purchases.id),
+  executionId: uuid('execution_id').references(() => executions.id),
+  status: harnessRunStatusEnum('status').default('pending').notNull(),
+  providerRunId: varchar('provider_run_id', { length: 255 }),
+  callbackTokenHash: varchar('callback_token_hash', { length: 64 }).notNull().unique(),
+  input: jsonb('input').$type<Record<string, unknown>>().default({}).notNull(),
+  output: jsonb('output').$type<Record<string, unknown>>(),
+  errorMessage: text('error_message'),
+  accessSnapshot: jsonb('access_snapshot').$type<Record<string, unknown>>().notNull(),
+  pricingSnapshot: jsonb('pricing_snapshot').$type<Record<string, unknown>>().notNull(),
+  loopSnapshot: jsonb('loop_snapshot').$type<Record<string, unknown>>().notNull(),
+  compactionSnapshot: jsonb('compaction_snapshot').$type<Record<string, unknown>>().notNull(),
+  compactionCount: integer('compaction_count').default(0).notNull(),
+  lastCompactedAt: timestamp('last_compacted_at', { withTimezone: true }),
+  lastHeartbeatAt: timestamp('last_heartbeat_at', { withTimezone: true }),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('mkgt_harness_runs_user_created_idx').on(table.userId, table.createdAt),
+  index('mkgt_harness_runs_product_status_idx').on(table.productId, table.status),
+]);
+
+export const harnessRunEvents = pgTable('mkgt_harness_run_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  runId: uuid('run_id').notNull().references(() => harnessRuns.id),
+  sequence: integer('sequence').notNull(),
+  type: varchar('type', { length: 100 }).notNull(),
+  source: varchar('source', { length: 50 }).notNull(),
+  message: text('message'),
+  data: jsonb('data').$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('mkgt_harness_run_events_sequence_idx').on(table.runId, table.sequence),
+  index('mkgt_harness_run_events_created_idx').on(table.runId, table.createdAt),
+]);
 
 export const toolCallRequests = pgTable('mkgt_tool_call_requests', {
   id: uuid('id').defaultRandom().primaryKey(),

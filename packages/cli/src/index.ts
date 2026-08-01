@@ -197,6 +197,134 @@ async function inspect(identifier: string | undefined): Promise<void> {
   console.log(JSON.stringify(tool, null, 2));
 }
 
+async function searchHarnesses(args: string[]): Promise<void> {
+  const query = args.join(' ').trim();
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const result = await request<{ harnesses: Array<{
+    slug: string;
+    name: string;
+    description: string | null;
+    provider: { name: string };
+    pricing: { type: 'free'; chargedByMarkgit: false; amount: string; externalApiCosts: string };
+    usage: { runsLabel: string; usersLabel: string };
+    access: { externalApis: unknown[]; markgitTools: unknown[]; data: unknown[] };
+    compaction: { supported: boolean; strategy: string };
+  }> }>(`/v1/registry/harnesses?q=${encodeURIComponent(query)}`, { apiUrl });
+  if (!result.harnesses.length) {
+    console.log('No matching harnesses.');
+    return;
+  }
+  for (const harness of result.harnesses) {
+    console.log(`${harness.slug}  free`);
+    console.log(`  ${harness.name} by ${harness.provider.name} · ${harness.usage.runsLabel}`);
+    console.log(`  access: ${harness.access.externalApis.length} external APIs, ${harness.access.markgitTools.length} tools, ${harness.access.data.length} data scopes · compaction ${harness.compaction.supported ? harness.compaction.strategy : 'not supported'}`);
+    if (harness.description) console.log(`  ${harness.description}`);
+  }
+}
+
+async function inspectHarness(identifier: string | undefined): Promise<void> {
+  if (!identifier) throw new Error('Usage: markgit harness inspect <harness-slug>');
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const harness = await request<Record<string, unknown>>(`/v1/registry/harnesses/${encodeURIComponent(identifier)}`, { apiUrl });
+  console.log(JSON.stringify(harness, null, 2));
+}
+
+async function runHarness(args: string[]): Promise<void> {
+  const identifier = args[0];
+  if (!identifier) throw new Error('Usage: markgit harness run <harness-slug> --input \'{"goal":"..."}\' [--yes]');
+  const rawInput = valueAfter(args, '--input') ?? valueAfter(args, '--json') ?? '{}';
+  let input: Record<string, unknown>;
+  try {
+    input = JSON.parse(rawInput) as Record<string, unknown>;
+  } catch {
+    throw new Error('--input must be a valid JSON object');
+  }
+  const config = await loadConfig();
+  const harness = await request<{
+    slug: string;
+    name: string;
+    version: { manifestDigest: string | null };
+    trust: { runtime: { status: 'verified' | 'unverified' } };
+    policy: { callable: boolean; approval: { requirement: string }; reasons: string[] };
+    pricing: { type: 'free'; chargedByMarkgit: false; amount: string; externalApiCosts: string; note: string | null };
+    access: {
+      externalApis: Array<{ id: string; name: string; purpose: string; pricing: Record<string, unknown> }>;
+      markgitTools: Array<{ slug: string; purpose: string }>;
+      data: Array<{ id: string; access: string; scope: string; purpose: string }>;
+      dataRetention: string;
+    };
+    loop: Record<string, unknown>;
+    compaction: Record<string, unknown>;
+    observability: { mode: string; limitation: string };
+  }>(`/v1/registry/harnesses/${encodeURIComponent(identifier)}`, { apiUrl: config!.apiUrl });
+  if (!harness.policy.callable) throw new Error(`Harness is not callable: ${harness.policy.reasons.join('; ')}`);
+  if (harness.trust.runtime.status !== 'verified' && !args.includes('--allow-unverified')) {
+    throw new Error('This harness runtime is unverified. Inspect its full access manifest, then re-run with --allow-unverified if you accept the risk.');
+  }
+  console.log(`Harness: ${harness.name}`);
+  console.log('Markgit charge: Free. Markgit does not charge for harness runs.');
+  console.log(`External API costs: ${harness.pricing.externalApiCosts}${harness.pricing.note ? ` · ${harness.pricing.note}` : ''}`);
+  console.log('Frozen loop access:');
+  console.log(JSON.stringify(harness.access, null, 2));
+  console.log(`Loop limits: ${JSON.stringify(harness.loop)}`);
+  console.log(`Compaction: ${JSON.stringify(harness.compaction)}`);
+  console.log(`Observability: ${harness.observability.mode} · ${harness.observability.limitation}`);
+  const requiresApproval = harness.policy.approval.requirement !== 'covered_by_user_policy';
+  if (!args.includes('--yes') && requiresApproval) {
+    console.log('Approval required. Review the frozen access manifest and external API costs above, then re-run with --yes.');
+    return;
+  }
+  const run = await request<Record<string, unknown>>(`/v1/harnesses/${encodeURIComponent(identifier)}/runs`, {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'POST',
+    headers: { 'Idempotency-Key': randomUUID() },
+    body: JSON.stringify({
+      input,
+      ...(requiresApproval ? { approval: { manifestDigest: harness.version.manifestDigest } } : {}),
+    }),
+  });
+  console.log(JSON.stringify(run, null, 2));
+}
+
+async function monitorHarness(args: string[]): Promise<void> {
+  const runId = args[0];
+  if (!runId) throw new Error('Usage: markgit harness monitor <run-id> [--follow]');
+  const config = await loadConfig();
+  if (!args.includes('--follow')) {
+    const run = await request<Record<string, unknown>>(`/v1/harness-runs/${encodeURIComponent(runId)}`, {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey,
+    });
+    console.log(JSON.stringify(run, null, 2));
+    return;
+  }
+  let after = 0;
+  while (true) {
+    const result = await request<{
+      events: Array<{ sequence: number; type: string; source: string; message: string | null; data: Record<string, unknown>; createdAt: string }>;
+      nextAfter: number;
+    }>(`/v1/harness-runs/${encodeURIComponent(runId)}/events?after=${after}`, {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey,
+    });
+    for (const event of result.events) console.log(JSON.stringify(event));
+    after = result.nextAfter;
+    const run = await request<{ status: string }>(`/v1/harness-runs/${encodeURIComponent(runId)}`, {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey,
+    });
+    if (['completed', 'failed', 'cancelled'].includes(run.status)) return;
+    await sleep(2_000);
+  }
+}
+
+async function cancelHarness(runId: string | undefined): Promise<void> {
+  if (!runId) throw new Error('Usage: markgit harness cancel <run-id>');
+  const config = await loadConfig();
+  const run = await request<Record<string, unknown>>(`/v1/harness-runs/${encodeURIComponent(runId)}/cancel`, {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST', body: JSON.stringify({}),
+  });
+  console.log(JSON.stringify(run, null, 2));
+}
+
 async function callTool(args: string[]): Promise<void> {
   const identifier = args[0];
   if (!identifier) throw new Error('Usage: markgit call <tool-slug> --input \'{"key":"value"}\'');
@@ -525,6 +653,44 @@ async function publish(args: string[], activate = false): Promise<void> {
   console.log(JSON.stringify({ ...result, status: shouldActivate ? 'active' : result.tool.status }, null, 2));
 }
 
+async function publishHarness(args: string[], activate = false): Promise<void> {
+  const manifestPath = args[0];
+  if (!manifestPath) throw new Error('Usage: markgit harness publish <markgit-harness.json>');
+  const config = await loadConfig();
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as PublishManifest;
+  try {
+    await request('/v1/providers', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
+  } catch (error) {
+    if ((error as { status?: number }).status !== 404) throw error;
+    await request('/v1/providers', {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+      body: JSON.stringify(manifest.provider ?? { name: 'Local Markgit Provider' }),
+    });
+  }
+  const result = await request<{ harness: { id: string; slug: string; status: string }; created: boolean }>('/v1/harnesses', {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST', body: JSON.stringify(manifest),
+  });
+  if (activate) {
+    if (result.harness.status === 'draft') await request(`/v1/products/${result.harness.id}/submit`, { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' });
+    if (['draft', 'pending_review'].includes(result.harness.status)) await request(`/v1/products/${result.harness.id}/publish`, { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' });
+  }
+  console.log(JSON.stringify({ ...result, status: activate ? 'active' : result.harness.status }, null, 2));
+}
+
+async function harnessCommand(args: string[]): Promise<void> {
+  const [command, ...rest] = args;
+  switch (command) {
+    case 'search': return searchHarnesses(rest);
+    case 'inspect': return inspectHarness(rest[0]);
+    case 'run': return runHarness(rest);
+    case 'monitor': return monitorHarness(rest);
+    case 'cancel': return cancelHarness(rest[0]);
+    case 'publish': return publishHarness(rest);
+    case 'onboard': return publishHarness(rest, true);
+    default: throw new Error('Usage: markgit harness <search|inspect|run|monitor|cancel|publish|onboard>');
+  }
+}
+
 function help(): void {
   console.log(`Markgit — a thin client for searchable, metered agent tools
 
@@ -539,6 +705,13 @@ Usage:
   markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD] [--allow-unverified]
   markgit publish <manifest>     Publish a provider-hosted tool as a draft
   markgit onboard <manifest>     Register provider, publish, and activate a tool
+  markgit harness search [query] Search durable provider-hosted agent loops
+  markgit harness inspect <slug> Show access, pricing, limits, and compaction
+  markgit harness run <slug> --input '{}' [--yes] [--allow-unverified]
+  markgit harness monitor <id> [--follow]  Read the shared vendor-neutral event stream
+  markgit harness cancel <id>    Request cancellation of a running loop
+  markgit harness publish <file> Publish a harness draft with explicit access
+  markgit harness onboard <file> Publish and activate a harness
   markgit limits                 Show global spend and rate controls
   markgit limits set [limits]    Set --per-call, --daily, --monthly, --rpm, --rph
   markgit limits tool <slug>     View/set limits; use --allow, --block, or --inherit
@@ -566,6 +739,7 @@ async function main(): Promise<void> {
     case 'call': return callTool(args);
     case 'publish': return publish(args);
     case 'onboard': return publish(args, true);
+    case 'harness': return harnessCommand(args);
     case 'limits': return limits(args);
     case 'earnings': return earnings();
     case 'verify-origin': return verifyOrigin(args);

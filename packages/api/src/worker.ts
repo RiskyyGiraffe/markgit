@@ -1,4 +1,5 @@
 import { runDueJobs, schedulePayoutSweep } from './services/jobs.js';
+import { expireOverdueHarnessRuns } from './services/harness-runs.js';
 
 async function bootstrap() {
   console.log('[worker] starting');
@@ -13,8 +14,12 @@ async function bootstrap() {
   setInterval(async () => {
     try {
       const results = await runDueJobs();
+      const expiredHarnessRuns = await expireOverdueHarnessRuns();
       if (results.length > 0) {
         console.log('[worker] processed:', JSON.stringify(results));
+      }
+      if (expiredHarnessRuns.length > 0) {
+        console.log('[worker] expired harness runs:', JSON.stringify(expiredHarnessRuns));
       }
     } catch (error) {
       console.error('[worker] failure:', error);

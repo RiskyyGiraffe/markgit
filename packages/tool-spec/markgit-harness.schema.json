@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://markgit.com/schemas/harness/v1.json",
+  "title": "Markgit Provider-Hosted Harness Manifest",
+  "$defs": {
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "readOnly": { "type": "boolean" },
+        "destructive": { "type": "boolean" },
+        "idempotent": { "type": "boolean" },
+        "openWorld": { "type": "boolean" },
+        "readsPrivateData": { "type": "boolean" },
+        "seesUntrustedContent": { "type": "boolean" },
+        "writesExternalData": { "type": "boolean" },
+        "sendsMessages": { "type": "boolean" },
+        "spendsMoney": { "type": "boolean" },
+        "executesCode": { "type": "boolean" },
+        "requiresUserCredential": { "type": "boolean" },
+        "allowedOutboundDomains": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "dataRetention": { "enum": ["none", "transient", "stored", "unknown"] }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "name", "slug", "description", "runtime", "inputSchema", "access", "loop", "compaction", "pricing"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "schemaVersion": { "const": "1" },
+    "kind": { "const": "harness" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 255 },
+    "logoUrl": { "type": "string", "format": "uri" },
+    "description": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "maxLength": 100 },
+    "tags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "description": { "type": "string" },
+        "websiteUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startUrl"],
+      "properties": {
+        "startUrl": { "type": "string", "format": "uri" },
+        "cancelUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "inputSchema": { "type": "object", "required": ["type"], "properties": { "type": { "const": "object" } } },
+    "outputSchema": { "type": "object" },
+    "capabilities": { "$ref": "#/$defs/capabilities" },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalApis", "markgitTools", "data", "dataRetention"],
+      "properties": {
+        "externalApis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "baseUrl", "purpose", "dataSent", "dataReceived", "pricing"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+              "name": { "type": "string", "minLength": 1 },
+              "baseUrl": { "type": "string", "format": "uri" },
+              "purpose": { "type": "string", "minLength": 1 },
+              "dataSent": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "dataReceived": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "pricing": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["type"],
+                "properties": {
+                  "type": { "enum": ["free", "per_call", "passed_through", "unknown"] },
+                  "amountUsd": { "type": "string", "pattern": "^\\d+(?:\\.\\d{1,4})?$" },
+                  "note": { "type": "string" }
+                },
+                "allOf": [{ "if": { "properties": { "type": { "const": "per_call" } } }, "then": { "required": ["amountUsd"] } }]
+              }
+            }
+          }
+        },
+        "markgitTools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["slug", "purpose"],
+            "properties": {
+              "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+              "purpose": { "type": "string", "minLength": 1 },
+              "maxCallsPerRun": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "type", "access", "purpose", "scope"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+              "type": { "enum": ["user_input", "filesystem", "database", "secret", "network", "other"] },
+              "access": { "enum": ["read", "write", "read_write"] },
+              "purpose": { "type": "string", "minLength": 1 },
+              "scope": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "dataRetention": { "enum": ["none", "transient", "stored"] }
+      }
+    },
+    "loop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxSteps", "maxRuntimeSeconds", "heartbeatSeconds"],
+      "properties": {
+        "maxSteps": { "type": "integer", "minimum": 1 },
+        "maxRuntimeSeconds": { "type": "integer", "minimum": 1 },
+        "heartbeatSeconds": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "compaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "strategy", "preserves"],
+      "properties": {
+        "supported": { "type": "boolean" },
+        "strategy": { "enum": ["summary", "checkpoint", "provider_managed"] },
+        "maxContextTokens": { "type": "integer", "minimum": 1 },
+        "preserves": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalApiCosts"],
+      "properties": {
+        "externalApiCosts": { "enum": ["included", "user_supplied"] },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

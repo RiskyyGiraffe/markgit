@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1",
+  "kind": "harness",
+  "name": "Observable Example Loop",
+  "slug": "observable-example-loop",
+  "description": "A tiny provider-hosted loop demonstrating shared events and compaction checkpoints.",
+  "category": "developer-tools",
+  "tags": ["example", "loop", "compaction"],
+  "provider": {
+    "name": "Local Markgit Examples"
+  },
+  "runtime": {
+    "startUrl": "http://127.0.0.1:8001/runs",
+    "cancelUrl": "http://127.0.0.1:8001/cancel"
+  },
+  "inputSchema": {
+    "type": "object",
+    "required": ["goal"],
+    "properties": {
+      "goal": { "type": "string" }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "answer": { "type": "string" }
+    }
+  },
+  "access": {
+    "externalApis": [],
+    "markgitTools": [],
+    "data": [
+      {
+        "id": "run-input",
+        "type": "user_input",
+        "access": "read",
+        "purpose": "Read the goal provided for this run.",
+        "scope": "Only this run's input"
+      }
+    ],
+    "dataRetention": "transient"
+  },
+  "loop": {
+    "maxSteps": 3,
+    "maxRuntimeSeconds": 60,
+    "heartbeatSeconds": 10
+  },
+  "compaction": {
+    "supported": true,
+    "strategy": "checkpoint",
+    "maxContextTokens": 8000,
+    "preserves": ["goal", "completed steps", "final result"]
+  },
+  "pricing": {
+    "externalApiCosts": "included",
+    "note": "This example has no external API costs."
+  }
+}

@@ -7,6 +7,7 @@ import {
 } from './tool-docs.js';
 
 const documentedTool = {
+  kind: 'tool' as const,
   id: 'tool-id',
   slug: 'weather-now',
   name: 'Weather Now',

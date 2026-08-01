@@ -46,6 +46,13 @@ import type {
   ToolCallResponse,
   ToolQuoteResponse,
   ToolDocumentation,
+  HarnessCard,
+  HarnessListResponse,
+  HarnessRun,
+  HarnessRunEvent,
+  HarnessDocumentation,
+  HarnessManifest,
+  PublishHarnessResponse,
   OriginVerificationChallenge,
 } from './types.js';
 
@@ -141,6 +148,54 @@ export class MarkgitClient {
       },
       { 'Idempotency-Key': idempotencyKey },
     );
+  }
+
+  // ── Harnesses ──────────────────────────────────────────────────────
+
+  async listHarnesses(query = '', limit = 20, offset = 0): Promise<HarnessListResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit), offset: String(offset) });
+    return this.request('GET', `/v1/registry/harnesses?${params}`);
+  }
+
+  async publishHarness(manifest: HarnessManifest): Promise<PublishHarnessResponse> {
+    return this.request('POST', '/v1/harnesses', manifest);
+  }
+
+  async getHarness(identifier: string): Promise<HarnessCard> {
+    return this.request('GET', `/v1/registry/harnesses/${encodeURIComponent(identifier)}`);
+  }
+
+  async getHarnessDocumentation(identifier: string): Promise<HarnessDocumentation> {
+    return this.request('GET', `/v1/registry/harnesses/${encodeURIComponent(identifier)}/docs`);
+  }
+
+  async startHarness(
+    identifier: string,
+    input: Record<string, unknown>,
+    idempotencyKey: string,
+    approvalManifestDigest?: string,
+  ): Promise<HarnessRun> {
+    return this.request('POST', `/v1/harnesses/${encodeURIComponent(identifier)}/runs`, {
+      input,
+      ...(approvalManifestDigest ? { approval: { manifestDigest: approvalManifestDigest } } : {}),
+    }, { 'Idempotency-Key': idempotencyKey });
+  }
+
+  async getHarnessRun(runId: string): Promise<HarnessRun> {
+    return this.request('GET', `/v1/harness-runs/${encodeURIComponent(runId)}`);
+  }
+
+  async listHarnessRunEvents(runId: string, after = 0, limit = 200): Promise<{
+    runId: string;
+    events: HarnessRunEvent[];
+    nextAfter: number;
+  }> {
+    const params = new URLSearchParams({ after: String(after), limit: String(limit) });
+    return this.request('GET', `/v1/harness-runs/${encodeURIComponent(runId)}/events?${params}`);
+  }
+
+  async cancelHarnessRun(runId: string): Promise<HarnessRun> {
+    return this.request('POST', `/v1/harness-runs/${encodeURIComponent(runId)}/cancel`, {});
   }
 
   // ── Products ────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ export type ToolUsageSummary = {
 };
 
 type DocumentedTool = {
+  kind: 'tool';
   id: string;
   slug: string;
   name: string;
@@ -102,6 +103,7 @@ export function buildToolDocumentation(tool: DocumentedTool, origin: string) {
   return {
     schemaVersion: 'markgit.tool-docs/v1',
     tool: {
+      kind: tool.kind,
       id: tool.id,
       slug: tool.slug,
       name: tool.name,

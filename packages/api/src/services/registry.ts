@@ -137,6 +137,7 @@ function toToolCard(row: PublicToolRow) {
     paymentVerified,
   });
   return {
+    kind: 'tool' as const,
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -221,6 +222,7 @@ export async function listPublicTools(query = '', limit = 20, offset = 0) {
 
   const where = and(
     eq(products.status, 'active'),
+    eq(products.kind, 'tool'),
     ne(products.moderationStatus, 'quarantined'),
     queryFilter,
   );
@@ -247,7 +249,11 @@ export async function listPublicTools(query = '', limit = 20, offset = 0) {
 
 export async function listAllPublicTools() {
   const rows = await selectPublicTools()
-    .where(and(eq(products.status, 'active'), ne(products.moderationStatus, 'quarantined')))
+    .where(and(
+      eq(products.status, 'active'),
+      eq(products.kind, 'tool'),
+      ne(products.moderationStatus, 'quarantined'),
+    ))
     .orderBy(desc(sql`case when exists (
       select 1 from ${providerOriginVerifications}
       where ${providerOriginVerifications.providerId} = ${providers.id}
@@ -265,6 +271,7 @@ export async function getPublicTool(identifier: string) {
   const [row] = await selectPublicTools()
     .where(and(
       eq(products.status, 'active'),
+      eq(products.kind, 'tool'),
       ne(products.moderationStatus, 'quarantined'),
       identifierFilter,
     ))

@@ -94,6 +94,7 @@ export interface SearchResponse {
 }
 
 export interface ToolCard {
+  kind: 'tool';
   id: string;
   slug: string;
   name: string;
@@ -249,6 +250,186 @@ export interface ToolQuoteResponse {
   controls: SpendControlPreview;
 }
 
+// ── Harnesses ─────────────────────────────────────────────────────────
+
+export interface HarnessExternalApi {
+  id: string;
+  name: string;
+  baseUrl: string;
+  purpose: string;
+  dataSent: string[];
+  dataReceived: string[];
+  pricing: {
+    type: 'free' | 'per_call' | 'passed_through' | 'unknown';
+    amountUsd?: string;
+    note?: string;
+  };
+}
+
+export interface HarnessAccessManifest {
+  externalApis: HarnessExternalApi[];
+  markgitTools: Array<{ slug: string; purpose: string; maxCallsPerRun?: number }>;
+  data: Array<{
+    id: string;
+    type: 'user_input' | 'filesystem' | 'database' | 'secret' | 'network' | 'other';
+    access: 'read' | 'write' | 'read_write';
+    purpose: string;
+    scope: string;
+  }>;
+  dataRetention: 'none' | 'transient' | 'stored';
+}
+
+export interface HarnessManifest {
+  schemaVersion: '1';
+  kind: 'harness';
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  description: string;
+  category?: string;
+  tags?: string[];
+  provider?: { name: string; description?: string; websiteUrl?: string };
+  runtime: { startUrl: string; cancelUrl?: string };
+  inputSchema: Record<string, unknown> & { type: 'object' };
+  outputSchema?: Record<string, unknown>;
+  capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
+  access: HarnessAccessManifest;
+  loop: { maxSteps: number; maxRuntimeSeconds: number; heartbeatSeconds: number };
+  compaction: {
+    supported: boolean;
+    strategy: 'summary' | 'checkpoint' | 'provider_managed';
+    maxContextTokens?: number;
+    preserves: string[];
+  };
+  pricing: {
+    externalApiCosts: 'included' | 'user_supplied';
+    note?: string;
+  };
+}
+
+export interface HarnessCard {
+  kind: 'harness';
+  id: string;
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  provider: { id: string; name: string; trustTier: string };
+  version: ToolCard['version'];
+  trust: {
+    provider: { tier: string; paymentVerified: boolean };
+    runtime: { status: 'verified' | 'unverified'; origin: string | null; verifiedAt: string | null };
+    version: { status: 'versioned' | 'legacy_unversioned'; manifestDigest: string | null };
+  };
+  risk: ToolCard['risk'];
+  policy: ToolPolicyDecision;
+  pricing: {
+    type: 'free';
+    chargedByMarkgit: false;
+    currency: 'USD';
+    amount: string;
+    externalApiCosts: 'included' | 'user_supplied';
+    note: string | null;
+    externalApis: Array<{ id: string; name: string; pricing: HarnessExternalApi['pricing'] }>;
+  };
+  usage: {
+    runs: number;
+    uniqueUsers: number;
+    tracked: true;
+    coverage: 'markgit_harness_runs';
+    runsLabel: string;
+    usersLabel: string;
+  };
+  inputSchema: Record<string, unknown> | null;
+  outputSchema: Record<string, unknown> | null;
+  access: HarnessAccessManifest;
+  loop: { maxSteps: number; maxRuntimeSeconds: number; heartbeatSeconds: number };
+  compaction: {
+    supported: boolean;
+    strategy: 'summary' | 'checkpoint' | 'provider_managed';
+    maxContextTokens?: number;
+    preserves: string[];
+  };
+  invocation: Record<string, unknown>;
+  observability: {
+    mode: 'provider_attested';
+    markgitEnforcesDeclaredEventReferences: true;
+    limitation: string;
+  };
+  documentation: { json: string; openapi: string; llms: string; human: string };
+  updatedAt: string;
+}
+
+export interface HarnessListResponse {
+  harnesses: HarnessCard[];
+  total: number;
+}
+
+export interface PublishHarnessResponse {
+  harness: Product;
+  created: boolean;
+  next: string;
+  transparency?: {
+    access: HarnessAccessManifest;
+    pricing: HarnessManifest['pricing'];
+    compaction: HarnessManifest['compaction'];
+  };
+}
+
+export interface HarnessRunEvent {
+  id: string;
+  runId: string;
+  sequence: number;
+  type: string;
+  source: 'markgit' | 'provider' | 'user';
+  message: string | null;
+  data: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface HarnessRun {
+  id: string;
+  userId: string;
+  apiKeyId: string;
+  productId: string;
+  quoteId: string | null;
+  purchaseId: string | null;
+  executionId: string | null;
+  status: 'pending' | 'starting' | 'running' | 'waiting' | 'completed' | 'failed' | 'cancelled';
+  providerRunId: string | null;
+  input: Record<string, unknown>;
+  output: Record<string, unknown> | null;
+  errorMessage: string | null;
+  accessSnapshot: HarnessAccessManifest;
+  pricingSnapshot: Record<string, unknown>;
+  loopSnapshot: HarnessCard['loop'];
+  compactionSnapshot: HarnessCard['compaction'];
+  compactionCount: number;
+  lastCompactedAt: string | null;
+  lastHeartbeatAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  health: {
+    status: 'healthy' | 'stale' | 'terminal';
+    expectedHeartbeatSeconds: number;
+    heartbeatAgeSeconds: number | null;
+  };
+  monitor: { method: 'GET'; path: string; eventsPath: string; authentication: string; vendorNeutral: true };
+  events?: HarnessRunEvent[];
+}
+
+export interface HarnessDocumentation {
+  schemaVersion: 'markgit.harness-docs/v1';
+  harness: Omit<HarnessCard, 'inputSchema' | 'outputSchema' | 'invocation' | 'documentation'>;
+  documentation: { metadata: string; json: string; openapi: string; llms: string };
+  agentContract: Record<string, unknown>;
+  providerContract: Record<string, unknown>;
+}
+
 export interface ProductSummary {
   id: string;
   name: string;
@@ -273,11 +454,13 @@ export interface Product {
   logoUrl: string | null;
   description: string | null;
   category: string | null;
+  kind: 'tool' | 'harness';
   status: string;
   moderationStatus: string;
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
   executionConfig: Record<string, unknown> | null;
+  harnessConfig: Record<string, unknown> | null;
   capabilities: ToolCapabilities | null;
   manifestDigest: string | null;
   currentVersion: number;

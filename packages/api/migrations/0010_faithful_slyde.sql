@@ -1,0 +1,1 @@
+ALTER TABLE "mkgt_harness_runs" ALTER COLUMN "quote_id" DROP NOT NULL;

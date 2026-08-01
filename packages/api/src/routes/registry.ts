@@ -11,13 +11,25 @@ import {
   buildToolLlmsText,
   buildToolOpenApi,
 } from '../lib/tool-docs.js';
+import {
+  buildHarnessDocumentation,
+  buildHarnessLlmsText,
+  buildHarnessOpenApi,
+  buildHarnessRegistryLlmsText,
+} from '../lib/harness-docs.js';
+import {
+  getPublicHarness,
+  listAllPublicHarnesses,
+  listPublicHarnesses,
+  listPublicHarnessVersions,
+} from '../services/harness-registry.js';
 
 const registry = new Hono();
 
 registry.get('/', (c) => c.json({
-  name: 'Markgit Tool Registry',
+  name: 'Markgit Agent Marketplace Registry',
   version: '1',
-  description: 'Public discovery for provider-hosted tools with optional metered commerce.',
+  description: 'Public discovery and optional commerce for atomic tools, plus free durable harnesses with transparent access and monitoring.',
   authentication: {
     discovery: 'none',
     paidCalls: 'Bearer API key',
@@ -32,16 +44,51 @@ registry.get('/', (c) => c.json({
     versions: 'GET /v1/registry/tools/{id-or-slug}/versions',
     quote: 'POST /v1/tools/{id-or-slug}/quote',
     call: 'POST /v1/tools/{id-or-slug}/call',
+    harnessSearch: 'GET /v1/registry/harnesses?q={query}',
+    harnessInspect: 'GET /v1/registry/harnesses/{id-or-slug}',
+    harnessDocs: 'GET /v1/registry/harnesses/{id-or-slug}/docs',
+    harnessLlms: 'GET /v1/registry/harnesses/{id-or-slug}/llms.txt',
+    harnessStart: 'POST /v1/harnesses/{id-or-slug}/runs',
+    harnessMonitor: 'GET /v1/harness-runs/{runId}',
   },
 }));
 
 registry.get('/llms.txt', async (c) => {
-  const tools = await listAllPublicTools();
+  const [tools, harnesses] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses()]);
   const origin = new URL(c.req.url).origin;
-  return c.text(buildRegistryLlmsText(tools, origin), 200, {
+  return c.text(`${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}`, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
 });
+
+registry.get('/harnesses', async (c) => {
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 100);
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0);
+  return c.json(await listPublicHarnesses(c.req.query('q') ?? '', limit, offset));
+});
+
+registry.get('/harnesses/:identifier/docs', async (c) => {
+  const harness = await getPublicHarness(c.req.param('identifier'));
+  return c.json(buildHarnessDocumentation(harness, new URL(c.req.url).origin));
+});
+
+registry.get('/harnesses/:identifier/openapi.json', async (c) => {
+  const harness = await getPublicHarness(c.req.param('identifier'));
+  return c.json(buildHarnessOpenApi(harness, new URL(c.req.url).origin));
+});
+
+registry.get('/harnesses/:identifier/llms.txt', async (c) => {
+  const harness = await getPublicHarness(c.req.param('identifier'));
+  return c.text(buildHarnessLlmsText(harness, new URL(c.req.url).origin), 200, {
+    'Content-Type': 'text/plain; charset=utf-8',
+  });
+});
+
+registry.get('/harnesses/:identifier/versions', async (c) => {
+  return c.json(await listPublicHarnessVersions(c.req.param('identifier')));
+});
+
+registry.get('/harnesses/:identifier', async (c) => c.json(await getPublicHarness(c.req.param('identifier'))));
 
 registry.get('/tools', async (c) => {
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 100);

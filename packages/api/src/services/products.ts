@@ -16,6 +16,7 @@ export async function listProducts(limit = 50, offset = 0) {
       logoUrl: products.logoUrl,
       description: products.description,
       category: products.category,
+      kind: products.kind,
       pricePerCallUsd: products.pricePerCallUsd,
       tags: products.tags,
       providerId: products.providerId,
@@ -24,7 +25,7 @@ export async function listProducts(limit = 50, offset = 0) {
     })
     .from(products)
     .leftJoin(purchases, and(eq(purchases.productId, products.id), eq(purchases.status, 'completed')))
-    .where(eq(products.status, 'active'))
+    .where(and(eq(products.status, 'active'), eq(products.kind, 'tool')))
     .groupBy(products.id)
     .orderBy(desc(products.createdAt))
     .limit(limit)
@@ -43,11 +44,13 @@ export async function getProduct(id: string) {
       logoUrl: products.logoUrl,
       description: products.description,
       category: products.category,
+      kind: products.kind,
       status: products.status,
       moderationStatus: products.moderationStatus,
       inputSchema: products.inputSchema,
       outputSchema: products.outputSchema,
       executionConfig: products.executionConfig,
+      harnessConfig: products.harnessConfig,
       capabilities: products.capabilities,
       manifestDigest: products.manifestDigest,
       currentVersion: products.currentVersion,
@@ -92,9 +95,11 @@ export async function createProduct(data: {
   logoUrl?: string;
   description?: string;
   category?: string;
+  kind?: 'tool' | 'harness';
   inputSchema?: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
   executionConfig?: Record<string, unknown>;
+  harnessConfig?: Record<string, unknown>;
   capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   pricePerCallUsd: string;
   tags?: string[];

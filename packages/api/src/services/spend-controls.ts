@@ -214,6 +214,10 @@ export async function enforceRateLimits(userId: string, productId: string) {
     recentCallCount(userId, subtractMilliseconds(now, 3_600_000), productId),
   ]);
 
+  if (tool?.allowed === false) {
+    throw new SpendLimitError('This product is blocked by its control');
+  }
+
   if (globalMinute > global.rateLimitPerMinute) {
     throw new RateLimitError(`Global rate limit of ${global.rateLimitPerMinute} calls/minute exceeded`);
   }
@@ -221,9 +225,9 @@ export async function enforceRateLimits(userId: string, productId: string) {
     throw new RateLimitError(`Global rate limit of ${global.rateLimitPerHour} calls/hour exceeded`, 3600);
   }
   if (tool?.rateLimitPerMinute != null && toolMinute > tool.rateLimitPerMinute) {
-    throw new RateLimitError(`Tool rate limit of ${tool.rateLimitPerMinute} calls/minute exceeded`);
+    throw new RateLimitError(`Product rate limit of ${tool.rateLimitPerMinute} calls/minute exceeded`);
   }
   if (tool?.rateLimitPerHour != null && toolHour > tool.rateLimitPerHour) {
-    throw new RateLimitError(`Tool rate limit of ${tool.rateLimitPerHour} calls/hour exceeded`, 3600);
+    throw new RateLimitError(`Product rate limit of ${tool.rateLimitPerHour} calls/hour exceeded`, 3600);
   }
 }

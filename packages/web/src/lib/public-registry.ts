@@ -1,4 +1,4 @@
-import type { ToolCard, ToolDocumentation } from "@markgit/sdk";
+import type { HarnessCard, HarnessDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
 
 export const markgitApiUrl = (process.env.MARKGIT_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -40,4 +40,39 @@ export async function getPublicToolDocumentation(identifier: string) {
   );
   if (!response.ok) return null;
   return response.json() as Promise<ToolDocumentation>;
+}
+
+export async function getAllPublicHarnesses(query = "") {
+  const harnesses: HarnessCard[] = [];
+  const pageSize = 100;
+  let offset = 0;
+  let total = Number.POSITIVE_INFINITY;
+  try {
+    while (offset < total && offset < 5_000) {
+      const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
+      if (query) params.set("q", query);
+      const response = await fetch(`${markgitApiUrl}/v1/registry/harnesses?${params}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Registry returned ${response.status}`);
+      const page = (await response.json()) as { harnesses: HarnessCard[]; total: number };
+      harnesses.push(...page.harnesses);
+      total = page.total;
+      if (page.harnesses.length === 0) break;
+      offset += page.harnesses.length;
+    }
+    return { harnesses, total: Number.isFinite(total) ? total : harnesses.length };
+  } catch {
+    return { harnesses: [] as HarnessCard[], total: 0 };
+  }
+}
+
+export async function getPublicHarness(identifier: string) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/harnesses/${encodeURIComponent(identifier)}`, { cache: "no-store" });
+  if (!response.ok) return null;
+  return response.json() as Promise<HarnessCard>;
+}
+
+export async function getPublicHarnessDocumentation(identifier: string) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/harnesses/${encodeURIComponent(identifier)}/docs`, { cache: "no-store" });
+  if (!response.ok) return null;
+  return response.json() as Promise<HarnessDocumentation>;
 }
