@@ -2,12 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ValidationError } from '../lib/errors.js';
 import { importDocs } from './provider-imports.js';
 
+const safeFetchTextMock = vi.hoisted(() => vi.fn());
+vi.mock('../lib/safe-fetch.js', () => ({ safeFetchText: safeFetchTextMock }));
+
 const originalOpenRouterKey = process.env.OPENROUTER_API_KEY;
 const originalOpenRouterModel = process.env.OPENROUTER_MODEL;
 
 describe('provider imports', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    safeFetchTextMock.mockReset();
 
     if (originalOpenRouterKey === undefined) {
       delete process.env.OPENROUTER_API_KEY;
@@ -68,12 +72,13 @@ describe('provider imports', () => {
       },
     };
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify(spec), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
+    safeFetchTextMock.mockResolvedValue({
+      status: 200,
+      ok: true,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(spec),
+      url: 'https://docs.example.com/openapi.json',
+    });
 
     const result = await importDocs({
       docsUrl: 'https://docs.example.com/openapi.json',
@@ -111,24 +116,20 @@ describe('provider imports', () => {
     process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
     process.env.OPENROUTER_MODEL = 'test-model';
 
-    vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response('<html><body><h1>Dog facts API</h1></body></html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html' },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            choices: [{ message: { content: 'not-json' } }],
-          }),
-          {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          },
-        ),
-      );
+    safeFetchTextMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: { 'content-type': 'text/html' },
+      body: '<html><body><h1>Dog facts API</h1></body></html>',
+      url: 'https://docs.example.com/html',
+    });
+    safeFetchTextMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ choices: [{ message: { content: 'not-json' } }] }),
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+    });
 
     await expect(
       importDocs({
@@ -143,19 +144,18 @@ describe('provider imports', () => {
     process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
     process.env.OPENROUTER_MODEL = 'test-model';
 
-    vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(
-          '<html><body>Try it with https://api.agify.io?name=michael for an age estimate.</body></html>',
-          {
-            status: 200,
-            headers: { 'content-type': 'text/html' },
-          },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
+    safeFetchTextMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: { 'content-type': 'text/html' },
+      body: '<html><body>Try it with https://api.agify.io?name=michael for an age estimate.</body></html>',
+      url: 'https://docs.example.com/html',
+    });
+    safeFetchTextMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
             choices: [
               {
                 message: {
@@ -196,12 +196,8 @@ describe('provider imports', () => {
               },
             ],
           }),
-          {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          },
-        ),
-      );
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+    });
 
     const result = await importDocs({
       docsUrl: 'https://docs.example.com/html',

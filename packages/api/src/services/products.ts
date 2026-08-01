@@ -4,6 +4,8 @@ import { products, purchases } from '../db/schema.js';
 import { NotFoundError } from '../lib/errors.js';
 import { normalizeOptionalLogoUrl } from '../lib/public-asset-url.js';
 import { ensureProductEmbeddings } from './embeddings.js';
+import { normalizeToolCapabilities, type ToolCapabilities } from '../lib/tool-policy.js';
+import { ensureProductVersion } from './product-versions.js';
 
 export async function listProducts(limit = 50, offset = 0) {
   const results = await db
@@ -42,9 +44,13 @@ export async function getProduct(id: string) {
       description: products.description,
       category: products.category,
       status: products.status,
+      moderationStatus: products.moderationStatus,
       inputSchema: products.inputSchema,
       outputSchema: products.outputSchema,
       executionConfig: products.executionConfig,
+      capabilities: products.capabilities,
+      manifestDigest: products.manifestDigest,
+      currentVersion: products.currentVersion,
       pricePerCallUsd: products.pricePerCallUsd,
       tags: products.tags,
       createdAt: products.createdAt,
@@ -89,24 +95,34 @@ export async function createProduct(data: {
   inputSchema?: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
   executionConfig?: Record<string, unknown>;
+  capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   pricePerCallUsd: string;
   tags?: string[];
+  status?: typeof products.$inferInsert.status;
 }) {
   const logoUrl = normalizeOptionalLogoUrl(data.logoUrl);
+  const capabilities = normalizeToolCapabilities(data.capabilities, data.executionConfig);
   const [product] = await db
     .insert(products)
     .values({
       ...data,
       logoUrl,
+      capabilities,
       tags: data.tags ?? [],
     })
     .returning();
 
+  const version = await ensureProductVersion(product.id);
   if (product.status === 'active') {
     await ensureProductEmbeddings([product.id]);
   }
 
-  return product;
+  return {
+    ...product,
+    capabilities,
+    manifestDigest: version.manifestDigest,
+    currentVersion: version.version,
+  };
 }
 
 export async function updateProductStatus(id: string, status: typeof products.$inferInsert.status) {
@@ -118,7 +134,13 @@ export async function updateProductStatus(id: string, status: typeof products.$i
 
   if (!product) throw new NotFoundError('Product');
   if (product.status === 'active') {
+    const version = await ensureProductVersion(product.id);
     await ensureProductEmbeddings([product.id]);
+    return {
+      ...product,
+      manifestDigest: version.manifestDigest,
+      currentVersion: version.version,
+    };
   }
   return product;
 }

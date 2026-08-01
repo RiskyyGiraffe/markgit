@@ -172,6 +172,9 @@ async function search(args: string[]): Promise<void> {
     name: string;
     description: string | null;
     provider: { name: string; trustTier: string };
+    trust: { endpoint: { status: string } };
+    risk: { level: string };
+    policy: { eligibleForAutoCall: boolean };
     pricing: { type: string; amount: string; currency: string };
   }> }>(`/v1/registry/tools?q=${encodeURIComponent(query)}`, { apiUrl });
 
@@ -182,7 +185,7 @@ async function search(args: string[]): Promise<void> {
   for (const tool of result.tools) {
     const price = tool.pricing.type === 'free' ? 'free' : `$${tool.pricing.amount}/call`;
     console.log(`${tool.slug}  ${price}`);
-    console.log(`  ${tool.name} by ${tool.provider.name} · ${tool.provider.trustTier}`);
+    console.log(`  ${tool.name} by ${tool.provider.name} · endpoint ${tool.trust.endpoint.status} · risk ${tool.risk.level}`);
     if (tool.description) console.log(`  ${tool.description}`);
   }
 }
@@ -216,7 +219,26 @@ async function callTool(args: string[]): Promise<void> {
       mode: 'direct' | 'gateway';
       endpoint: { url?: string; method: 'GET' | 'POST'; path?: string };
     };
+    version: { manifestDigest: string | null };
+    trust: { endpoint: { status: 'verified' | 'unverified' } };
+    risk: { level: string };
+    policy: {
+      callable: boolean;
+      eligibleForAutoCall: boolean;
+      approval: { requirement: string; manifestDigest: string | null };
+      reasons: string[];
+    };
   }>(`/v1/registry/tools/${encodeURIComponent(identifier)}`, { apiUrl });
+
+  if (!tool.policy.callable) {
+    throw new Error(`Tool is not callable: ${tool.policy.reasons.join('; ')}`);
+  }
+  const unverified = tool.trust.endpoint.status !== 'verified';
+  if (unverified && !args.includes('--allow-unverified')) {
+    throw new Error(
+      `This tool's endpoint is unverified. Inspect it first, then re-run with --allow-unverified if you accept the risk.`,
+    );
+  }
 
   if (tool.access.mode === 'direct' && tool.access.endpoint.url && !storedConfig) {
     const url = new URL(tool.access.endpoint.url);
@@ -245,7 +267,20 @@ async function callTool(args: string[]): Promise<void> {
 
   const config = await loadConfig();
   const approval = await request<{
-    quote: { id: string; priceUsd: string; feeUsd: string; totalUsd: string; expiresAt: string };
+    quote: {
+      id: string;
+      priceUsd: string;
+      feeUsd: string;
+      totalUsd: string;
+      expiresAt: string;
+      manifestDigest: string | null;
+    };
+    policy: {
+      callable: boolean;
+      approval: { requirement: string; manifestDigest: string | null };
+      reasons: string[];
+      riskLevel: string;
+    };
     controls: { approved: boolean; violations: string[] };
   }>(`/v1/tools/${encodeURIComponent(identifier)}/quote`, {
     apiUrl: config!.apiUrl,
@@ -258,6 +293,11 @@ async function callTool(args: string[]): Promise<void> {
   console.log(isFree
     ? 'Price: Free · this successful call will count toward Markgit usage metrics'
     : `Price: $${approval.quote.priceUsd} + $${approval.quote.feeUsd} Markgit fee = $${approval.quote.totalUsd} USD`);
+  console.log(`Trust: ${tool.trust.endpoint.status} endpoint · risk ${approval.policy.riskLevel} · approval ${approval.policy.approval.requirement}`);
+  if (approval.policy.reasons.length > 0) {
+    console.log(`Policy: ${approval.policy.reasons.join('; ')}`);
+  }
+  if (!approval.policy.callable) throw new Error('Tool policy blocks this call');
   if (!approval.controls.approved) {
     throw new Error(`Blocked by spend controls: ${approval.controls.violations.join('; ')}`);
   }
@@ -274,6 +314,14 @@ async function callTool(args: string[]): Promise<void> {
     return;
   }
 
+  const requiresRiskApproval = !['covered_by_user_policy', 'explicit_unverified'].includes(
+    approval.policy.approval.requirement,
+  );
+  if (requiresRiskApproval && !args.includes('--yes')) {
+    console.log('Risk approval required. Review the policy above and re-run with --yes.');
+    return;
+  }
+
   const result = await request<Record<string, unknown>>(
     tool.access.endpoint.path ?? `/v1/tools/${encodeURIComponent(identifier)}/call`,
     {
@@ -281,7 +329,13 @@ async function callTool(args: string[]): Promise<void> {
       apiKey: config!.apiKey,
       method: 'POST',
       headers: { 'Idempotency-Key': randomUUID() },
-      body: JSON.stringify({ input, quoteId: approval.quote.id }),
+      body: JSON.stringify({
+        input,
+        quoteId: approval.quote.id,
+        ...(approval.policy.approval.requirement === 'covered_by_user_policy'
+          ? {}
+          : { approval: { manifestDigest: approval.quote.manifestDigest } }),
+      }),
     },
   );
   console.log(JSON.stringify(result, null, 2));
@@ -318,6 +372,38 @@ async function earnings(): Promise<void> {
   console.log(`Provider earnings: $${result.totalNet} USD`);
   console.log(`Unpaid:            $${result.unpaid} USD`);
   console.log(`Paid out:          $${result.paidOut} USD`);
+}
+
+async function verifyOrigin(args: string[]): Promise<void> {
+  const config = await loadConfig();
+  if (args[0] === '--check') {
+    const id = args[1];
+    if (!id) throw new Error('Usage: markgit verify-origin --check <verification-id>');
+    const result = await request<Record<string, unknown>>(
+      `/v1/providers/origin-verifications/${encodeURIComponent(id)}/verify`,
+      { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' },
+    );
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  const origin = args[0];
+  if (!origin) throw new Error('Usage: markgit verify-origin <https://tool-host.example>');
+  const result = await request<{
+    id: string;
+    verificationUrl: string;
+    expiresAt: string;
+    file: Record<string, string>;
+  }>('/v1/providers/origin-verifications', {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'POST',
+    body: JSON.stringify({ origin }),
+  });
+  console.log(`Publish this JSON at ${result.verificationUrl}:`);
+  console.log(JSON.stringify(result.file, null, 2));
+  console.log(`Then run: markgit verify-origin --check ${result.id}`);
+  console.log(`Challenge expires: ${result.expiresAt}`);
 }
 
 function controlUpdate(args: string[]) {
@@ -450,13 +536,15 @@ Usage:
   markgit fund [amount]          Fund locally by amount, or open the wallet portal
   markgit search <query>         Search the public tool registry
   markgit inspect <tool-slug>    Print a tool's schemas, provider, and price
-  markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD]
+  markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD] [--allow-unverified]
   markgit publish <manifest>     Publish a provider-hosted tool as a draft
   markgit onboard <manifest>     Register provider, publish, and activate a tool
   markgit limits                 Show global spend and rate controls
   markgit limits set [limits]    Set --per-call, --daily, --monthly, --rpm, --rph
   markgit limits tool <slug>     View/set limits; use --allow, --block, or --inherit
   markgit earnings               Show provider earnings
+  markgit verify-origin <origin> Create an endpoint ownership challenge
+  markgit verify-origin --check <id> Verify a published ownership challenge
 
 Environment:
   MARKGIT_API_URL, MARKGIT_WEB_URL, MARKGIT_API_KEY`);
@@ -480,6 +568,7 @@ async function main(): Promise<void> {
     case 'onboard': return publish(args, true);
     case 'limits': return limits(args);
     case 'earnings': return earnings();
+    case 'verify-origin': return verifyOrigin(args);
     case 'help':
     case '--help':
     case '-h':

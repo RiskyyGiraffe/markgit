@@ -23,14 +23,17 @@ wallet.get('/ledger', async (c) => {
 });
 
 wallet.post('/fund', async (c) => {
-  if (process.env.ALLOW_DIRECT_WALLET_FUNDING !== 'true') {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.ALLOW_DIRECT_WALLET_FUNDING !== 'true'
+  ) {
     throw new ForbiddenError('Direct wallet funding is disabled; use Stripe Checkout');
   }
 
   const { auth: ctx } = c.var;
   const body = await c.req.json<{ amountUsd: string; description?: string }>();
 
-  if (!body.amountUsd || parseFloat(body.amountUsd) <= 0) {
+  if (!body.amountUsd || !Number.isFinite(Number(body.amountUsd)) || parseFloat(body.amountUsd) <= 0) {
     throw new ValidationError('amountUsd must be a positive number');
   }
 
@@ -49,8 +52,8 @@ wallet.post('/fund/checkout', async (c) => {
     cancelUrl: string;
   }>();
 
-  if (!body.amountUsd || body.amountUsd <= 0) {
-    throw new ValidationError('amountUsd must be a positive number');
+  if (!Number.isFinite(body.amountUsd) || body.amountUsd < 1 || body.amountUsd > 10_000) {
+    throw new ValidationError('amountUsd must be between 1 and 10000');
   }
   if (!body.successUrl || !body.cancelUrl) {
     throw new ValidationError('successUrl and cancelUrl are required');

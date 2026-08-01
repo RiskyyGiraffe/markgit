@@ -92,6 +92,12 @@ export async function createDashboardLink(providerId: string) {
 export async function handleAccountUpdated(account: Stripe.Account) {
   const stripeAccountId = account.id;
 
+  const [provider] = await db
+    .select({ trustTier: providers.trustTier })
+    .from(providers)
+    .where(eq(providers.stripeAccountId, stripeAccountId))
+    .limit(1);
+
   let status = 'pending';
   if (account.charges_enabled && account.payouts_enabled) {
     status = 'active';
@@ -101,7 +107,13 @@ export async function handleAccountUpdated(account: Stripe.Account) {
 
   await db
     .update(providers)
-    .set({ stripeAccountStatus: status, updatedAt: new Date() })
+    .set({
+      stripeAccountStatus: status,
+      ...(status === 'active'
+        ? { trustTier: provider?.trustTier === 'premium' ? 'premium' as const : 'verified' as const }
+        : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(providers.stripeAccountId, stripeAccountId));
 }
 

@@ -65,6 +65,10 @@ Copy `.env.example` to `.env` and fill in:
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_test_...` or `sk_live_...`) | [Stripe Dashboard → API keys](https://dashboard.stripe.com/apikeys) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) | [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks) |
 | `NGROK_URL` | ngrok tunnel URL for local Stripe webhooks | `ngrok http 3000` |
+| `ALLOW_DIRECT_WALLET_FUNDING` | Local-only test credit endpoint; ignored in production | Keep `false` unless testing locally |
+| `MARKGIT_ALLOW_PRIVATE_OUTBOUND` | Local-only access to private/loopback tool endpoints | Keep `false`; set with insecure HTTP only for local FastAPI testing |
+| `MARKGIT_ALLOW_INSECURE_HTTP` | Local-only HTTP tool/docs requests | Keep `false` outside local testing |
+| `MARKGIT_ADMIN_USER_IDS` | Comma-separated Markgit user UUIDs allowed to quarantine tools | Set only for trusted operators |
 
 The web app uses a separate `.env.local` in `packages/web/` for Next.js-specific config (auth, OAuth, cookie secrets). This file is gitignored.
 
@@ -78,6 +82,7 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | `/v1/registry/tools` | GET | Public searchable tool catalog with schemas, pricing, and usage |
 | `/v1/registry/tools/:slug/docs` | GET | Exact machine-readable request and return contract |
 | `/v1/registry/tools/:slug/openapi.json` | GET | Per-tool OpenAPI 3.1 document |
+| `/v1/registry/tools/:slug/versions` | GET | Immutable manifest-version history |
 | `/v1/registry/llms.txt` | GET | Plain-text LLM registry index |
 | `/webhooks/stripe` | POST | Stripe webhook endpoint (signature-verified, no auth) |
 | `/v1/auth/keys` | POST | Create API key |
@@ -94,12 +99,15 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | `/v1/executions/:id` | GET | Get execution details |
 | `/v1/executions/:id/result` | GET | Get execution result |
 | `/v1/providers` | POST | Register as provider |
+| `/v1/providers/origin-verifications` | POST | Create an endpoint-origin ownership challenge |
+| `/v1/providers/origin-verifications/:id/verify` | POST | Verify the published ownership challenge |
 | `/v1/providers/stripe/connect` | POST | Start Stripe Connect onboarding |
 | `/v1/providers/stripe/status` | GET | Get Stripe account status |
 | `/v1/providers/stripe/dashboard` | GET | Get Stripe Express dashboard link |
 | `/v1/providers/earnings` | GET | Get earnings summary |
 | `/v1/providers/earnings/calls` | GET | Per-call earnings log |
 | `/v1/providers/payouts` | GET | Payout history |
+| `/v1/moderation/tools/:id` | PUT | Flag, quarantine, or clear a tool (operator allowlist only) |
 
 ## Web Pages
 
@@ -125,6 +133,10 @@ Key tables (defined in `packages/api/src/db/schema.ts`):
 - `mkgt_sessions` — API session tracking
 - `mkgt_providers` — vendor accounts (with Stripe Connect fields)
 - `mkgt_products` — marketplace listings (price, schema, execution config)
+- `mkgt_product_versions` — immutable, digest-addressed tool manifests
+- `mkgt_provider_origin_verifications` — time-limited endpoint ownership proofs
+- `mkgt_user_tool_approvals` — first-use approvals bound to an exact manifest digest
+- `mkgt_moderation_events` — append-only operator moderation audit log
 - `mkgt_wallets` — user spend wallets
 - `mkgt_wallet_ledger_entries` — every credit/debit/hold/capture/release/refund
 - `mkgt_quotes` — priced offers with expiration
@@ -142,7 +154,14 @@ Key tables (defined in `packages/api/src/db/schema.ts`):
 These features are fully implemented and functional:
 
 - **Wallet funding via Stripe Checkout**: User clicks "Fund Wallet" → selects amount → redirects to Stripe Checkout → pays with test card → webhook credits wallet. Idempotent via `stripe_checkout_sessions` table.
-- **Hold-and-capture billing**: Quote → hold funds → execute → capture on success / release on failure. Real ledger accounting.
+- **Transactional hold-and-capture billing**: Quote claim, wallet hold, spend controls, and API-key budget reservation commit atomically; success captures and failure releases.
+- **Scoped API keys**: Authenticated routes are default-deny, permissions cannot be escalated when creating child keys, and CLI-linked keys receive explicit scopes.
+- **Hardened outbound gateway**: HTTPS-only execution and docs import, private-network blocking, DNS pinning, redirect revalidation, safe headers, timeouts, and response-size limits.
+- **Progressive tool trust**: Provider, endpoint, payment, immutable version, declared capabilities, and behavior evidence are exposed separately instead of being collapsed into one badge.
+- **Risk-based agent approvals**: Verified low-risk tools may use standing user policy; medium-risk tools require first-use approval; high/critical-risk tools require approval per call; unverified free tools require an explicit override.
+- **Version-bound authorization**: Quotes and approvals include a SHA-256 manifest digest. Any endpoint, schema, capability, or price change creates a new immutable version and invalidates stale approval.
+- **Open publishing with commerce gates**: Unverified free tools remain discoverable and callable with warnings. Paid execution requires both endpoint ownership and an active Stripe provider account.
+- **Moderation kill switch**: Allowlisted operators can flag or quarantine a tool, with every state change written to an audit table. Quarantined tools disappear from public discovery and cannot be purchased.
 - **Marketplace search and purchase flow**: Search products → get quote → buy → execute → see results. Full end-to-end sync execution.
 - **Provider Stripe Connect onboarding**: Providers connect their Stripe Express account for payouts.
 - **Per-call earnings tracking**: Every API call records gross, Markgit fee, and net earnings for the provider.
@@ -158,12 +177,12 @@ These exist in code but are stubs or need real implementation:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| `POST /v1/wallet/fund` (direct) | **Placeholder** | Inserts a credit ledger entry with no real payment. Bypass for testing. Should be removed or admin-gated in production. |
+| `POST /v1/wallet/fund` (direct) | **Local testing only** | Requires an explicit development flag and is always disabled when `NODE_ENV=production`. |
 | Product execution | **Basic remote gateway** | Sync provider calls and stored credentials work. Async calls and richer response validation still need implementation. |
 | Search | **Working MVP** | Full-text, query expansion, and embedding-assisted ranking are implemented. |
-| Provider trust tiers | **Schema only** | `trust_tier` column exists but no verification logic, no gating by tier. |
+| Provider trust and origin verification | **Working MVP** | Providers prove endpoint ownership through `/.well-known/markgit.json`; proofs expire after 90 days. Reputation automation is still future work. |
 | Product status workflow | **Partial** | Status enum exists (`draft → pending_review → active → suspended → archived`) but no review queue or approval flow. |
-| Approval / policy engine | **Working MVP** | Exact quotes, explicit CLI approval, API-key budgets, and global/per-tool spend controls are implemented. Rich permission classes remain future work. |
+| Approval / policy engine | **Working MVP** | Declared capability classes drive version-bound standing, first-use, per-call, unverified, or blocked decisions. Automated capability verification is still future work. |
 | Subscriptions / recurring jobs | **Not built** | Schema and flow not implemented. |
 | Async execution (poll/webhook) | **Not built** | Only sync execution exists. |
 | USDC / crypto payouts | **Schema only** | `provider_payout_configs` table and `chain`/`txHash`/`walletAddress` fields exist but no Bridge/Circle integration. Payouts currently go through Stripe Connect only. |
@@ -182,11 +201,11 @@ To get a real marketplace where agents can discover, buy, and use APIs with real
 
 2. **Deeper doc ingestion** — Expand the existing import pipeline with more source formats, stronger schema validation, and automated drift detection (see `docs/provider-manifest-spec.md`).
 
-3. **Execution broker agent** — AI agent that uses the product card + original docs to construct correct API calls, interpret responses, and normalize output for the consuming agent.
+3. **Behavioral reputation and reporting** — Add user reports, verified-review signals, automated failure/drift analysis, appeals, and threshold-based quarantine recommendations.
 
 4. **Better search** — Embeddings-based semantic search with ranking by trust, price, success rate, relevance.
 
-5. **Richer permissions** — Extend existing quote approval, budgets, and spend/rate controls with per-task budgets and permission classes (`read_data`, `write_data`, `send_message`, `spend_money`).
+5. **Independent capability verification** — Compare declared effects with sandbox observations and provider attestations; declarations currently inform policy but are not proof of behavior.
 
 6. **Remove direct fund endpoint** — Gate `POST /v1/wallet/fund` to admin-only or remove entirely. All real funding should go through Stripe Checkout.
 

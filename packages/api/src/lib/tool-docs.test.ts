@@ -14,6 +14,23 @@ const documentedTool = {
   category: 'weather',
   tags: ['weather'],
   provider: { id: 'provider-id', name: 'Weather Labs', trustTier: 'verified' as const },
+  version: { number: 1, manifestDigest: 'digest', immutable: true },
+  trust: {
+    provider: { tier: 'verified', paymentVerified: true },
+    endpoint: { status: 'verified', origin: 'https://tools.example.com', verifiedAt: new Date() },
+    version: { status: 'versioned', manifestDigest: 'digest' },
+    behavior: { status: 'established', evidence: 'markgit_calls' },
+  },
+  risk: {
+    level: 'low',
+    capabilities: { readOnly: true },
+  },
+  policy: {
+    callable: true,
+    eligibleForAutoCall: true,
+    approval: { requirement: 'covered_by_user_policy', manifestDigest: 'digest' },
+    reasons: [],
+  },
   pricing: { type: 'per_call' as const, currency: 'USD' as const, amount: '0.0100' },
   usage: buildUsageSummary(1_250, 125),
   inputSchema: {

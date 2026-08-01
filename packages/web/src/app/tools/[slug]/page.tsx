@@ -78,6 +78,12 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
             <span className="inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-2 text-xs text-[#aeb2b4]">
               <Zap className="size-3.5" /> {tool.usage.invocationsLabel}
             </span>
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-2 text-xs text-[#aeb2b4]">
+              <ShieldCheck className="size-3.5" /> {tool.trust.endpoint.status} endpoint
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-2 text-xs text-[#aeb2b4]">
+              {tool.risk.level} risk · {tool.policy.approval.requirement.replaceAll("_", " ")}
+            </span>
             <a href={docs.documentation.llms} className="inline-flex items-center gap-2 rounded-lg bg-[#e7e9e9] px-3 py-2 text-xs text-[#101213] hover:bg-white">
               <Bot className="size-3.5" /> LLM docs <ExternalLink className="size-3" />
             </a>
@@ -86,6 +92,9 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
             </a>
           </div>
           <p className="mt-3 text-[11px] text-[#5f6569]">Usage covers successful calls made through Markgit; direct provider calls are not observable.</p>
+          {tool.policy.reasons.length > 0 && (
+            <p className="mt-2 text-[11px] text-[#777d81]">Policy: {tool.policy.reasons.join(" · ")}</p>
+          )}
         </section>
 
         <section className="grid gap-10 py-12 lg:grid-cols-[0.8fr_1.2fr]">

@@ -39,6 +39,10 @@ export default async function ProductDetailPage({
             <Badge variant="secondary">{product.category}</Badge>
           )}
           <Badge variant="outline">{product.status}</Badge>
+          {product.trust && (
+            <Badge variant="outline">endpoint {product.trust.endpoint.status}</Badge>
+          )}
+          {product.risk && <Badge variant="outline">{product.risk.level} risk</Badge>}
           <Badge variant="outline">
             {(product.uniqueUserCount ?? 0) < 100 ? "Under 100 users" : `${(product.uniqueUserCount ?? 0).toLocaleString()} users`}
           </Badge>
@@ -67,6 +71,8 @@ export default async function ProductDetailPage({
               inputSchema={product.inputSchema as Record<string, unknown> | null}
               executionConfig={product.executionConfig as Record<string, unknown> | null}
               buyerCredentialConfigured={product.buyerCredentialConfigured}
+              policy={product.policy}
+              manifestDigest={product.manifestDigest}
             />
           </CardContent>
         </Card>

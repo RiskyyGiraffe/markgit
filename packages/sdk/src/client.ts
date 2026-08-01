@@ -46,6 +46,7 @@ import type {
   ToolCallResponse,
   ToolQuoteResponse,
   ToolDocumentation,
+  OriginVerificationChallenge,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -53,6 +54,7 @@ export class MarkgitApiError extends Error {
     public statusCode: number,
     public code: string,
     message: string,
+    public details: Omit<ApiErrorResponse['error'], 'code' | 'message'> = {},
   ) {
     super(message);
     this.name = 'MarkgitApiError';
@@ -125,11 +127,18 @@ export class MarkgitClient {
     input: Record<string, unknown>,
     idempotencyKey: string,
     quoteId: string,
+    approvalManifestDigest?: string,
   ): Promise<ToolCallResponse> {
     return this.request(
       'POST',
       `/v1/tools/${encodeURIComponent(identifier)}/call`,
-      { input, quoteId },
+      {
+        input,
+        quoteId,
+        ...(approvalManifestDigest
+          ? { approval: { manifestDigest: approvalManifestDigest } }
+          : {}),
+      },
       { 'Idempotency-Key': idempotencyKey },
     );
   }
@@ -226,6 +235,19 @@ export class MarkgitClient {
 
   async getProvider(): Promise<Provider> {
     return this.request('GET', '/v1/providers');
+  }
+
+  async createOriginVerification(origin: string): Promise<OriginVerificationChallenge> {
+    return this.request('POST', '/v1/providers/origin-verifications', { origin });
+  }
+
+  async verifyOrigin(id: string): Promise<{
+    id: string;
+    origin: string;
+    status: 'verified';
+    expiresAt: string;
+  }> {
+    return this.request('POST', `/v1/providers/origin-verifications/${id}/verify`);
   }
 
   // ── Stripe Connect ─────────────────────────────────────────────────
@@ -334,10 +356,12 @@ export class MarkgitClient {
         error: { code: 'UNKNOWN', message: response.statusText },
       }))) as ApiErrorResponse;
 
+      const { code, message, ...details } = errorBody.error;
       throw new MarkgitApiError(
         response.status,
-        errorBody.error.code,
-        errorBody.error.message,
+        code,
+        message,
+        details,
       );
     }
 

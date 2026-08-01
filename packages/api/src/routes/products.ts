@@ -14,6 +14,8 @@ import {
   ensureProductCanSubmitForReview,
 } from '../lib/product-workflow.js';
 import { hasBuyerCredential, upsertProviderCredential, upsertUserCredential, deleteUserCredential } from '../services/credentials.js';
+import type { ToolCapabilities } from '../lib/tool-policy.js';
+import { getPublicTool } from '../services/registry.js';
 
 const products = new Hono<{ Variables: { auth: AuthContext } }>();
 
@@ -49,9 +51,16 @@ products.get('/:id', async (c) => {
     'none') as string;
   const buyerCredentialConfigured =
     authMode === 'buyer_supplied' ? await hasBuyerCredential(ctx.userId, product.id) : false;
+  const publicEvidence = product.status === 'active' ? await getPublicTool(product.slug) : null;
   return c.json({
     ...product,
     buyerCredentialConfigured,
+    ...(publicEvidence ? {
+      version: publicEvidence.version,
+      trust: publicEvidence.trust,
+      risk: publicEvidence.risk,
+      policy: publicEvidence.policy,
+    } : {}),
   });
 });
 
@@ -66,6 +75,7 @@ products.post('/', async (c) => {
     inputSchema?: Record<string, unknown>;
     outputSchema?: Record<string, unknown>;
     executionConfig?: Record<string, unknown>;
+    capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
     pricePerCallUsd: string;
     tags?: string[];
   }>();

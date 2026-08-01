@@ -4,7 +4,8 @@ import { getMarkgitClient } from "@/lib/markgit-client";
 
 export async function executeProduct(
   productId: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  approvalManifestDigest?: string | null
 ) {
   const client = await getMarkgitClient();
 
@@ -16,6 +17,9 @@ export async function executeProduct(
     productId,
     quoteId: quote.id,
     input,
+    ...(approvalManifestDigest
+      ? { approval: { manifestDigest: approvalManifestDigest } }
+      : {}),
   });
 
   return result;
