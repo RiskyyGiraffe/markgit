@@ -21,6 +21,32 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class PermissionError extends ForbiddenError {
+  constructor(public requiredPermission: string) {
+    super(`API key requires the ${requiredPermission} permission`);
+    this.name = 'PermissionError';
+  }
+}
+
+export class ToolApprovalError extends AppError {
+  constructor(
+    public approvalRequirement: string,
+    public manifestDigest: string | null,
+    public reasons: string[],
+    message = 'Explicit approval is required for this tool version',
+  ) {
+    super(403, 'TOOL_APPROVAL_REQUIRED', message);
+    this.name = 'ToolApprovalError';
+  }
+}
+
+export class ToolPolicyBlockedError extends AppError {
+  constructor(public reasons: string[]) {
+    super(403, 'TOOL_POLICY_BLOCKED', 'This tool is not currently eligible for calls');
+    this.name = 'ToolPolicyBlockedError';
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(resource: string) {
     super(404, 'NOT_FOUND', `${resource} not found`);

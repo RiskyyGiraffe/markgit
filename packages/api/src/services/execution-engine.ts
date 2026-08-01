@@ -3,6 +3,7 @@ import { db } from '../db/index.js';
 import { executions, products } from '../db/schema.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import type { ExecutionConfig } from '../lib/provider-import.js';
+import { safeFetchText, type SafeFetchOptions } from '../lib/safe-fetch.js';
 import { getExecutionCredential, type CredentialPayload } from './credentials.js';
 
 interface InputSchema {
@@ -132,10 +133,13 @@ async function callUpstream(
 
   const timeoutMs = config.timeoutMs ?? 30_000;
   const method = config.method ?? 'GET';
-  const fetchOptions: RequestInit = {
+  const fetchOptions: SafeFetchOptions = {
     method,
     headers,
-    signal: AbortSignal.timeout(timeoutMs),
+    timeoutMs,
+    maxResponseBytes: 1_000_000,
+    maxRedirects: 3,
+    redirectPolicy: 'same-origin' as const,
   };
 
   if (method !== 'GET' && Object.keys(bodyParams).length > 0) {
@@ -143,20 +147,20 @@ async function callUpstream(
     fetchOptions.body = JSON.stringify(bodyParams);
   }
 
-  const response = await fetch(url.toString(), fetchOptions);
+  const response = await safeFetchText(url.toString(), fetchOptions);
   if (!response.ok) {
-    const text = await response.text().catch(() => response.statusText);
-    throw new Error(`Upstream API returned ${response.status}: ${text || response.statusText}`);
+    const errorSnippet = response.body.trim().slice(0, 4_096);
+    throw new Error(`Upstream API returned ${response.status}${errorSnippet ? `: ${errorSnippet}` : ''}`);
   }
 
-  const contentType = response.headers.get('content-type') ?? '';
+  const contentType = response.headers['content-type'] ?? '';
   if (contentType.includes('application/json')) {
-    return (await response.json()) as Record<string, unknown>;
+    return JSON.parse(response.body) as Record<string, unknown>;
   }
 
   return {
     status: response.status,
-    text: await response.text(),
+    text: response.body,
   };
 }
 

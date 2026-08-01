@@ -1,8 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { stripeCheckoutSessions } from '../db/schema.js';
+import { stripeCheckoutSessions, walletLedgerEntries, wallets } from '../db/schema.js';
 import { stripe } from '../lib/stripe.js';
-import { fundWallet } from './wallet.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 export async function createCheckoutSession(
@@ -44,23 +43,57 @@ export async function createCheckoutSession(
 }
 
 export async function handleCheckoutCompleted(stripeSessionId: string) {
-  const [existing] = await db
-    .select()
-    .from(stripeCheckoutSessions)
-    .where(eq(stripeCheckoutSessions.stripeSessionId, stripeSessionId))
-    .limit(1);
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${stripeSessionId}, 0))`);
+    const [existing] = await tx
+      .select()
+      .from(stripeCheckoutSessions)
+      .where(eq(stripeCheckoutSessions.stripeSessionId, stripeSessionId))
+      .limit(1);
 
-  if (!existing) throw new NotFoundError('Checkout session');
+    if (!existing) throw new NotFoundError('Checkout session');
+    if (existing.status === 'completed') return;
+    if (existing.status !== 'pending') {
+      throw new ConflictError(`Checkout session is already ${existing.status}`);
+    }
 
-  // Idempotent: skip if already completed
-  if (existing.status === 'completed') return;
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${existing.walletId}, 0))`);
+    const [balanceResult] = await tx
+      .select({
+        balance: sql<string>`coalesce(
+          (select balance_after_usd from ${walletLedgerEntries}
+           where wallet_id = ${existing.walletId}
+           order by created_at desc limit 1),
+          '0'
+        )`,
+      })
+      .from(wallets)
+      .where(eq(wallets.id, existing.walletId));
+    if (!balanceResult) throw new NotFoundError('Wallet');
 
-  await fundWallet(existing.walletId, existing.amountUsd, 'Stripe checkout funding');
+    const [claimed] = await tx
+      .update(stripeCheckoutSessions)
+      .set({ status: 'completed', completedAt: new Date() })
+      .where(and(
+        eq(stripeCheckoutSessions.id, existing.id),
+        eq(stripeCheckoutSessions.status, 'pending'),
+      ))
+      .returning({ id: stripeCheckoutSessions.id });
+    if (!claimed) return;
 
-  await db
-    .update(stripeCheckoutSessions)
-    .set({ status: 'completed', completedAt: new Date() })
-    .where(eq(stripeCheckoutSessions.id, existing.id));
+    const newBalance = (
+      Number.parseFloat(balanceResult.balance) + Number.parseFloat(existing.amountUsd)
+    ).toFixed(4);
+    await tx.insert(walletLedgerEntries).values({
+      walletId: existing.walletId,
+      entryType: 'credit',
+      amountUsd: existing.amountUsd,
+      balanceAfterUsd: newBalance,
+      description: 'Stripe checkout funding',
+      referenceType: 'funding',
+      referenceId: existing.id,
+    });
+  });
 }
 
 export async function handleCheckoutExpired(stripeSessionId: string) {

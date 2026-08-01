@@ -39,6 +39,29 @@
       "properties": { "type": { "const": "object" } }
     },
     "outputSchema": { "type": "object" },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "readOnly": { "type": "boolean" },
+        "destructive": { "type": "boolean" },
+        "idempotent": { "type": "boolean" },
+        "openWorld": { "type": "boolean" },
+        "readsPrivateData": { "type": "boolean" },
+        "seesUntrustedContent": { "type": "boolean" },
+        "writesExternalData": { "type": "boolean" },
+        "sendsMessages": { "type": "boolean" },
+        "spendsMoney": { "type": "boolean" },
+        "executesCode": { "type": "boolean" },
+        "requiresUserCredential": { "type": "boolean" },
+        "allowedOutboundDomains": {
+          "type": "array",
+          "items": { "type": "string", "format": "hostname" },
+          "uniqueItems": true
+        },
+        "dataRetention": { "enum": ["none", "transient", "stored", "unknown"] }
+      }
+    },
     "pricing": {
       "type": "object",
       "additionalProperties": false,

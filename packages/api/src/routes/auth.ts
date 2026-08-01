@@ -3,6 +3,7 @@ import { db } from '../db/index.js';
 import { apiKeys, users } from '../db/schema.js';
 import { generateApiKey } from '../lib/crypto.js';
 import { ValidationError } from '../lib/errors.js';
+import { assertCanDelegatePermissions, validateRequestedPermissions } from '../lib/permissions.js';
 import type { AuthContext } from '../middleware/auth.js';
 import { eq } from 'drizzle-orm';
 
@@ -35,13 +36,30 @@ auth.post('/keys', async (c) => {
     expiresInDays?: number;
   }>();
 
-  const { rawKey, keyHash, keyPrefix } = generateApiKey();
+  const permissions = validateRequestedPermissions(body.permissions);
+  assertCanDelegatePermissions(ctx.permissions, permissions);
+
+  const label = body.label?.trim();
+  if (label && label.length > 255) throw new ValidationError('label must be at most 255 characters');
+
+  let budgetLimitUsd = body.budgetLimitUsd;
+  if (budgetLimitUsd !== undefined) {
+    const budget = Number(budgetLimitUsd);
+    if (!Number.isFinite(budget) || budget < 0 || budget > 1_000_000_000) {
+      throw new ValidationError('budgetLimitUsd must be between 0 and 1000000000');
+    }
+    budgetLimitUsd = budget.toFixed(4);
+  }
 
   let expiresAt: Date | undefined;
-  if (body.expiresInDays) {
-    if (body.expiresInDays <= 0) throw new ValidationError('expiresInDays must be positive');
+  if (body.expiresInDays !== undefined) {
+    if (!Number.isInteger(body.expiresInDays) || body.expiresInDays <= 0 || body.expiresInDays > 3650) {
+      throw new ValidationError('expiresInDays must be an integer between 1 and 3650');
+    }
     expiresAt = new Date(Date.now() + body.expiresInDays * 86400000);
   }
+
+  const { rawKey, keyHash, keyPrefix } = generateApiKey();
 
   const [row] = await db
     .insert(apiKeys)
@@ -49,9 +67,9 @@ auth.post('/keys', async (c) => {
       userId: ctx.userId,
       keyHash,
       keyPrefix,
-      label: body.label,
-      permissions: body.permissions ?? [],
-      budgetLimitUsd: body.budgetLimitUsd,
+      label,
+      permissions,
+      budgetLimitUsd,
       expiresAt,
     })
     .returning({

@@ -18,7 +18,12 @@ purchases.get('/', async (c) => {
 
 purchases.post('/', async (c) => {
   const { auth: ctx } = c.var;
-  const body = await c.req.json<{ productId: string; quoteId: string; input?: Record<string, unknown> }>();
+  const body = await c.req.json<{
+    productId: string;
+    quoteId: string;
+    input?: Record<string, unknown>;
+    approval?: { manifestDigest?: string };
+  }>();
 
   if (!body.productId || !body.quoteId) {
     throw new ValidationError('productId and quoteId are required');
@@ -29,6 +34,7 @@ purchases.post('/', async (c) => {
     quoteId: body.quoteId,
     input: body.input ?? {},
     apiKeyId: ctx.apiKeyId,
+    approvalManifestDigest: body.approval?.manifestDigest,
   });
   return c.json(result, 201);
 });

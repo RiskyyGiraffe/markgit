@@ -60,7 +60,7 @@ export async function ensureMarkgitUserAndKey(
     keyHash,
     keyPrefix,
     label: WEB_SESSION_LABEL,
-    permissions: [],
+    permissions: ['*'],
   });
 
   return { userId, rawKey };

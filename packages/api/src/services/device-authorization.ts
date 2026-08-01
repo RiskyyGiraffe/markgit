@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { apiKeys, deviceAuthorizations } from '../db/schema.js';
 import { generateApiKey } from '../lib/crypto.js';
+import { CLI_PERMISSIONS } from '../lib/permissions.js';
 
 const DEVICE_AUTH_TTL_MS = 10 * 60 * 1000;
 
@@ -65,7 +66,7 @@ export async function exchangeDeviceAuthorization(deviceCode: string) {
         keyHash,
         keyPrefix,
         label: authorization.clientName,
-        permissions: ['registry:read', 'tools:call', 'wallet:read'],
+        permissions: CLI_PERMISSIONS,
       })
       .returning({ id: apiKeys.id, keyPrefix: apiKeys.keyPrefix });
 

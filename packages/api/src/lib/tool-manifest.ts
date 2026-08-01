@@ -1,5 +1,6 @@
 import { ValidationError } from './errors.js';
 import { normalizeOptionalLogoUrl } from './public-asset-url.js';
+import { normalizeToolCapabilities, type ToolCapabilities } from './tool-policy.js';
 
 export type ToolManifest = {
   schemaVersion: '1';
@@ -20,6 +21,7 @@ export type ToolManifest = {
   };
   inputSchema: Record<string, unknown> & { type: 'object' };
   outputSchema?: Record<string, unknown>;
+  capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   pricing: {
     amountPerCallUsd: string;
   };
@@ -66,6 +68,10 @@ export function validateToolManifest(value: unknown): ToolManifest {
   if (manifest.inputSchema?.type !== 'object') {
     throw new ValidationError('inputSchema must be a JSON Schema object with type "object"');
   }
+  normalizeToolCapabilities(manifest.capabilities, {
+    baseUrl: manifest.endpoint.url,
+    auth: { mode: 'none' },
+  });
 
   const amount = manifest.pricing?.amountPerCallUsd;
   if (!amount || !MONEY_PATTERN.test(amount) || parseFloat(amount) < 0) {

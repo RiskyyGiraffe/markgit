@@ -36,6 +36,27 @@
       "when": 1784944918787,
       "tag": "0004_zippy_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785012710835,
+      "tag": "0005_steady_nebula",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785027759616,
+      "tag": "0006_narrow_lifeguard",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785027876082,
+      "tag": "0007_naive_may_parker",
+      "breakpoints": true
     }
   ]
 }

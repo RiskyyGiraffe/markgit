@@ -46,6 +46,7 @@ tools.post('/', async (c) => {
     tags: manifest.tags,
     inputSchema: manifest.inputSchema,
     outputSchema: manifest.outputSchema,
+    capabilities: manifest.capabilities,
     executionConfig: manifestExecutionConfig(manifest),
     pricePerCallUsd: manifest.pricing.amountPerCallUsd,
   });
@@ -71,8 +72,10 @@ tools.post('/:identifier/quote', async (c) => {
       feeUsd: quote.markgitFeeUsd,
       totalUsd: quote.totalUsd,
       expiresAt: quote.expiresAt,
+      manifestDigest: quote.manifestDigest,
     },
     tool: { id: tool.id, slug: tool.slug, name: tool.name },
+    policy: quote.policySnapshot,
     controls,
   }, 201);
 });
@@ -101,8 +104,16 @@ tools.post('/:identifier/call', async (c) => {
   }
 
   const tool = await getPublicTool(c.req.param('identifier'));
-  const body: { input?: Record<string, unknown>; quoteId?: string } = await c.req
-    .json<{ input?: Record<string, unknown>; quoteId?: string }>()
+  const body: {
+    input?: Record<string, unknown>;
+    quoteId?: string;
+    approval?: { manifestDigest?: string };
+  } = await c.req
+    .json<{
+      input?: Record<string, unknown>;
+      quoteId?: string;
+      approval?: { manifestDigest?: string };
+    }>()
     .catch(() => ({}));
   if (!body.quoteId) {
     throw new ValidationError('quoteId is required; request and approve a quote before calling a paid tool');
@@ -140,6 +151,7 @@ tools.post('/:identifier/call', async (c) => {
       quoteId: body.quoteId,
       input: body.input ?? {},
       apiKeyId: auth.apiKeyId,
+      approvalManifestDigest: body.approval?.manifestDigest,
     });
 
     const quote = await db.query.quotes.findFirst({

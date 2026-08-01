@@ -1,18 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runAdhocExecution } from './execution-engine.js';
 
+const safeFetchTextMock = vi.hoisted(() => vi.fn());
+vi.mock('../lib/safe-fetch.js', () => ({ safeFetchText: safeFetchTextMock }));
+
 describe('execution engine', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    safeFetchTextMock.mockReset();
   });
 
   it('interpolates encoded path parameters before calling an upstream API', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify([{ name: 'New Year' }]), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
+    safeFetchTextMock.mockResolvedValue({
+      status: 200,
+      ok: true,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify([{ name: 'New Year' }]),
+      url: 'https://example.com/holidays/US/2026',
+    });
 
     const result = await runAdhocExecution({
       type: 'http_rest',
@@ -34,9 +39,9 @@ describe('execution engine', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(safeFetchTextMock).toHaveBeenCalledWith(
       'https://example.com/holidays/US/2026',
-      expect.objectContaining({ method: 'GET' }),
+      expect.objectContaining({ method: 'GET', redirectPolicy: 'same-origin' }),
     );
   });
 

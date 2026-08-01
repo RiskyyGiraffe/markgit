@@ -8,7 +8,15 @@ export interface MarkgitClientOptions {
 // ── Shared ──────────────────────────────────────────────────────────────
 
 export interface ApiErrorResponse {
-  error: { code: string; message: string };
+  error: {
+    code: string;
+    message: string;
+    requiredPermission?: string;
+    approvalRequirement?: string;
+    manifestDigest?: string | null;
+    reasons?: string[];
+    retryAfterSeconds?: number;
+  };
 }
 
 // ── Auth ────────────────────────────────────────────────────────────────
@@ -94,6 +102,22 @@ export interface ToolCard {
   category: string | null;
   tags: string[];
   provider: { id: string; name: string; trustTier: string };
+  version: {
+    number: number;
+    manifestDigest: string | null;
+    immutable: boolean;
+  };
+  trust: {
+    provider: { tier: string; paymentVerified: boolean };
+    endpoint: { status: 'verified' | 'unverified'; origin: string | null; verifiedAt: string | null };
+    version: { status: 'versioned' | 'legacy_unversioned'; manifestDigest: string | null };
+    behavior: { status: 'new' | 'established'; evidence: 'markgit_calls' };
+  };
+  risk: {
+    level: 'low' | 'medium' | 'high' | 'critical' | 'unknown';
+    capabilities: ToolCapabilities;
+  };
+  policy: ToolPolicyDecision;
   usage: {
     count: number;
     uniqueUsers: number;
@@ -115,6 +139,35 @@ export interface ToolCard {
     human: string;
   };
   updatedAt: string;
+}
+
+export interface ToolCapabilities {
+  declared: boolean;
+  readOnly: boolean;
+  destructive: boolean;
+  idempotent: boolean;
+  openWorld: boolean;
+  readsPrivateData: boolean;
+  seesUntrustedContent: boolean;
+  writesExternalData: boolean;
+  sendsMessages: boolean;
+  spendsMoney: boolean;
+  executesCode: boolean;
+  requiresUserCredential: boolean;
+  allowedOutboundDomains: string[];
+  dataRetention: 'none' | 'transient' | 'stored' | 'unknown';
+}
+
+export interface ToolPolicyDecision {
+  callable: boolean;
+  monetizationEligible: boolean;
+  eligibleForAutoCall: boolean;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical' | 'unknown';
+  approval: {
+    requirement: 'covered_by_user_policy' | 'first_use' | 'per_call' | 'explicit_unverified' | 'blocked';
+    manifestDigest: string | null;
+  };
+  reasons: string[];
 }
 
 export interface ToolDocumentation {
@@ -189,8 +242,10 @@ export interface ToolQuoteResponse {
     feeUsd: string;
     totalUsd: string;
     expiresAt: string;
+    manifestDigest: string | null;
   };
   tool: { id: string; slug: string; name: string };
+  policy: ToolPolicyDecision;
   controls: SpendControlPreview;
 }
 
@@ -219,14 +274,22 @@ export interface Product {
   description: string | null;
   category: string | null;
   status: string;
+  moderationStatus: string;
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
   executionConfig: Record<string, unknown> | null;
+  capabilities: ToolCapabilities | null;
+  manifestDigest: string | null;
+  currentVersion: number;
   pricePerCallUsd: string;
   tags: string[];
   buyerCredentialConfigured?: boolean;
   usageCount?: number;
   uniqueUserCount?: number;
+  version?: ToolCard['version'];
+  trust?: ToolCard['trust'];
+  risk?: ToolCard['risk'];
+  policy?: ToolPolicyDecision;
   createdAt: string;
   updatedAt: string;
 }
@@ -239,6 +302,7 @@ export interface CreateProductRequest {
   category?: string;
   inputSchema?: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
+  capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   executionConfig?: Record<string, unknown>;
   pricePerCallUsd: string;
   tags?: string[];
@@ -264,6 +328,8 @@ export interface Quote {
   priceUsd: string;
   markgitFeeUsd: string;
   totalUsd: string;
+  manifestDigest: string | null;
+  policySnapshot: ToolPolicyDecision | null;
   status: string;
   expiresAt: string;
   createdAt: string;
@@ -275,6 +341,7 @@ export interface CreatePurchaseRequest {
   productId: string;
   quoteId: string;
   input?: Record<string, unknown>;
+  approval?: { manifestDigest: string };
 }
 
 export interface PurchaseResponse {
@@ -382,8 +449,19 @@ export interface Provider {
   description: string | null;
   websiteUrl: string | null;
   trustTier: string;
+  verifiedOrigin: string | null;
+  originVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OriginVerificationChallenge {
+  id: string;
+  origin: string;
+  status: string;
+  expiresAt: string;
+  verificationUrl: string;
+  file: { providerId: string; challenge: string };
 }
 
 // ── Stripe Connect ─────────────────────────────────────────────────────

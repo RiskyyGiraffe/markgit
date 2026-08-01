@@ -97,7 +97,7 @@ export async function deleteToolSpendControls(userId: string, productId: string)
 async function completedSpend(userId: string, since: Date, productId?: string) {
   const conditions = [
     eq(purchases.userId, userId),
-    eq(purchases.status, 'completed' as const),
+    inArray(purchases.status, ['authorized', 'running', 'completed']),
     gte(purchases.createdAt, since),
   ];
   if (productId) conditions.push(eq(purchases.productId, productId));

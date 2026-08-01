@@ -68,25 +68,38 @@ export async function getWalletBalance(walletId: string) {
 }
 
 export async function fundWallet(walletId: string, amountUsd: string, description?: string) {
-  const wallet = await db.select().from(wallets).where(eq(wallets.id, walletId)).limit(1);
-  if (!wallet.length) throw new NotFoundError('Wallet');
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${walletId}, 0))`);
+    const wallet = await tx.select().from(wallets).where(eq(wallets.id, walletId)).limit(1);
+    if (!wallet.length) throw new NotFoundError('Wallet');
 
-  const { balance } = await getWalletBalance(walletId);
-  const newBalance = (parseFloat(balance) + parseFloat(amountUsd)).toFixed(4);
+    const [result] = await tx
+      .select({
+        balance: sql<string>`coalesce(
+          (select balance_after_usd from ${walletLedgerEntries}
+           where wallet_id = ${walletId}
+           order by created_at desc limit 1),
+          '0'
+        )`,
+      })
+      .from(wallets)
+      .where(eq(wallets.id, walletId));
+    const newBalance = (parseFloat(result?.balance ?? '0') + parseFloat(amountUsd)).toFixed(4);
 
-  const [entry] = await db
-    .insert(walletLedgerEntries)
-    .values({
-      walletId,
-      entryType: 'credit',
-      amountUsd,
-      balanceAfterUsd: newBalance,
-      description: description ?? 'Wallet funding',
-      referenceType: 'funding',
-    })
-    .returning();
+    const [entry] = await tx
+      .insert(walletLedgerEntries)
+      .values({
+        walletId,
+        entryType: 'credit',
+        amountUsd,
+        balanceAfterUsd: newBalance,
+        description: description ?? 'Wallet funding',
+        referenceType: 'funding',
+      })
+      .returning();
 
-  return entry;
+    return entry;
+  });
 }
 
 export async function createHold(walletId: string, amountUsd: string, purchaseId: string) {

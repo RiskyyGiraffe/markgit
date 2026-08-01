@@ -34,11 +34,20 @@ export function ProductExecuteForm({
   inputSchema,
   executionConfig,
   buyerCredentialConfigured,
+  policy,
+  manifestDigest,
 }: {
   productId: string;
   inputSchema: Record<string, unknown> | null;
   executionConfig: Record<string, unknown> | null;
   buyerCredentialConfigured?: boolean;
+  policy?: {
+    callable: boolean;
+    riskLevel: string;
+    approval: { requirement: string };
+    reasons: string[];
+  };
+  manifestDigest?: string | null;
 }) {
   const schema = inputSchema as InputSchema | null;
   const auth = (
@@ -121,7 +130,13 @@ export function ProductExecuteForm({
         }
       }
 
-      const res = await executeProduct(productId, input);
+      const res = await executeProduct(
+        productId,
+        input,
+        policy?.approval.requirement === "covered_by_user_policy"
+          ? undefined
+          : manifestDigest
+      );
       setResult(res.execution.output);
       if (res.execution.status === "failed") {
         setError(res.execution.errorMessage ?? "Execution failed");
@@ -139,6 +154,24 @@ export function ProductExecuteForm({
 
   return (
     <div className="space-y-4">
+      {policy && (
+        <div className="space-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={policy.callable ? "outline" : "destructive"}>
+              {policy.callable ? `${policy.riskLevel} risk` : "Calls blocked"}
+            </Badge>
+            <Badge variant="outline">{policy.approval.requirement.replaceAll("_", " ")}</Badge>
+          </div>
+          {policy.reasons.length > 0 && (
+            <p className="text-muted-foreground">{policy.reasons.join(" · ")}</p>
+          )}
+          {policy.approval.requirement !== "covered_by_user_policy" && (
+            <p className="font-medium">
+              Clicking Execute approves this exact immutable tool version.
+            </p>
+          )}
+        </div>
+      )}
       {needsBuyerCredential && (
         <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
           <div className="space-y-1">
@@ -239,7 +272,11 @@ export function ProductExecuteForm({
         )}
         <Button
           type="submit"
-          disabled={loading || (needsBuyerCredential && !credentialConfigured)}
+          disabled={
+            loading ||
+            policy?.callable === false ||
+            (needsBuyerCredential && !credentialConfigured)
+          }
           className="w-full"
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

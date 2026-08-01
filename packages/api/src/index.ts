@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { authMiddleware } from './middleware/auth.js';
 import { sessionMiddleware } from './middleware/session.js';
+import { permissionMiddleware } from './middleware/permissions.js';
 import { authRoutes } from './routes/auth.js';
 import { walletRoutes } from './routes/wallet.js';
 import { searchRoutes } from './routes/search.js';
@@ -16,7 +17,14 @@ import { deviceRoutes } from './routes/device.js';
 import { registryRoutes } from './routes/registry.js';
 import { toolRoutes } from './routes/tools.js';
 import { spendControlRoutes } from './routes/spend-controls.js';
-import { AppError, RateLimitError } from './lib/errors.js';
+import { moderationRoutes } from './routes/moderation.js';
+import {
+  AppError,
+  PermissionError,
+  RateLimitError,
+  ToolApprovalError,
+  ToolPolicyBlockedError,
+} from './lib/errors.js';
 import { cors } from 'hono/cors';
 
 const app = new Hono();
@@ -36,6 +44,7 @@ app.route('/v1/registry', registryRoutes);
 const v1 = new Hono();
 v1.use('*', authMiddleware);
 v1.use('*', sessionMiddleware);
+v1.use('*', permissionMiddleware);
 
 v1.route('/auth', authRoutes);
 v1.route('/wallet', walletRoutes);
@@ -49,6 +58,7 @@ v1.route('/spend-controls', spendControlRoutes);
 v1.route('/providers', providerStripeRoutes);
 v1.route('/providers', providerRoutes);
 v1.route('/provider-imports', providerImportRoutes);
+v1.route('/moderation', moderationRoutes);
 
 app.route('/v1', v1);
 
@@ -61,6 +71,13 @@ app.onError((err, c) => {
         error: {
           code: err.code,
           message: err.message,
+          ...(err instanceof PermissionError ? { requiredPermission: err.requiredPermission } : {}),
+          ...(err instanceof ToolApprovalError ? {
+            approvalRequirement: err.approvalRequirement,
+            manifestDigest: err.manifestDigest,
+            reasons: err.reasons,
+          } : {}),
+          ...(err instanceof ToolPolicyBlockedError ? { reasons: err.reasons } : {}),
           ...(err instanceof RateLimitError ? { retryAfterSeconds: err.retryAfterSeconds } : {}),
         },
       },

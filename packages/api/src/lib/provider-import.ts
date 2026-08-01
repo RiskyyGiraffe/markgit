@@ -1,5 +1,6 @@
 import { ValidationError } from './errors.js';
 import { normalizeOptionalLogoUrl } from './public-asset-url.js';
+import { normalizeToolCapabilities, type ToolCapabilities } from './tool-policy.js';
 
 export type AuthMode = 'none' | 'provider_managed' | 'buyer_supplied';
 export type AuthType = 'none' | 'bearer' | 'api_key' | 'basic';
@@ -60,6 +61,7 @@ export interface ProductDraft {
   tags: string[];
   inputSchema?: Record<string, unknown>;
   outputSchema?: Record<string, unknown>;
+  capabilities?: Partial<Omit<ToolCapabilities, 'declared'>> | ToolCapabilities;
   executionConfig: ExecutionConfig;
 }
 
@@ -132,6 +134,7 @@ export function normalizeDraft(input: Partial<ProductDraft>, fallbackBaseUrl: st
     baseUrl: input.executionConfig.baseUrl || fallbackBaseUrl,
     auth: normalizeAuthConfig(input.executionConfig.auth, authMode),
   } satisfies ExecutionConfig;
+  const capabilities = normalizeToolCapabilities(input.capabilities, executionConfig);
 
   return {
     name: input.name.trim(),
@@ -143,6 +146,7 @@ export function normalizeDraft(input: Partial<ProductDraft>, fallbackBaseUrl: st
     tags: input.tags ?? ['api'],
     inputSchema: input.inputSchema,
     outputSchema: input.outputSchema,
+    capabilities,
     executionConfig,
   } satisfies ProductDraft;
 }

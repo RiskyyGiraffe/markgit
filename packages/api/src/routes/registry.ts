@@ -1,5 +1,10 @@
 import { Hono } from 'hono';
-import { getPublicTool, listAllPublicTools, listPublicTools } from '../services/registry.js';
+import {
+  getPublicTool,
+  listAllPublicTools,
+  listPublicTools,
+  listPublicToolVersions,
+} from '../services/registry.js';
 import {
   buildRegistryLlmsText,
   buildToolDocumentation,
@@ -24,6 +29,7 @@ registry.get('/', (c) => c.json({
     openapi: 'GET /v1/registry/tools/{id-or-slug}/openapi.json',
     llms: 'GET /v1/registry/llms.txt',
     toolLlms: 'GET /v1/registry/tools/{id-or-slug}/llms.txt',
+    versions: 'GET /v1/registry/tools/{id-or-slug}/versions',
     quote: 'POST /v1/tools/{id-or-slug}/quote',
     call: 'POST /v1/tools/{id-or-slug}/call',
   },
@@ -58,6 +64,10 @@ registry.get('/tools/:identifier/llms.txt', async (c) => {
   return c.text(buildToolLlmsText(tool, new URL(c.req.url).origin), 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
+});
+
+registry.get('/tools/:identifier/versions', async (c) => {
+  return c.json(await listPublicToolVersions(c.req.param('identifier')));
 });
 
 registry.get('/tools/:identifier', async (c) => {

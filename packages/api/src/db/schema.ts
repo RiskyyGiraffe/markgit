@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+import type { ToolCapabilities } from '../lib/tool-policy.js';
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 
@@ -139,6 +140,19 @@ export const toolCallRequestStatusEnum = pgEnum('mkgt_tool_call_request_status',
   'failed',
 ]);
 
+export const moderationStatusEnum = pgEnum('mkgt_moderation_status', [
+  'clear',
+  'flagged',
+  'quarantined',
+]);
+
+export const originVerificationStatusEnum = pgEnum('mkgt_origin_verification_status', [
+  'pending',
+  'verified',
+  'failed',
+  'expired',
+]);
+
 // ── Tables ─────────────────────────────────────────────────────────────────
 
 export const users = pgTable('mkgt_users', {
@@ -193,11 +207,28 @@ export const providers = pgTable('mkgt_providers', {
   description: text('description'),
   websiteUrl: varchar('website_url', { length: 2048 }),
   trustTier: trustTierEnum('trust_tier').default('unverified').notNull(),
+  verifiedOrigin: varchar('verified_origin', { length: 2048 }),
+  originVerifiedAt: timestamp('origin_verified_at', { withTimezone: true }),
   stripeAccountId: varchar('stripe_account_id', { length: 255 }),
   stripeAccountStatus: varchar('stripe_account_status', { length: 50 }).default('none'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const providerOriginVerifications = pgTable('mkgt_provider_origin_verifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  providerId: uuid('provider_id').notNull().references(() => providers.id),
+  origin: varchar('origin', { length: 2048 }).notNull(),
+  challengeHash: varchar('challenge_hash', { length: 64 }).notNull(),
+  status: originVerificationStatusEnum('status').default('pending').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('mkgt_provider_origin_verifications_provider_idx').on(table.providerId, table.status),
+]);
 
 export const products = pgTable('mkgt_products', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -208,14 +239,45 @@ export const products = pgTable('mkgt_products', {
   description: text('description'),
   category: varchar('category', { length: 100 }),
   status: productStatusEnum('status').default('draft').notNull(),
+  moderationStatus: moderationStatusEnum('moderation_status').default('clear').notNull(),
   inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
   outputSchema: jsonb('output_schema').$type<Record<string, unknown>>(),
   executionConfig: jsonb('execution_config').$type<Record<string, unknown>>(),
+  capabilities: jsonb('capabilities').$type<ToolCapabilities>(),
+  manifestDigest: varchar('manifest_digest', { length: 64 }),
+  currentVersion: integer('current_version').default(1).notNull(),
   pricePerCallUsd: numeric('price_per_call_usd', { precision: 19, scale: 4 }).notNull(),
   tags: jsonb('tags').$type<string[]>().default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const productVersions = pgTable('mkgt_product_versions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  version: integer('version').notNull(),
+  manifestDigest: varchar('manifest_digest', { length: 64 }).notNull(),
+  manifest: jsonb('manifest').$type<Record<string, unknown>>().notNull(),
+  capabilities: jsonb('capabilities').$type<ToolCapabilities>().notNull(),
+  endpointOrigin: varchar('endpoint_origin', { length: 2048 }).notNull(),
+  pricePerCallUsd: numeric('price_per_call_usd', { precision: 19, scale: 4 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('mkgt_product_versions_product_version_idx').on(table.productId, table.version),
+  uniqueIndex('mkgt_product_versions_product_digest_idx').on(table.productId, table.manifestDigest),
+]);
+
+export const moderationEvents = pgTable('mkgt_moderation_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  actorUserId: uuid('actor_user_id').notNull().references(() => users.id),
+  previousStatus: moderationStatusEnum('previous_status').notNull(),
+  nextStatus: moderationStatusEnum('next_status').notNull(),
+  reason: text('reason').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('mkgt_moderation_events_product_idx').on(table.productId, table.createdAt),
+]);
 
 export const providerImportRuns = pgTable('mkgt_provider_import_runs', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -287,6 +349,8 @@ export const quotes = pgTable('mkgt_quotes', {
   priceUsd: numeric('price_usd', { precision: 19, scale: 4 }).notNull(),
   markgitFeeUsd: numeric('markgit_fee_usd', { precision: 19, scale: 4 }).notNull(),
   totalUsd: numeric('total_usd', { precision: 19, scale: 4 }).notNull(),
+  manifestDigest: varchar('manifest_digest', { length: 64 }),
+  policySnapshot: jsonb('policy_snapshot').$type<Record<string, unknown>>(),
   status: quoteStatusEnum('status').default('active').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -315,6 +379,7 @@ export const purchases = pgTable('mkgt_purchases', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
+  uniqueIndex('mkgt_purchases_quote_idx').on(table.quoteId),
   index('mkgt_purchases_product_status_idx').on(table.productId, table.status),
 ]);
 
@@ -373,6 +438,22 @@ export const toolSpendControls = pgTable('mkgt_tool_spend_controls', {
   uniqueIndex('mkgt_tool_spend_controls_user_product_idx').on(table.userId, table.productId),
 ]);
 
+export const userToolApprovals = pgTable('mkgt_user_tool_approvals', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  manifestDigest: varchar('manifest_digest', { length: 64 }).notNull(),
+  approvalType: varchar('approval_type', { length: 50 }).default('first_use').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+}, (table) => [
+  uniqueIndex('mkgt_user_tool_approvals_user_product_digest_idx').on(
+    table.userId,
+    table.productId,
+    table.manifestDigest,
+  ),
+]);
+
 export const providerEarnings = pgTable('mkgt_provider_earnings', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),
@@ -383,7 +464,9 @@ export const providerEarnings = pgTable('mkgt_provider_earnings', {
   payoutEligibleAt: timestamp('payout_eligible_at', { withTimezone: true }),
   payoutId: uuid('payout_id').references(() => payouts.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('mkgt_provider_earnings_purchase_idx').on(table.purchaseId),
+]);
 
 export const payouts = pgTable('mkgt_payouts', {
   id: uuid('id').defaultRandom().primaryKey(),

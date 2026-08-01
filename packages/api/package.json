@@ -22,8 +22,10 @@
     "@hono/node-server": "^1.13.0",
     "drizzle-orm": "^0.41.0",
     "hono": "^4.6.0",
+    "ipaddr.js": "^2.2.0",
     "postgres": "^3.4.0",
     "stripe": "^20.4.0",
+    "undici": "^6.21.0",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

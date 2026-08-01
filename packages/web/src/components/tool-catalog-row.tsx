@@ -28,6 +28,8 @@ export function ToolCatalogRow({ tool }: { tool: ToolCard }) {
           {tool.description ?? `A tool by ${tool.provider.name}`}
         </span>
         <span className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[10px] text-[#6f7478]">
+          <span>{tool.trust.endpoint.status} endpoint</span>
+          <span>{tool.risk.level} risk</span>
           <span>{tool.usage.usersLabel}</span>
           <span>{tool.usage.invocationsLabel}</span>
         </span>
