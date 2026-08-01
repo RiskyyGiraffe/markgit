@@ -58,7 +58,8 @@ export function normalizeToolCapabilities(
   input: unknown,
   executionConfig?: Record<string, unknown> | null,
 ): ToolCapabilities {
-  if (input !== undefined && (!input || typeof input !== 'object' || Array.isArray(input))) {
+  const declarationMissing = input === undefined || input === null;
+  if (!declarationMissing && (typeof input !== 'object' || Array.isArray(input))) {
     throw new ValidationError('capabilities must be an object');
   }
   const candidate = (input ?? {}) as Record<string, unknown>;
@@ -98,9 +99,9 @@ export function normalizeToolCapabilities(
   }
 
   const authMode = (executionConfig?.auth as { mode?: string } | undefined)?.mode;
-  const provided = input as CapabilityInput | undefined;
+  const provided = declarationMissing ? undefined : input as CapabilityInput;
   return {
-    declared: input !== undefined,
+    declared: !declarationMissing,
     readOnly: provided?.readOnly ?? false,
     destructive: provided?.destructive ?? false,
     idempotent: provided?.idempotent ?? false,

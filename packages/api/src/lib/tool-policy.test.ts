@@ -16,6 +16,7 @@ describe('tool trust policy', () => {
 
   it('treats missing declarations as unknown risk', () => {
     expect(classifyToolRisk(normalizeToolCapabilities(undefined))).toBe('unknown');
+    expect(classifyToolRisk(normalizeToolCapabilities(null))).toBe('unknown');
   });
 
   it('classifies destructive and money-moving tools as critical', () => {
