@@ -169,6 +169,42 @@ export interface ToolPolicyDecision {
     manifestDigest: string | null;
   };
   reasons: string[];
+  userAuthorization?: {
+    mode: AuthorizationMode;
+    label: string;
+    versionCurrent: boolean;
+  };
+}
+
+export type AuthorizationMode = 'ask_paid' | 'ask_every' | 'never_ask';
+
+export interface QuicklistEntry {
+  id: string;
+  tool: {
+    id: string;
+    slug: string;
+    name: string;
+    logoUrl: string | null;
+    description: string | null;
+    category: string | null;
+    tags: string[];
+    provider: { id: string; name: string; trustTier: string };
+    pricing: { type: 'free' | 'per_call'; amount: string; currency: 'USD' };
+    manifestDigest: string | null;
+  };
+  authorization: {
+    mode: AuthorizationMode;
+    label: string;
+    versionCurrent: boolean;
+    manifestDigest: string | null;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuicklistResponse {
+  entries: QuicklistEntry[];
+  total: number;
 }
 
 export interface ToolDocumentation {

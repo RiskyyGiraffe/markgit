@@ -163,6 +163,77 @@ async function balance(): Promise<void> {
   console.log(`Balance    $${wallet.balance} USD`);
 }
 
+async function walletForAgent(): Promise<void> {
+  const config = await loadConfig();
+  const wallet = await request<{ walletId: string; balance: string; heldAmount: string; available: string }>('/v1/wallet', {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+  });
+  console.log(JSON.stringify({ ...wallet, currency: 'USD' }, null, 2));
+}
+
+type AuthorizationMode = 'ask_paid' | 'ask_every' | 'never_ask';
+
+function authorizationMode(value: string | undefined): AuthorizationMode {
+  const normalized = value?.toLowerCase().replaceAll('-', '_') ?? 'ask_paid';
+  const aliases: Record<string, AuthorizationMode> = {
+    paid: 'ask_paid',
+    ask_paid: 'ask_paid',
+    every: 'ask_every',
+    ask_every: 'ask_every',
+    never: 'never_ask',
+    never_ask: 'never_ask',
+  };
+  const mode = aliases[normalized];
+  if (!mode) throw new Error('Authorization must be paid, every, or never');
+  return mode;
+}
+
+async function quicklist(args: string[]): Promise<void> {
+  const config = await loadConfig();
+  const [command, identifier, rawMode] = args;
+  if (!command || command === 'list' || command === '--json') {
+    const result = await request<{
+      entries: Array<{
+        tool: { slug: string; name: string; provider: { name: string }; pricing: { type: string; amount: string } };
+        authorization: { mode: AuthorizationMode; label: string; versionCurrent: boolean };
+      }>;
+      total: number;
+    }>('/v1/quicklist', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
+    if (args.includes('--json') || command === '--json') {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    if (!result.entries.length) {
+      console.log('Your agent quicklist is empty. Add one with `markgit quicklist add <tool-slug>`.');
+      return;
+    }
+    for (const entry of result.entries) {
+      const price = entry.tool.pricing.type === 'free' ? 'free' : `$${entry.tool.pricing.amount}/call`;
+      console.log(`${entry.tool.slug}  ${price}  ${entry.authorization.label}${entry.authorization.versionCurrent ? '' : ' (reauthorization required)'}`);
+      console.log(`  ${entry.tool.name} by ${entry.tool.provider.name}`);
+    }
+    return;
+  }
+  if (!identifier) throw new Error(`Usage: markgit quicklist ${command} <tool-slug>`);
+  if (command === 'remove') {
+    const result = await request<{ removed: boolean; tool: { slug: string } }>(`/v1/quicklist/${encodeURIComponent(identifier)}`, {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'DELETE',
+    });
+    console.log(`Removed ${result.tool.slug} from your agent quicklist.`);
+    return;
+  }
+  if (command !== 'add' && command !== 'auth') throw new Error('Usage: markgit quicklist <list|add|auth|remove>');
+  const mode = authorizationMode(valueAfter(args, '--authorization') ?? rawMode);
+  const result = await request<{ tool: { slug: string; name: string } }>(`/v1/quicklist/${encodeURIComponent(identifier)}`, {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'PUT',
+    body: JSON.stringify({ authorizationMode: mode }),
+  });
+  console.log(`${result.tool.name} is synced to your agent quicklist with authorization: ${mode}.`);
+}
+
 async function search(args: string[]): Promise<void> {
   const query = args.join(' ').trim();
   if (!query) throw new Error('Usage: markgit search <what you need>');
@@ -467,16 +538,15 @@ async function callTool(args: string[]): Promise<void> {
     if (Number.parseFloat(approval.quote.totalUsd) > maxCost) {
       throw new Error(`Quoted cost $${approval.quote.totalUsd} exceeds --max-cost $${maxCost.toFixed(4)}`);
     }
-  } else if (!isFree && !args.includes('--yes')) {
-    console.log(`Approval required. Re-run with --yes or --max-cost ${approval.quote.totalUsd}.`);
-    return;
   }
 
-  const requiresRiskApproval = !['covered_by_user_policy', 'explicit_unverified'].includes(
+  const requiresUserApproval = !['covered_by_user_policy', 'explicit_unverified'].includes(
     approval.policy.approval.requirement,
   );
-  if (requiresRiskApproval && !args.includes('--yes')) {
-    console.log('Risk approval required. Review the policy above and re-run with --yes.');
+  if (requiresUserApproval && !args.includes('--yes') && rawMaxCost === undefined) {
+    console.log(isFree
+      ? 'Approval required by your synced authorization setting. Review the call and re-run with --yes.'
+      : `Approval required by your synced authorization setting. Re-run with --yes or --max-cost ${approval.quote.totalUsd}.`);
     return;
   }
 
@@ -764,6 +834,11 @@ Usage:
   markgit logout                 Remove the account from this machine
   markgit status                 Show the linked account and available balance
   markgit balance                Show wallet balances
+  markgit wallet                 Print machine-readable wallet balance JSON
+  markgit quicklist [--json]     Show tools synced to this account
+  markgit quicklist add <slug> [paid|every|never]
+  markgit quicklist auth <slug> <paid|every|never>
+  markgit quicklist remove <slug>
   markgit fund [amount]          Fund locally by amount, or open the wallet portal
   markgit search <query>         Search the public tool registry
   markgit inspect <tool-slug>    Print a tool's schemas, provider, and price
@@ -802,6 +877,8 @@ async function main(): Promise<void> {
       return;
     case 'status': return status();
     case 'balance': return balance();
+    case 'wallet': return walletForAgent();
+    case 'quicklist': return quicklist(args);
     case 'fund': return fundWallet(args);
     case 'search': return search(args);
     case 'inspect': return inspect(args[0]);

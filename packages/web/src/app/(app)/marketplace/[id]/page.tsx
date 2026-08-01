@@ -1,4 +1,5 @@
 import { getProduct } from "@/actions/marketplace";
+import { getQuicklist } from "@/actions/quicklist";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ProductExecuteForm } from "@/components/product-execute-form";
+import { QuicklistControl } from "@/components/quicklist-control";
 
 export default async function ProductDetailPage({
   params,
@@ -15,7 +17,8 @@ export default async function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = await getProduct(id);
+  const [product, quicklist] = await Promise.all([getProduct(id), getQuicklist()]);
+  const quicklistEntry = quicklist.entries.find((entry) => entry.tool.id === product.id);
 
   return (
     <div className="space-y-6">
@@ -32,6 +35,7 @@ export default async function ProductDetailPage({
               ${parseFloat(product.pricePerCallUsd).toFixed(4)}
             </p>
             <p className="text-sm text-muted-foreground">per call</p>
+            <div className="mt-3"><QuicklistControl slug={product.slug} initialMode={quicklistEntry?.authorization.mode} versionCurrent={quicklistEntry?.authorization.versionCurrent} /></div>
           </div>
         </div>
         <div className="mt-2 flex gap-2">

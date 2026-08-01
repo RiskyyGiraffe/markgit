@@ -10,10 +10,11 @@ Markgit is a thin standardization and marketplace layer for tools, durable agent
 npm install -g @markgit/cli
 markgit login
 markgit search "weather"
-markgit balance
+markgit quicklist add open-meteo-current-weather paid
+markgit wallet
 ```
 
-The CLI opens a browser link so the user can connect their account without copying an API key. See [Tool API v1](docs/tool-api.md), [MCP publishing](docs/mcp-api.md), and [LLM discovery](docs/llm-discovery.md) for the public contracts.
+The CLI opens a browser link so the user can connect their account without copying an API key. The account-level quicklist and its explicit authorization modes sync between the website and every linked agent. See [Tool API v1](docs/tool-api.md), [MCP publishing](docs/mcp-api.md), and [LLM discovery](docs/llm-discovery.md) for the public contracts.
 
 ## Architecture
 
@@ -90,6 +91,8 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | `/webhooks/stripe` | POST | Stripe webhook endpoint (signature-verified, no auth) |
 | `/v1/auth/keys` | POST | Create API key |
 | `/v1/wallet` | GET | Get wallet balance |
+| `/v1/quicklist` | GET | Get the account's synced agent quicklist |
+| `/v1/quicklist/:slug` | PUT/DELETE | Add, configure, or remove a quicklist tool |
 | `/v1/wallet/fund` | POST | Fund wallet (direct — placeholder) |
 | `/v1/wallet/fund/checkout` | POST | Create Stripe Checkout session for wallet funding |
 | `/v1/wallet/ledger` | GET | Get wallet ledger entries |
@@ -142,6 +145,7 @@ Key tables (defined in `packages/api/src/db/schema.ts`):
 - `mkgt_product_versions` — immutable, digest-addressed tool manifests
 - `mkgt_provider_origin_verifications` — time-limited endpoint ownership proofs
 - `mkgt_user_tool_approvals` — first-use approvals bound to an exact manifest digest
+- `mkgt_user_quicklist` — synced tools and per-tool authorization modes, with standing authorization bound to a manifest digest
 - `mkgt_moderation_events` — append-only operator moderation audit log
 - `mkgt_wallets` — user spend wallets
 - `mkgt_wallet_ledger_entries` — every credit/debit/hold/capture/release/refund

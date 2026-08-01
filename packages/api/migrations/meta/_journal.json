@@ -85,6 +85,13 @@
       "when": 1785614109179,
       "tag": "0011_naive_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785615394038,
+      "tag": "0012_strong_puppet_master",
+      "breakpoints": true
     }
   ]
 }

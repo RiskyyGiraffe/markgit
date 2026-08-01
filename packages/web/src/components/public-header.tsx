@@ -1,7 +1,13 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { AppTopbar } from "@/components/app-topbar";
+import { auth } from "@/lib/auth";
 
-export function PublicHeader() {
+export async function PublicHeader() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session) return <AppTopbar user={session.user} />;
+
   return (
     <header className="border-b bg-background text-foreground">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">

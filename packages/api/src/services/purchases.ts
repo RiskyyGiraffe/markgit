@@ -12,6 +12,7 @@ import {
   walletLedgerEntries,
   providers,
   userToolApprovals,
+  userQuicklist,
   providerOriginVerifications,
 } from '../db/schema.js';
 import {
@@ -32,6 +33,7 @@ import {
   normalizeToolCapabilities,
 } from '../lib/tool-policy.js';
 import { ensureProductVersion } from './product-versions.js';
+import { applyQuicklistAuthorization, getQuicklistPreference } from './quicklist.js';
 
 const MARKGIT_FEE_RATE = 0.10; // 10%
 const QUOTE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -94,7 +96,7 @@ export async function createQuote(userId: string, productId: string, walletId: s
       gt(providerOriginVerifications.expiresAt, new Date()),
     ));
   const capabilities = normalizeToolCapabilities(version.capabilities, product.executionConfig);
-  const policy = computeToolPolicy({
+  const basePolicy = computeToolPolicy({
     productStatus: product.status,
     moderationStatus: product.moderationStatus,
     pricePerCallUsd: product.pricePerCallUsd,
@@ -105,6 +107,11 @@ export async function createQuote(userId: string, productId: string, walletId: s
       verifiedOrigins.map((entry) => entry.origin),
     ),
     paymentVerified: provider.stripeAccountStatus === 'active',
+  });
+  const preference = await getQuicklistPreference(userId, product.id);
+  const policy = applyQuicklistAuthorization(basePolicy, preference, {
+    isPaid: Number.parseFloat(product.pricePerCallUsd) > 0,
+    manifestDigest: version.manifestDigest,
   });
 
   const authMode = ((product.executionConfig as { auth?: { mode?: string } } | null)?.auth?.mode ??
@@ -184,7 +191,7 @@ export async function createPurchase(
         gt(providerOriginVerifications.expiresAt, new Date()),
       ));
     const capabilities = normalizeToolCapabilities(product.capabilities, product.executionConfig);
-    const policy = computeToolPolicy({
+    const basePolicy = computeToolPolicy({
       productStatus: product.status,
       moderationStatus: product.moderationStatus,
       pricePerCallUsd: product.pricePerCallUsd,
@@ -195,6 +202,18 @@ export async function createPurchase(
         verifiedOrigins.map((entry) => entry.origin),
       ),
       paymentVerified: provider.stripeAccountStatus === 'active',
+    });
+    const [preference] = await tx
+      .select({
+        authorizationMode: userQuicklist.authorizationMode,
+        authorizationManifestDigest: userQuicklist.authorizationManifestDigest,
+      })
+      .from(userQuicklist)
+      .where(and(eq(userQuicklist.userId, userId), eq(userQuicklist.productId, product.id)))
+      .limit(1);
+    const policy = applyQuicklistAuthorization(basePolicy, preference ?? null, {
+      isPaid: Number.parseFloat(product.pricePerCallUsd) > 0,
+      manifestDigest: product.manifestDigest,
     });
     if (!policy.callable || policy.approval.requirement === 'blocked') {
       throw new ToolPolicyBlockedError(policy.reasons);

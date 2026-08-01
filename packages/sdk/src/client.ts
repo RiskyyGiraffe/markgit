@@ -59,6 +59,8 @@ import type {
   McpManifest,
   PublishMcpResponse,
   OriginVerificationChallenge,
+  AuthorizationMode,
+  QuicklistResponse,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -109,6 +111,20 @@ export class MarkgitClient {
     if (offset) params.set('offset', String(offset));
     const qs = params.toString();
     return this.request('GET', `/v1/wallet/ledger${qs ? `?${qs}` : ''}`);
+  }
+
+  // ── Agent quicklist ────────────────────────────────────────────────
+
+  async getQuicklist(): Promise<QuicklistResponse> {
+    return this.request('GET', '/v1/quicklist');
+  }
+
+  async saveQuicklistTool(identifier: string, authorizationMode: AuthorizationMode = 'ask_paid') {
+    return this.request('PUT', `/v1/quicklist/${encodeURIComponent(identifier)}`, { authorizationMode });
+  }
+
+  async removeQuicklistTool(identifier: string) {
+    return this.request('DELETE', `/v1/quicklist/${encodeURIComponent(identifier)}`);
   }
 
   // ── Search ──────────────────────────────────────────────────────────

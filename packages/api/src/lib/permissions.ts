@@ -101,6 +101,9 @@ export function requiredPermission(method: string, rawPath: string): ApiPermissi
 
   if (verb === 'POST' && path === '/search') return 'registry:read';
 
+  if (verb === 'GET' && path === '/quicklist') return 'registry:read';
+  if (['PUT', 'DELETE'].includes(verb) && /^\/quicklist\/[^/]+$/.test(path)) return 'spend:write';
+
   if (verb === 'GET' && path === '/products/mine') return 'provider:read';
   if (verb === 'GET' && (path === '/products' || /^\/products\/[^/]+$/.test(path))) return 'registry:read';
   if (

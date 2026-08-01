@@ -133,9 +133,7 @@ export function ProductExecuteForm({
       const res = await executeProduct(
         productId,
         input,
-        policy?.approval.requirement === "covered_by_user_policy"
-          ? undefined
-          : manifestDigest
+        manifestDigest
       );
       setResult(res.execution.output);
       if (res.execution.status === "failed") {

@@ -36,6 +36,11 @@ export type ToolPolicyDecision = {
     manifestDigest: string | null;
   };
   reasons: string[];
+  userAuthorization?: {
+    mode: 'ask_paid' | 'ask_every' | 'never_ask';
+    label: string;
+    versionCurrent: boolean;
+  };
 };
 
 const booleanCapabilityFields = [

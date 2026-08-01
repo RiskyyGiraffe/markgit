@@ -518,6 +518,19 @@ export const userToolApprovals = pgTable('mkgt_user_tool_approvals', {
   ),
 ]);
 
+export const userQuicklist = pgTable('mkgt_user_quicklist', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  authorizationMode: varchar('authorization_mode', { length: 32 }).default('ask_paid').notNull(),
+  authorizationManifestDigest: varchar('authorization_manifest_digest', { length: 64 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('mkgt_user_quicklist_user_product_idx').on(table.userId, table.productId),
+  index('mkgt_user_quicklist_user_updated_idx').on(table.userId, table.updatedAt),
+]);
+
 export const providerEarnings = pgTable('mkgt_provider_earnings', {
   id: uuid('id').defaultRandom().primaryKey(),
   providerId: uuid('provider_id').notNull().references(() => providers.id),

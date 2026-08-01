@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LogOut, Wallet } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,106 +15,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, Search, Sparkles } from "lucide-react";
 
-const routeMeta: Record<string, { title: string; subtitle: string }> = {
-  "/dashboard": { title: "Dashboard", subtitle: "Command center" },
-  "/marketplace": { title: "Marketplace", subtitle: "Discover and execute" },
-  "/wallet": { title: "Wallet", subtitle: "Funds and ledger" },
-  "/provider": { title: "Provider", subtitle: "Catalog and payouts" },
-  "/history": { title: "History", subtitle: "Purchases and runs" },
-};
+const nav = [
+  { label: "Tools", href: "/marketplace", matches: ["/marketplace", "/tools"] },
+  { label: "Harnesses", href: "/harnesses", matches: ["/harnesses"] },
+  { label: "MCPs", href: "/mcps", matches: ["/mcps"] },
+  { label: "Quicklist", href: "/dashboard", matches: ["/dashboard"] },
+  { label: "Provider", href: "/provider", matches: ["/provider"] },
+  { label: "Docs", href: "/docs", matches: ["/docs"] },
+] as const;
 
-export function AppTopbar({
-  user,
-}: {
-  user: { name?: string | null; email: string; image?: string | null };
-}) {
+export function AppTopbar({ user }: { user: { name?: string | null; email: string; image?: string | null } }) {
   const pathname = usePathname();
   const router = useRouter();
+  const initials = user.name
+    ? user.name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2)
+    : user.email[0].toUpperCase();
 
-  const handleSignOut = async () => {
+  const signOut = async () => {
     await authClient.signOut();
     router.push("/login");
   };
 
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email[0].toUpperCase();
-
-  const meta =
-    Object.entries(routeMeta).find(([route]) => pathname.startsWith(route))?.[1] ??
-    routeMeta["/dashboard"];
-
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl sm:px-6">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger className="-ml-1 rounded-xl border border-border/70 bg-card text-foreground shadow-sm hover:bg-accent" />
-        <div className="hidden min-w-0 sm:block">
-          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {meta.subtitle}
-          </div>
-          <div className="truncate text-sm font-medium text-foreground">
-            {meta.title}
-          </div>
+    <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-5 px-5 sm:px-8">
+        <Link href="/dashboard" className="font-display text-lg font-semibold tracking-[-0.05em]">markgit</Link>
+        <nav className="hidden flex-1 items-center gap-1 md:flex">
+          {nav.map((item) => {
+            const active = item.matches.some((prefix) => pathname.startsWith(prefix));
+            return <Link key={item.href} href={item.href} className={`rounded-lg px-3 py-1.5 text-[13px] transition ${active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{item.label}</Link>;
+          })}
+        </nav>
+        <div className="ml-auto flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link href="/wallet"><Wallet /> Wallet</Link></Button>
+          <ThemeToggle className="size-8" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="size-8 rounded-full p-0"><Avatar className="size-8"><AvatarFallback className="bg-foreground text-xs text-background">{initials}</AvatarFallback></Avatar></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel><p className="text-sm font-medium">{user.name ?? "markgit user"}</p><p className="mt-1 truncate text-xs font-normal text-muted-foreground">{user.email}</p></DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><Link href="/history">History</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/wallet">Wallet</Link></DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 size-4" /> Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-
-      <div className="hidden flex-1 items-center justify-center lg:flex">
-        <div className="flex w-full max-w-md items-center gap-2 rounded-full border border-border/70 bg-card px-4 py-2 text-sm text-muted-foreground shadow-sm">
-          <Search className="size-4" />
-          <span>Search products, runs, or providers</span>
-          <span className="ml-auto rounded-md border border-border/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-            /
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 items-center justify-end gap-2">
-        <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-sm text-muted-foreground shadow-sm md:flex">
-          <Sparkles className="size-4 text-emerald-500 dark:text-emerald-400" />
-          <span>Live workspace</span>
-        </div>
-        <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="relative h-10 w-10 rounded-full border border-border/70 bg-card shadow-sm hover:bg-accent"
-            >
-              <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-foreground text-background">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-64 rounded-2xl border-border/70 bg-popover/95 p-2 backdrop-blur"
-            align="end"
-          >
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                {user.name && (
-                  <p className="text-sm font-medium">{user.name}</p>
-                )}
-                <p className="text-xs text-muted-foreground">{user.email}</p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <nav className="flex gap-1 overflow-x-auto border-t px-4 py-2 md:hidden">
+        {nav.map((item) => <Link key={item.href} href={item.href} className="whitespace-nowrap rounded-md px-3 py-1 text-xs text-muted-foreground">{item.label}</Link>)}
+      </nav>
     </header>
   );
 }
