@@ -6,6 +6,9 @@ import {
   Search,
   ShieldCheck,
   WalletCards,
+  Activity,
+  Eye,
+  Shrink,
 } from "lucide-react";
 import { InstallCommandCard } from "@/components/install-command-card";
 import { PublicHeader } from "@/components/public-header";
@@ -36,14 +39,14 @@ export default async function Home({
         <div className="mx-auto max-w-3xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-[#aeb2b4]">
             <span className="size-1.5 rounded-full bg-[#91a4ad]" />
-            Open registry. Provider-hosted tools.
+            Open registry. Provider-hosted tools and harnesses.
           </div>
           <h1 className="font-display text-5xl font-medium leading-[0.98] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
-            Find a tool. See the price. Call it.
+            Call a tool. Run a harness. See everything.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#92979a] sm:text-lg sm:leading-8">
-            One searchable standard for tools hosted anywhere. Free tools stay direct;
-            paid tools get approval, metering, and settlement.
+            Tools are one atomic call. Harnesses are durable agent loops with shared monitoring,
+            explicit access, compaction, and external API cost disclosure. Your compute stays wherever you host it.
           </p>
 
           <form action="/tools" method="get" className="mx-auto mt-9 flex max-w-2xl items-center gap-2 rounded-xl border border-white/[0.11] bg-[#1b1e20] p-2">
@@ -61,10 +64,36 @@ export default async function Home({
             </button>
           </form>
 
+          <Link href="/harnesses" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">
+            Browse monitorable harnesses <ArrowRight className="size-4" />
+          </Link>
+
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-[#777d81] sm:text-sm">
-            <span className="inline-flex items-center gap-1.5"><Check className="size-3.5" /> No hosted agent</span>
+            <span className="inline-flex items-center gap-1.5"><Check className="size-3.5" /> Provider-hosted compute</span>
             <span className="inline-flex items-center gap-1.5"><Check className="size-3.5" /> Transparent per-call pricing</span>
             <span className="inline-flex items-center gap-1.5"><Check className="size-3.5" /> Bring your own compute</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/[0.075] bg-[#0d0f10]">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6569]">Harnesses</p>
+              <h2 className="mt-2 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">Long-running loops without a black box.</h2>
+            </div>
+            <Link href="/harnesses" className="inline-flex items-center gap-2 text-sm text-[#858c90] hover:text-white">Explore harnesses <ArrowRight className="size-4" /></Link>
+          </div>
+          <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-white/[0.075] bg-white/[0.075] md:grid-cols-3">
+            {[
+              { icon: Eye, title: "Visible access", body: "Every external API, nested tool, data scope, and retention policy is declared before the loop starts." },
+              { icon: Activity, title: "Shared monitoring", body: "Codex, Claude, or any HTTP-capable agent on the account reads the same durable state and event cursor." },
+              { icon: Shrink, title: "Observable compaction", body: "The harness declares its compaction strategy and emits checkpoints whenever context is compacted." },
+            ].map((item) => {
+              const Icon = item.icon;
+              return <div key={item.title} className="bg-[#0d0f10] p-6"><Icon className="size-5" /><h3 className="mt-6 text-lg font-medium">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[#858c90]">{item.body}</p></div>;
+            })}
           </div>
         </div>
       </section>
@@ -132,7 +161,7 @@ export default async function Home({
             </div>
             <h2 className="mt-5 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">Host your tool anywhere.</h2>
             <p className="mt-4 max-w-lg text-sm leading-7 text-white/55">
-              Keep the code and compute. Add a small manifest, choose a price—including free—and publish it with one command.
+              Keep the code and compute. Publish a priced or free atomic tool, or a free durable harness with explicit external API costs, through one agent-neutral contract.
             </p>
           </div>
           <InstallCommandCard />
@@ -141,7 +170,7 @@ export default async function Home({
 
       <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-[#656b6f] sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <span className="font-display text-lg font-semibold tracking-[-0.04em] text-[#e7e9e9]">markgit</span>
-        <span>Open discovery and optional commerce for agent tools.</span>
+        <span>Open discovery for tools and harnesses. Commerce applies only to tools.</span>
       </footer>
     </main>
   );

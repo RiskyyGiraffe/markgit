@@ -57,6 +57,27 @@
       "when": 1785027876082,
       "tag": "0007_naive_may_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785602368690,
+      "tag": "0008_whole_yellow_claw",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785603043619,
+      "tag": "0009_steep_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785612118403,
+      "tag": "0010_faithful_slyde",
+      "breakpoints": true
     }
   ]
 }

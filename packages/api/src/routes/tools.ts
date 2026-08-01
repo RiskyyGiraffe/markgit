@@ -24,6 +24,9 @@ tools.post('/', async (c) => {
   const manifest = validateToolManifest(await c.req.json<unknown>());
   const existing = await getProductBySlug(manifest.slug);
   if (existing) {
+    if (existing.kind !== 'tool') {
+      throw new ConflictError(`The slug "${manifest.slug}" belongs to a harness`);
+    }
     if (existing.providerId !== provider.id) {
       throw new ConflictError(`The tool slug "${manifest.slug}" is already in use`);
     }
@@ -39,6 +42,7 @@ tools.post('/', async (c) => {
   const product = await createProduct({
     providerId: provider.id,
     name: manifest.name,
+    kind: 'tool',
     slug: manifest.slug,
     logoUrl: manifest.logoUrl,
     description: manifest.description,

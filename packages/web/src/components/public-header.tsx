@@ -10,6 +10,7 @@ export function PublicHeader() {
         </Link>
         <nav className="hidden items-center gap-6 text-[13px] text-[#868c90] sm:flex">
           <Link href="/tools" className="transition hover:text-[#f1f2f2]">Tools</Link>
+          <Link href="/harnesses" className="transition hover:text-[#f1f2f2]">Harnesses</Link>
           <Link href="/docs" className="transition hover:text-[#f1f2f2]">Docs</Link>
           <a href="/llms.txt" className="transition hover:text-[#f1f2f2]">llms.txt</a>
         </nav>

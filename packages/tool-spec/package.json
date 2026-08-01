@@ -1,12 +1,12 @@
 {
   "name": "@markgit/tool-spec",
   "version": "0.1.0",
-  "description": "Open manifest schema for tools listed on Markgit",
-  "files": ["markgit-tool.schema.json", "README.md"],
+  "description": "Open manifest schemas for tools and harnesses listed on Markgit",
+  "files": ["markgit-tool.schema.json", "markgit-harness.schema.json", "README.md"],
   "license": "Apache-2.0",
   "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "node -e \"JSON.parse(require('node:fs').readFileSync('markgit-tool.schema.json'))\"",
+    "build": "node -e \"const fs=require('node:fs'); for (const f of ['markgit-tool.schema.json','markgit-harness.schema.json']) JSON.parse(fs.readFileSync(f))\"",
     "test": "pnpm build"
   }
 }

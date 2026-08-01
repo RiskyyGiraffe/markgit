@@ -4,6 +4,7 @@ import { normalizeToolCapabilities, type ToolCapabilities } from './tool-policy.
 
 export type ToolManifest = {
   schemaVersion: '1';
+  kind?: 'tool';
   name: string;
   slug: string;
   logoUrl?: string;
@@ -38,6 +39,9 @@ export function validateToolManifest(value: unknown): ToolManifest {
   const manifest = value as Partial<ToolManifest>;
   if (manifest.schemaVersion !== '1') {
     throw new ValidationError('schemaVersion must be "1"');
+  }
+  if (manifest.kind !== undefined && manifest.kind !== 'tool') {
+    throw new ValidationError('kind must be "tool"');
   }
   if (!manifest.name?.trim() || manifest.name.length > 255) {
     throw new ValidationError('name is required and must be at most 255 characters');
