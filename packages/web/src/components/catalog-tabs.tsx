@@ -3,7 +3,7 @@ import { Boxes, Bot, Sparkles, Waypoints } from "lucide-react";
 
 const tabs = [
   { id: "tools", label: "Tools", href: "/tools", icon: Boxes },
-  { id: "harnesses", label: "Harnesses", href: "/harnesses", icon: Waypoints },
+  { id: "harnesses", label: "Custom Loops", href: "/harnesses", icon: Waypoints },
   { id: "mcps", label: "MCPs", href: "/mcps", icon: Bot },
   { id: "skills", label: "Skills", href: "/skills", icon: Sparkles },
 ] as const;

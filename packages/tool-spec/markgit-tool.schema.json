@@ -31,7 +31,23 @@
       "required": ["url", "method"],
       "properties": {
         "url": { "type": "string", "format": "uri" },
-        "method": { "enum": ["GET", "POST"] }
+        "method": { "enum": ["GET", "POST"] },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": { "enum": ["none", "provider_managed"] },
+            "type": { "enum": ["bearer", "api_key"] },
+            "location": { "const": "header" },
+            "name": { "type": "string", "minLength": 1 },
+            "scheme": { "type": "string", "minLength": 1 }
+          },
+          "allOf": [{
+            "if": { "properties": { "mode": { "const": "provider_managed" } } },
+            "then": { "required": ["type", "location", "name"] }
+          }]
+        }
       }
     },
     "inputSchema": {

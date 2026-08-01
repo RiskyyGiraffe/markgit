@@ -163,6 +163,7 @@ function toHarnessCard(row: PublicHarnessRow) {
     outputSchema: row.outputSchema,
     access: config.access,
     loop: config.loop,
+    goal: config.goal,
     compaction: config.compaction,
     invocation: {
       start: { method: 'POST' as const, path: `/v1/harnesses/${row.slug}/runs` },

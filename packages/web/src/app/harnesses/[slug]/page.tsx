@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const harness = await getPublicHarness(slug);
-  return harness ? { title: `${harness.name} harness — markgit`, description: harness.description ?? undefined } : { title: "Harness not found — markgit" };
+  return harness ? { title: `${harness.name} custom loop — markgit`, description: harness.description ?? undefined } : { title: "Custom loop not found — markgit" };
 }
 
 function JsonBlock({ value }: { value: unknown }) {
@@ -31,20 +31,21 @@ export default async function HarnessPage({ params }: { params: Promise<{ slug: 
     <main className="min-h-screen bg-[#101213] text-[#f1f2f2]">
       <PublicHeader />
       <div className="mx-auto max-w-5xl px-5 pb-24 pt-9 sm:px-8 sm:pt-12">
-        <Link href="/harnesses" className="inline-flex items-center gap-2 text-sm text-[#777d81] hover:text-white"><ArrowLeft className="size-4" /> All harnesses</Link>
+        <Link href="/harnesses" className="inline-flex items-center gap-2 text-sm text-[#777d81] hover:text-white"><ArrowLeft className="size-4" /> All custom loops</Link>
         <section className="mt-8 border-b border-white/[0.075] pb-10">
           <div className="flex flex-col justify-between gap-8 md:flex-row">
             <div className="max-w-2xl">
               <div className="flex items-start gap-4">
                 <ToolLogo name={harness.name} logoUrl={harness.logoUrl} category={harness.category} tags={harness.tags} size="lg" />
-                <div><p className="text-xs text-[#777d81]">Harness · {harness.provider.name}</p><h1 className="mt-2 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">{harness.name}</h1></div>
+                <div><p className="text-xs text-[#777d81]">Custom Loop · {harness.provider.name}</p><h1 className="mt-2 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">{harness.name}</h1></div>
               </div>
               <p className="mt-6 text-sm leading-7 text-[#92979a]">{harness.description}</p>
             </div>
             <div className="min-w-56 rounded-xl border border-white/[0.09] bg-[#171a1c] p-5">
               <p className="text-[10px] uppercase tracking-[0.14em] text-[#656b6f]">Markgit charge</p>
               <p className="mt-2 font-mono text-lg font-semibold">Free</p>
-              <p className="mt-3 text-xs leading-5 text-[#848b8f]">External API costs: {harness.pricing.externalApiCosts.replaceAll("_", " ")}</p>
+              <p className="mt-3 text-xs leading-5 text-[#848b8f]">Declared tool calls may debit your wallet within the limits below.</p>
+              <p className="mt-2 text-xs leading-5 text-[#848b8f]">External API costs: {harness.pricing.externalApiCosts.replaceAll("_", " ")}</p>
               {harness.pricing.note ? <p className="mt-2 text-xs leading-5 text-[#6f777b]">{harness.pricing.note}</p> : null}
             </div>
           </div>
@@ -69,14 +70,14 @@ export default async function HarnessPage({ params }: { params: Promise<{ slug: 
               <div className="mt-4 space-y-4">{harness.access.externalApis.length ? harness.access.externalApis.map((api) => <div key={api.id} className="border-t border-white/[0.07] pt-4"><div className="flex justify-between gap-4 text-sm"><span>{api.name}</span><span className="text-xs text-[#8d9599]"><Price pricing={api.pricing} /></span></div><p className="mt-2 text-xs leading-5 text-[#777f83]">{api.purpose}</p><p className="mt-2 font-mono text-[10px] text-[#646c70]">{api.baseUrl}</p><p className="mt-2 text-[10px] text-[#646c70]">Sends: {api.dataSent.join(", ")} · Receives: {api.dataReceived.join(", ")}</p></div>) : <p className="text-xs text-[#737b7f]">No external APIs declared.</p>}</div>
             </div>
             <div className="space-y-4">
-              <div className="rounded-xl border border-white/[0.08] bg-[#151819] p-5"><h3 className="flex items-center gap-2 text-sm font-medium"><Boxes className="size-4" /> Markgit tools</h3><div className="mt-4 space-y-3 text-xs text-[#858c90]">{harness.access.markgitTools.length ? harness.access.markgitTools.map((tool) => <p key={tool.slug}><span className="text-[#d9dcde]">{tool.slug}</span> — {tool.purpose}{tool.maxCallsPerRun ? ` · max ${tool.maxCallsPerRun}/run` : ""}</p>) : <p>No Markgit tools declared.</p>}</div></div>
+              <div className="rounded-xl border border-white/[0.08] bg-[#151819] p-5"><h3 className="flex items-center gap-2 text-sm font-medium"><Boxes className="size-4" /> Wallet-backed tools</h3><div className="mt-4 space-y-3 text-xs text-[#858c90]">{harness.access.markgitTools.length ? harness.access.markgitTools.map((tool) => <p key={tool.slug}><span className="text-[#d9dcde]">{tool.slug}</span> — {tool.purpose}{tool.maxCallsPerRun ? ` · max ${tool.maxCallsPerRun} calls/run` : ""}{tool.maxSpendUsdPerRun ? ` · max $${tool.maxSpendUsdPerRun}/run` : ""}</p>) : <p>No Markgit tools declared.</p>}</div></div>
               <div className="rounded-xl border border-white/[0.08] bg-[#151819] p-5"><h3 className="flex items-center gap-2 text-sm font-medium"><Database className="size-4" /> Data scopes</h3><div className="mt-4 space-y-3 text-xs text-[#858c90]">{harness.access.data.length ? harness.access.data.map((item) => <p key={item.id}><span className="text-[#d9dcde]">{item.id}</span> · {item.access} · {item.scope}<br />{item.purpose}</p>) : <p>No data scopes beyond run input.</p>}<p className="pt-2 text-[10px] uppercase tracking-[0.13em] text-[#626a6e]">Retention: {harness.access.dataRetention}</p></div></div>
             </div>
           </div>
         </section>
 
         <section className="grid gap-4 border-t border-white/[0.075] py-12 lg:grid-cols-3">
-          <div className="rounded-xl border border-white/[0.08] p-5"><Activity className="size-4 text-[#8f9da4]" /><h3 className="mt-4 text-sm font-medium">Loop limits</h3><JsonBlock value={harness.loop} /></div>
+          <div className="rounded-xl border border-white/[0.08] p-5"><Activity className="size-4 text-[#8f9da4]" /><h3 className="mt-4 text-sm font-medium">Goal and limits</h3><JsonBlock value={{ goal: harness.goal, ...harness.loop }} /></div>
           <div className="rounded-xl border border-white/[0.08] p-5"><Shrink className="size-4 text-[#8f9da4]" /><h3 className="mt-4 text-sm font-medium">Compaction</h3><JsonBlock value={harness.compaction} /></div>
           <div className="rounded-xl border border-white/[0.08] p-5"><LockKeyhole className="size-4 text-[#8f9da4]" /><h3 className="mt-4 text-sm font-medium">Shared monitoring</h3><p className="mt-3 text-xs leading-6 text-[#858c90]">Codex, Claude, or any HTTP client using your account can read the same snapshot and append-only cursor stream.</p><p className="mt-3 flex items-center gap-2 font-mono text-[10px] text-[#687176]"><RefreshCw className="size-3" /> GET /v1/harness-runs/{"{runId}"}/events</p></div>
         </section>

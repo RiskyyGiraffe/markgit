@@ -39,13 +39,13 @@ export default async function Home({
         <div className="mx-auto max-w-3xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-[#aeb2b4]">
             <span className="size-1.5 rounded-full bg-[#91a4ad]" />
-            Open registry. Tools, harnesses, MCPs, and agent skills.
+            Open registry. Tools, custom loops, MCPs, and agent skills.
           </div>
           <h1 className="font-display text-5xl font-medium leading-[0.98] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
-            Call a tool. Run a harness. Add a skill.
+            Call a tool. Run a custom loop. Add a skill.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#92979a] sm:text-lg sm:leading-8">
-            Tools are atomic calls. Harnesses are durable loops. MCPs connect clients directly.
+            Tools are atomic calls. Custom loops run agents until a declared goal is achieved. MCPs connect clients directly.
             Skills are source-hosted instructions agents load on demand.
           </p>
 
@@ -65,7 +65,7 @@ export default async function Home({
           </form>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <Link href="/harnesses" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse harnesses <ArrowRight className="size-4" /></Link>
+            <Link href="/harnesses" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse custom loops <ArrowRight className="size-4" /></Link>
             <Link href="/mcps" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse MCPs <ArrowRight className="size-4" /></Link>
             <Link href="/skills" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse skills <ArrowRight className="size-4" /></Link>
           </div>
@@ -82,16 +82,16 @@ export default async function Home({
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6569]">Harnesses</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6569]">Custom Loops</p>
               <h2 className="mt-2 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">Long-running loops without a black box.</h2>
             </div>
-            <Link href="/harnesses" className="inline-flex items-center gap-2 text-sm text-[#858c90] hover:text-white">Explore harnesses <ArrowRight className="size-4" /></Link>
+            <Link href="/harnesses" className="inline-flex items-center gap-2 text-sm text-[#858c90] hover:text-white">Explore custom loops <ArrowRight className="size-4" /></Link>
           </div>
           <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-white/[0.075] bg-white/[0.075] md:grid-cols-3">
             {[
               { icon: Eye, title: "Visible access", body: "Every external API, nested tool, data scope, and retention policy is declared before the loop starts." },
               { icon: Activity, title: "Shared monitoring", body: "Codex, Claude, or any HTTP-capable agent on the account reads the same durable state and event cursor." },
-              { icon: Shrink, title: "Observable compaction", body: "The harness declares its compaction strategy and emits checkpoints whenever context is compacted." },
+              { icon: Shrink, title: "Observable compaction", body: "The loop declares its compaction strategy and emits checkpoints whenever context is compacted." },
             ].map((item) => {
               const Icon = item.icon;
               return <div key={item.title} className="bg-[#0d0f10] p-6"><Icon className="size-5" /><h3 className="mt-6 text-lg font-medium">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[#858c90]">{item.body}</p></div>;
@@ -163,7 +163,7 @@ export default async function Home({
             </div>
             <h2 className="mt-5 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">Host your tool anywhere.</h2>
             <p className="mt-4 max-w-lg text-sm leading-7 text-white/55">
-              Keep the code and compute. Publish a priced or free atomic tool, a free durable harness, a direct provider-hosted MCP server, or a source-hosted skill through one agent-neutral registry.
+              Keep the code and compute. Publish a priced or free atomic tool, a free custom loop, a direct provider-hosted MCP server, or a source-hosted skill through one agent-neutral registry.
             </p>
           </div>
           <InstallCommandCard />
@@ -172,7 +172,7 @@ export default async function Home({
 
       <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-[#656b6f] sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <span className="font-display text-lg font-semibold tracking-[-0.04em] text-[#e7e9e9]">markgit</span>
-        <span>Open discovery for tools, harnesses, MCPs, and skills. Commerce applies only to tools.</span>
+        <span>Open discovery for tools, custom loops, MCPs, and skills. Commerce applies only to tools.</span>
       </footer>
     </main>
   );

@@ -380,7 +380,7 @@ async function inspectSkill(identifier: string | undefined): Promise<void> {
 
 async function runHarness(args: string[]): Promise<void> {
   const identifier = args[0];
-  if (!identifier) throw new Error('Usage: markgit harness run <harness-slug> --input \'{"goal":"..."}\' [--yes]');
+  if (!identifier) throw new Error('Usage: markgit loop run <loop-slug> --input \'{"goal":"..."}\' [--yes]');
   const rawInput = valueAfter(args, '--input') ?? valueAfter(args, '--json') ?? '{}';
   let input: Record<string, unknown>;
   try {
@@ -398,7 +398,7 @@ async function runHarness(args: string[]): Promise<void> {
     pricing: { type: 'free'; chargedByMarkgit: false; amount: string; externalApiCosts: string; note: string | null };
     access: {
       externalApis: Array<{ id: string; name: string; purpose: string; pricing: Record<string, unknown> }>;
-      markgitTools: Array<{ slug: string; purpose: string }>;
+      markgitTools: Array<{ slug: string; purpose: string; maxCallsPerRun?: number; maxSpendUsdPerRun?: string }>;
       data: Array<{ id: string; access: string; scope: string; purpose: string }>;
       dataRetention: string;
     };
@@ -406,21 +406,27 @@ async function runHarness(args: string[]): Promise<void> {
     compaction: Record<string, unknown>;
     observability: { mode: string; limitation: string };
   }>(`/v1/registry/harnesses/${encodeURIComponent(identifier)}`, { apiUrl: config!.apiUrl });
-  if (!harness.policy.callable) throw new Error(`Harness is not callable: ${harness.policy.reasons.join('; ')}`);
+  if (!harness.policy.callable) throw new Error(`Custom loop is not callable: ${harness.policy.reasons.join('; ')}`);
   if (harness.trust.runtime.status !== 'verified' && !args.includes('--allow-unverified')) {
-    throw new Error('This harness runtime is unverified. Inspect its full access manifest, then re-run with --allow-unverified if you accept the risk.');
+    throw new Error('This custom-loop runtime is unverified. Inspect its full access manifest, then re-run with --allow-unverified if you accept the risk.');
   }
-  console.log(`Harness: ${harness.name}`);
-  console.log('Markgit charge: Free. Markgit does not charge for harness runs.');
+  console.log(`Custom loop: ${harness.name}`);
+  console.log('Loop charge: Free. Only the declared atomic tool calls below can debit the wallet.');
   console.log(`External API costs: ${harness.pricing.externalApiCosts}${harness.pricing.note ? ` · ${harness.pricing.note}` : ''}`);
   console.log('Frozen loop access:');
   console.log(JSON.stringify(harness.access, null, 2));
   console.log(`Loop limits: ${JSON.stringify(harness.loop)}`);
   console.log(`Compaction: ${JSON.stringify(harness.compaction)}`);
   console.log(`Observability: ${harness.observability.mode} · ${harness.observability.limitation}`);
-  const requiresApproval = harness.policy.approval.requirement !== 'covered_by_user_policy';
+  const maximumWalletSpend = harness.access.markgitTools.reduce(
+    (sum, tool) => sum + Number(tool.maxSpendUsdPerRun ?? 0),
+    0,
+  );
+  console.log(`Maximum wallet spend: $${maximumWalletSpend.toFixed(4)} per run`);
+  const requiresApproval = harness.access.markgitTools.length > 0
+    || harness.policy.approval.requirement !== 'covered_by_user_policy';
   if (!args.includes('--yes') && requiresApproval) {
-    console.log('Approval required. Review the frozen access manifest and external API costs above, then re-run with --yes.');
+    console.log('Approval required. Review the frozen access and maximum wallet spend above, then re-run with --yes.');
     return;
   }
   const run = await request<Record<string, unknown>>(`/v1/harnesses/${encodeURIComponent(identifier)}/runs`, {
@@ -835,7 +841,7 @@ async function harnessCommand(args: string[]): Promise<void> {
     case 'cancel': return cancelHarness(rest[0]);
     case 'publish': return publishHarness(rest);
     case 'onboard': return publishHarness(rest, true);
-    default: throw new Error('Usage: markgit harness <search|inspect|run|monitor|cancel|publish|onboard>');
+    default: throw new Error('Usage: markgit loop <search|inspect|run|monitor|cancel|publish|onboard>');
   }
 }
 
@@ -929,13 +935,13 @@ Usage:
   markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD] [--allow-unverified]
   markgit publish <manifest>     Publish a provider-hosted tool as a draft
   markgit onboard <manifest>     Register provider, publish, and activate a tool
-  markgit harness search [query] Search durable provider-hosted agent loops
-  markgit harness inspect <slug> Show access, pricing, limits, and compaction
-  markgit harness run <slug> --input '{}' [--yes] [--allow-unverified]
-  markgit harness monitor <id> [--follow]  Read the shared vendor-neutral event stream
-  markgit harness cancel <id>    Request cancellation of a running loop
-  markgit harness publish <file> Publish a harness draft with explicit access
-  markgit harness onboard <file> Publish and activate a harness
+  markgit loop search [query]    Search provider-hosted custom agent loops
+  markgit loop inspect <slug>    Show goal, access, budgets, limits, and compaction
+  markgit loop run <slug> --input '{}' [--yes] [--allow-unverified]
+  markgit loop monitor <id> [--follow]  Read the shared vendor-neutral event stream
+  markgit loop cancel <id>       Request cancellation of a running loop
+  markgit loop publish <file>    Publish a custom loop draft with explicit access
+  markgit loop onboard <file>    Publish and activate a custom loop
   markgit mcp search [query]     Search provider-hosted MCP servers
   markgit mcp inspect <slug>     Show transport, auth, trust, and declared tools
   markgit mcp publish <file>     Publish an MCP server as a draft
@@ -973,6 +979,7 @@ async function main(): Promise<void> {
     case 'call': return callTool(args);
     case 'publish': return publish(args);
     case 'onboard': return publish(args, true);
+    case 'loop':
     case 'harness': return harnessCommand(args);
     case 'mcp': return mcpCommand(args);
     case 'skill': return skillCommand(args);

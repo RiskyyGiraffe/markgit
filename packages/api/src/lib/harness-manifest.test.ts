@@ -34,7 +34,12 @@ function validManifest() {
         dataReceived: ['public result snippets'],
         pricing: { type: 'per_call', amountUsd: '0.0020' },
       }],
-      markgitTools: [{ slug: 'current-weather', purpose: 'Check weather when relevant.', maxCallsPerRun: 2 }],
+      markgitTools: [{
+        slug: 'current-weather',
+        purpose: 'Check weather when relevant.',
+        maxCallsPerRun: 2,
+        maxSpendUsdPerRun: '0.0500',
+      }],
       data: [{
         id: 'run-input',
         type: 'user_input',
@@ -45,6 +50,7 @@ function validManifest() {
       dataRetention: 'transient',
     },
     loop: { maxSteps: 20, maxRuntimeSeconds: 900, heartbeatSeconds: 15 },
+    goal: { inputField: 'question', completionField: 'goalAchieved' },
     compaction: {
       supported: true,
       strategy: 'checkpoint',
@@ -66,12 +72,40 @@ describe('harness manifest', () => {
     expect(config.protocol).toBe('markgit.harness/v1');
     expect(config.access.externalApis[0]?.pricing.amountUsd).toBe('0.0020');
     expect(config.compaction.preserves).toContain('citations');
+    expect(config.goal?.completionField).toBe('goalAchieved');
     expect(capabilities.openWorld).toBe(true);
     expect(capabilities.allowedOutboundDomains).toEqual(expect.arrayContaining([
       'runner.example.com',
       'search.example.com',
     ]));
     expect(harnessExecutionConfig(manifest).type).toBe('harness_http');
+  });
+
+  it('supports encrypted provider-managed authentication for loop endpoints', () => {
+    const input = validManifest();
+    (input.runtime as typeof input.runtime & { auth: Record<string, string> }).auth = {
+      mode: 'provider_managed',
+      type: 'bearer',
+      location: 'header',
+      name: 'Authorization',
+      scheme: 'Bearer',
+    };
+    const manifest = validateHarnessManifest(input);
+    expect(harnessExecutionConfig(manifest).auth).toMatchObject({
+      mode: 'provider_managed',
+      type: 'bearer',
+      name: 'Authorization',
+    });
+  });
+
+  it('rejects invalid goal fields and malformed wallet budgets', () => {
+    const missingGoalField = validManifest();
+    missingGoalField.goal.inputField = 'missing';
+    expect(() => validateHarnessManifest(missingGoalField)).toThrow(/inputSchema property/);
+
+    const invalidBudget = validManifest();
+    invalidBudget.access.markgitTools[0].maxSpendUsdPerRun = '1.00001';
+    expect(() => validateHarnessManifest(invalidBudget)).toThrow(/maxSpendUsdPerRun/);
   });
 
   it('requires pricing for every per-call external API', () => {

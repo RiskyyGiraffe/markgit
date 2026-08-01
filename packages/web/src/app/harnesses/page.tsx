@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getAllPublicHarnesses } from "@/lib/public-registry";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Harnesses — markgit", description: "Free provider-hosted agent loops with explicit access and shared monitoring." };
+export const metadata: Metadata = { title: "Custom Loops — markgit", description: "Free provider-hosted agent loops with explicit goals, wallet budgets, and shared monitoring." };
 
 export default async function HarnessesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
@@ -20,15 +20,15 @@ export default async function HarnessesPage({ searchParams }: { searchParams: Pr
       <div className="mx-auto max-w-5xl px-5 pb-24 pt-8 sm:px-8 sm:pt-12">
         <CatalogTabs active="harnesses" />
         <section className="pt-10">
-          <h1 className="font-display text-3xl font-medium tracking-[-0.045em] sm:text-[38px]">Harnesses</h1>
+          <h1 className="font-display text-3xl font-medium tracking-[-0.045em] sm:text-[38px]">Custom Loops</h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">Durable agent loops with frozen access, compaction, and a shared event stream. Always free through Markgit.</p>
-          <form action="/harnesses" className="mt-7 flex h-11 items-center rounded-xl border bg-background px-3 shadow-sm focus-within:ring-2 focus-within:ring-ring/20"><Search className="size-4 text-muted-foreground" /><input name="q" type="search" defaultValue={query} placeholder="Search harnesses" className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground" /></form>
+          <form action="/harnesses" className="mt-7 flex h-11 items-center rounded-xl border bg-background px-3 shadow-sm focus-within:ring-2 focus-within:ring-ring/20"><Search className="size-4 text-muted-foreground" /><input name="q" type="search" defaultValue={query} placeholder="Search custom loops" className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground" /></form>
         </section>
-        <div className="mt-9 flex items-center justify-between"><h2 className="text-sm font-medium">Public harnesses</h2><span className="text-xs text-muted-foreground">{harnesses.length} listed</span></div>
+        <div className="mt-9 flex items-center justify-between"><h2 className="text-sm font-medium">Public custom loops</h2><span className="text-xs text-muted-foreground">{harnesses.length} listed</span></div>
         <section className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
-          {harnesses.length === 0 ? <div className="px-6 py-20 text-center"><p className="font-medium">No public harnesses yet.</p><p className="mt-2 text-sm text-muted-foreground">Publish one with <code>markgit harness onboard</code>.</p></div> : (
+          {harnesses.length === 0 ? <div className="px-6 py-20 text-center"><p className="font-medium">No public custom loops yet.</p><p className="mt-2 text-sm text-muted-foreground">Publish one with <code>markgit loop onboard</code>.</p></div> : (
             <Table>
-              <TableHeader><TableRow className="bg-muted/35 hover:bg-muted/35"><TableHead className="w-[42%] px-4">Harness</TableHead><TableHead>Provider</TableHead><TableHead>Access</TableHead><TableHead>Usage</TableHead><TableHead>Price</TableHead><TableHead className="w-10" /></TableRow></TableHeader>
+              <TableHeader><TableRow className="bg-muted/35 hover:bg-muted/35"><TableHead className="w-[42%] px-4">Custom loop</TableHead><TableHead>Provider</TableHead><TableHead>Access</TableHead><TableHead>Usage</TableHead><TableHead>Price</TableHead><TableHead className="w-10" /></TableRow></TableHeader>
               <TableBody>{harnesses.map((harness) => (
                 <TableRow key={harness.id} className="group h-[78px]">
                   <TableCell className="px-4 py-3"><Link href={`/harnesses/${harness.slug}`} className="flex items-center gap-3"><ToolLogo name={harness.name} logoUrl={harness.logoUrl} category={harness.category} tags={harness.tags} /><span className="min-w-0"><span className="flex items-center gap-1.5 font-medium"><span className="truncate">{harness.name}</span>{harness.trust.runtime.status === "verified" ? <ShieldCheck className="size-3.5 text-emerald-600" /> : null}</span><span className="mt-1 block max-w-md truncate text-xs text-muted-foreground">{harness.description}</span></span></Link></TableCell>

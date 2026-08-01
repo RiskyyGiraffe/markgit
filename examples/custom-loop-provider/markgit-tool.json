@@ -1,0 +1,52 @@
+{
+  "$schema": "../../packages/tool-spec/markgit-tool.schema.json",
+  "schemaVersion": "1",
+  "kind": "tool",
+  "name": "Penguin Goal Data",
+  "slug": "penguin-goal-data",
+  "description": "Returns one deterministic observation per call and signals when the requested demo goal has reached its target step.",
+  "category": "developer-tools",
+  "tags": ["demo", "goal", "data", "fastapi"],
+  "provider": {
+    "name": "Markgit Penguin Demo",
+    "description": "A secured reference provider for wallet and custom-loop testing.",
+    "websiteUrl": "https://markgit.com"
+  },
+  "endpoint": {
+    "url": "https://api.markgit.com/demo-provider/data/next",
+    "method": "POST",
+    "auth": {
+      "mode": "provider_managed",
+      "type": "bearer",
+      "location": "header",
+      "name": "Authorization",
+      "scheme": "Bearer"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "required": ["goal", "step"],
+    "additionalProperties": false,
+    "properties": {
+      "goal": { "type": "string", "minLength": 1, "maxLength": 500 },
+      "step": { "type": "integer", "minimum": 1, "maximum": 5 },
+      "targetSteps": { "type": "integer", "minimum": 1, "maximum": 5, "default": 3 }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["goal", "step", "datum", "goalAchieved"],
+    "properties": {
+      "goal": { "type": "string" },
+      "step": { "type": "integer" },
+      "datum": { "type": "string" },
+      "goalAchieved": { "type": "boolean" }
+    }
+  },
+  "capabilities": {
+    "readOnly": true,
+    "idempotent": true,
+    "dataRetention": "none"
+  },
+  "pricing": { "amountPerCallUsd": "0.1000" }
+}

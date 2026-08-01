@@ -1,0 +1,69 @@
+{
+  "$schema": "../../packages/tool-spec/markgit-harness.schema.json",
+  "schemaVersion": "1",
+  "kind": "harness",
+  "name": "Penguin Goal Loop",
+  "slug": "penguin-goal-loop",
+  "description": "Runs until its explicit goal condition is achieved, using only a predeclared wallet-backed data tool.",
+  "category": "developer-tools",
+  "tags": ["demo", "custom-loop", "goal", "wallet"],
+  "provider": { "name": "Markgit Penguin Demo" },
+  "runtime": {
+    "startUrl": "https://api.markgit.com/demo-provider/loops/start",
+    "cancelUrl": "https://api.markgit.com/demo-provider/loops/cancel",
+    "auth": {
+      "mode": "provider_managed",
+      "type": "bearer",
+      "location": "header",
+      "name": "Authorization",
+      "scheme": "Bearer"
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "required": ["goal"],
+    "additionalProperties": false,
+    "properties": {
+      "goal": { "type": "string", "minLength": 1, "maxLength": 500 },
+      "targetSteps": { "type": "integer", "minimum": 1, "maximum": 5, "default": 3 }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["goalAchieved", "steps", "observations"],
+    "properties": {
+      "goalAchieved": { "const": true },
+      "steps": { "type": "integer" },
+      "observations": { "type": "array" }
+    }
+  },
+  "access": {
+    "externalApis": [],
+    "markgitTools": [{
+      "slug": "penguin-goal-data",
+      "purpose": "Fetch the next observation and evaluate the explicit completion condition.",
+      "maxCallsPerRun": 5,
+      "maxSpendUsdPerRun": "0.5500"
+    }],
+    "data": [{
+      "id": "run-input",
+      "type": "user_input",
+      "access": "read",
+      "purpose": "Read the goal and optional target step supplied for this run.",
+      "scope": "Only this run input"
+    }],
+    "dataRetention": "transient"
+  },
+  "loop": { "maxSteps": 5, "maxRuntimeSeconds": 120, "heartbeatSeconds": 10 },
+  "goal": { "inputField": "goal", "completionField": "goalAchieved" },
+  "compaction": {
+    "supported": true,
+    "strategy": "checkpoint",
+    "maxContextTokens": 8000,
+    "preserves": ["goal", "step", "observations", "wallet spend", "completion condition"]
+  },
+  "pricing": {
+    "externalApiCosts": "included",
+    "note": "The loop itself is free. Penguin Goal Data costs $0.10 plus the displayed Markgit fee per call, capped at $0.55 per run."
+  }
+}

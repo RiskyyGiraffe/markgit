@@ -304,7 +304,7 @@ export interface HarnessExternalApi {
 
 export interface HarnessAccessManifest {
   externalApis: HarnessExternalApi[];
-  markgitTools: Array<{ slug: string; purpose: string; maxCallsPerRun?: number }>;
+  markgitTools: Array<{ slug: string; purpose: string; maxCallsPerRun?: number; maxSpendUsdPerRun?: string }>;
   data: Array<{
     id: string;
     type: 'user_input' | 'filesystem' | 'database' | 'secret' | 'network' | 'other';
@@ -325,12 +325,23 @@ export interface HarnessManifest {
   category?: string;
   tags?: string[];
   provider?: { name: string; description?: string; websiteUrl?: string };
-  runtime: { startUrl: string; cancelUrl?: string };
+  runtime: {
+    startUrl: string;
+    cancelUrl?: string;
+    auth?: {
+      mode: 'none' | 'provider_managed';
+      type?: 'bearer' | 'api_key';
+      location?: 'header';
+      name?: string;
+      scheme?: string;
+    };
+  };
   inputSchema: Record<string, unknown> & { type: 'object' };
   outputSchema?: Record<string, unknown>;
   capabilities?: Partial<Omit<ToolCapabilities, 'declared'>>;
   access: HarnessAccessManifest;
   loop: { maxSteps: number; maxRuntimeSeconds: number; heartbeatSeconds: number };
+  goal?: { inputField: string; completionField: string };
   compaction: {
     supported: boolean;
     strategy: 'summary' | 'checkpoint' | 'provider_managed';
@@ -382,6 +393,7 @@ export interface HarnessCard {
   outputSchema: Record<string, unknown> | null;
   access: HarnessAccessManifest;
   loop: { maxSteps: number; maxRuntimeSeconds: number; heartbeatSeconds: number };
+  goal?: { inputField: string; completionField: string };
   compaction: {
     supported: boolean;
     strategy: 'summary' | 'checkpoint' | 'provider_managed';

@@ -8,11 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getPublicLeaderboard } from "@/lib/public-registry";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Leaderboard — markgit", description: "Transparent rankings for Markgit tools, harnesses, MCP servers, and agent skills." };
+export const metadata: Metadata = { title: "Leaderboard — markgit", description: "Transparent rankings for Markgit tools, custom loops, MCP servers, and agent skills." };
 
 const sections: Array<{ key: keyof LeaderboardResponse["categories"]; title: string; note: string }> = [
   { key: "tools", title: "Tools", note: "Completed calls observed by Markgit" },
-  { key: "harnesses", title: "Harnesses", note: "Runs observed by Markgit" },
+  { key: "harnesses", title: "Custom Loops", note: "Runs observed by Markgit" },
   { key: "mcps", title: "MCP servers", note: "Current stars on the indexed first-party source" },
   { key: "skills", title: "Skills", note: "Current stars on the indexed source repository" },
 ];

@@ -52,7 +52,23 @@
       "required": ["startUrl"],
       "properties": {
         "startUrl": { "type": "string", "format": "uri" },
-        "cancelUrl": { "type": "string", "format": "uri" }
+        "cancelUrl": { "type": "string", "format": "uri" },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": { "enum": ["none", "provider_managed"] },
+            "type": { "enum": ["bearer", "api_key"] },
+            "location": { "const": "header" },
+            "name": { "type": "string", "minLength": 1 },
+            "scheme": { "type": "string", "minLength": 1 }
+          },
+          "allOf": [{
+            "if": { "properties": { "mode": { "const": "provider_managed" } } },
+            "then": { "required": ["type", "location", "name"] }
+          }]
+        }
       }
     },
     "inputSchema": { "type": "object", "required": ["type"], "properties": { "type": { "const": "object" } } },
@@ -95,11 +111,12 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["slug", "purpose"],
+            "required": ["slug", "purpose", "maxCallsPerRun", "maxSpendUsdPerRun"],
             "properties": {
               "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
               "purpose": { "type": "string", "minLength": 1 },
-              "maxCallsPerRun": { "type": "integer", "minimum": 1 }
+              "maxCallsPerRun": { "type": "integer", "minimum": 1 },
+              "maxSpendUsdPerRun": { "type": "string", "pattern": "^\\d+(?:\\.\\d{1,4})?$" }
             }
           }
         },
@@ -129,6 +146,15 @@
         "maxSteps": { "type": "integer", "minimum": 1 },
         "maxRuntimeSeconds": { "type": "integer", "minimum": 1 },
         "heartbeatSeconds": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputField", "completionField"],
+      "properties": {
+        "inputField": { "type": "string", "minLength": 1 },
+        "completionField": { "type": "string", "minLength": 1 }
       }
     },
     "compaction": {

@@ -12,6 +12,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 rsync -az --delete \
   --exclude ".git" \
   --exclude "node_modules" \
+  --exclude ".venv" \
   --exclude ".next" \
   --exclude ".next.stale-*" \
   --exclude "packages/*/dist" \

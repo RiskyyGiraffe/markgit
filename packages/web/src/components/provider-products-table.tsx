@@ -104,7 +104,7 @@ export function ProviderProductsTable({
                         {product.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="capitalize">{product.kind}</TableCell>
+                    <TableCell className="capitalize">{product.kind === "harness" ? "Custom loop" : product.kind}</TableCell>
                     <TableCell>{product.kind === "tool" ? `$${parseFloat(product.pricePerCallUsd).toFixed(4)}` : "Free"}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {new Date(product.updatedAt).toLocaleString()}

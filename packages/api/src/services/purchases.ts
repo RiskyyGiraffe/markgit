@@ -38,6 +38,13 @@ import { applyQuicklistAuthorization, getQuicklistPreference } from './quicklist
 const MARKGIT_FEE_RATE = 0.10; // 10%
 const QUOTE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+function paymentVerificationSatisfied(status: string | null) {
+  return status === 'active' || (
+    process.env.NODE_ENV === 'test'
+    && process.env.ALLOW_UNVERIFIED_PROVIDER_PAYMENTS === 'true'
+  );
+}
+
 export async function listPurchases(userId: string, limit = 50, offset = 0) {
   const results = await db
     .select({
@@ -106,7 +113,7 @@ export async function createQuote(userId: string, productId: string, walletId: s
       product.executionConfig,
       verifiedOrigins.map((entry) => entry.origin),
     ),
-    paymentVerified: provider.stripeAccountStatus === 'active',
+    paymentVerified: paymentVerificationSatisfied(provider.stripeAccountStatus),
   });
   const preference = await getQuicklistPreference(userId, product.id);
   const policy = applyQuicklistAuthorization(basePolicy, preference, {
@@ -201,7 +208,7 @@ export async function createPurchase(
         product.executionConfig,
         verifiedOrigins.map((entry) => entry.origin),
       ),
-      paymentVerified: provider.stripeAccountStatus === 'active',
+      paymentVerified: paymentVerificationSatisfied(provider.stripeAccountStatus),
     });
     const [preference] = await tx
       .select({

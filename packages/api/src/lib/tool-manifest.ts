@@ -19,6 +19,13 @@ export type ToolManifest = {
   endpoint: {
     url: string;
     method: 'GET' | 'POST';
+    auth?: {
+      mode: 'none' | 'provider_managed';
+      type?: 'bearer' | 'api_key';
+      location?: 'header';
+      name?: string;
+      scheme?: string;
+    };
   };
   inputSchema: Record<string, unknown> & { type: 'object' };
   outputSchema?: Record<string, unknown>;
@@ -58,6 +65,17 @@ export function validateToolManifest(value: unknown): ToolManifest {
   if (!manifest.endpoint || !['GET', 'POST'].includes(manifest.endpoint.method)) {
     throw new ValidationError('endpoint.method must be GET or POST');
   }
+  const endpointAuth = manifest.endpoint.auth ?? { mode: 'none' as const };
+  if (!['none', 'provider_managed'].includes(endpointAuth.mode)) {
+    throw new ValidationError('endpoint.auth.mode must be none or provider_managed');
+  }
+  if (endpointAuth.mode === 'provider_managed'
+    && (!['bearer', 'api_key'].includes(String(endpointAuth.type))
+      || endpointAuth.location !== 'header'
+      || !endpointAuth.name?.trim())) {
+    throw new ValidationError('provider-managed endpoint auth requires type, header location, and header name');
+  }
+  manifest.endpoint.auth = endpointAuth;
 
   let endpoint: URL;
   try {
@@ -74,7 +92,7 @@ export function validateToolManifest(value: unknown): ToolManifest {
   }
   normalizeToolCapabilities(manifest.capabilities, {
     baseUrl: manifest.endpoint.url,
-    auth: { mode: 'none' },
+    auth: { mode: endpointAuth.mode },
   });
 
   const amount = manifest.pricing?.amountPerCallUsd;
@@ -103,12 +121,15 @@ export function manifestExecutionConfig(manifest: ToolManifest) {
     protocol: 'markgit.tool/v1',
     method: manifest.endpoint.method,
     baseUrl: manifest.endpoint.url,
-    auth: {
-      mode: 'none',
-      type: 'none',
-      location: 'header',
-      name: 'Authorization',
-    },
+    auth: manifest.endpoint.auth?.mode === 'provider_managed'
+      ? {
+          mode: 'provider_managed',
+          type: manifest.endpoint.auth.type,
+          location: 'header',
+          name: manifest.endpoint.auth.name,
+          scheme: manifest.endpoint.auth.scheme,
+        }
+      : { mode: 'none', type: 'none', location: 'header', name: 'Authorization' },
     paramMapping: Object.fromEntries(
       inputFields.map((field) => [field, { target, param: field }]),
     ),

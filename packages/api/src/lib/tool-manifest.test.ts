@@ -28,6 +28,30 @@ describe('tool manifest', () => {
     });
   });
 
+  it('compiles provider-managed endpoint authentication without embedding a secret', () => {
+    const manifest = validateToolManifest({
+      ...validManifest,
+      endpoint: {
+        ...validManifest.endpoint,
+        auth: {
+          mode: 'provider_managed',
+          type: 'bearer',
+          location: 'header',
+          name: 'Authorization',
+          scheme: 'Bearer',
+        },
+      },
+    });
+    expect(manifestExecutionConfig(manifest).auth).toEqual({
+      mode: 'provider_managed',
+      type: 'bearer',
+      location: 'header',
+      name: 'Authorization',
+      scheme: 'Bearer',
+    });
+    expect(JSON.stringify(manifest)).not.toContain('secret');
+  });
+
   it('rejects insecure public endpoints', () => {
     expect(() => validateToolManifest({
       ...validManifest,

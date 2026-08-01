@@ -5,18 +5,18 @@ import { markgitApiUrl } from "@/lib/public-registry";
 
 export const metadata: Metadata = {
   title: "Documentation — markgit",
-  description: "Machine-readable discovery documentation for Markgit tools, harnesses, MCP servers, and source-hosted skills.",
+  description: "Machine-readable discovery documentation for Markgit tools, custom loops, MCP servers, and source-hosted skills.",
 };
 
 const formats = [
   { name: "Registry JSON", path: "/v1/registry/tools?limit=100", icon: Search, body: "All public tools, providers, prices, usage, input schemas, output schemas, and documentation links." },
-  { name: "Harness Registry", path: "/v1/registry/harnesses?limit=100", icon: Activity, body: "Durable loops with frozen access manifests, external API pricing, loop limits, compaction, and monitoring contracts." },
+  { name: "Custom Loop Registry", path: "/v1/registry/harnesses?limit=100", icon: Activity, body: "Goal-driven loops with frozen access manifests, wallet budgets, loop limits, compaction, and monitoring contracts." },
   { name: "MCP Registry", path: "/v1/registry/mcps?limit=100", icon: Bot, body: "Remote MCP servers with direct connection details, authentication, declared tools, resources, prompts, and trust." },
   { name: "Skills Registry", path: "/v1/registry/skills?limit=100", icon: Sparkles, body: "Source-hosted SKILL.md packages with publisher provenance, immutable revisions, compatibility, contents, and install guidance." },
   { name: "Leaderboard", path: "/v1/registry/leaderboard?limit=25", icon: Activity, body: "Independent rankings using Markgit calls/runs or current source-repository stars, with the metric attached to every entry." },
   { name: "Registry llms.txt", path: "/v1/registry/llms.txt", icon: Bot, body: "A concise plain-text index designed for language-model context and retrieval." },
   { name: "Per-tool OpenAPI", path: "/v1/registry/tools/{slug}/openapi.json", icon: Braces, body: "OpenAPI 3.1 for the exact quote and call operations, including the tool-specific input and output shapes." },
-  { name: "Per-harness OpenAPI", path: "/v1/registry/harnesses/{slug}/openapi.json", icon: Braces, body: "Vendor-neutral approval, start, monitor, event cursor, and cancel operations for a free durable harness run." },
+  { name: "Per-loop OpenAPI", path: "/v1/registry/harnesses/{slug}/openapi.json", icon: Braces, body: "Vendor-neutral approval, start, monitor, event cursor, and cancel operations for a free custom loop." },
 ];
 
 export default function DocsPage() {
@@ -30,7 +30,7 @@ export default function DocsPage() {
           </div>
           <h1 className="mt-5 font-display text-4xl font-medium tracking-[-0.06em] sm:text-6xl">Docs an LLM can use directly.</h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-[#92979a] sm:text-lg">
-            Every listing says whether it is an atomic tool, durable harness, remote MCP server, or source-hosted skill. Indexed MCP and skill docs expose provenance, immutable source revisions, and reviewable Markdown without Markgit automatically installing or executing package code.
+            Every listing says whether it is an atomic tool, custom loop, remote MCP server, or source-hosted skill. Indexed MCP and skill docs expose provenance, immutable source revisions, and reviewable Markdown without Markgit automatically installing or executing package code.
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function DocsPage() {
 
         <section className="pt-14">
           <h2 className="text-2xl font-semibold tracking-[-0.035em]">Start with the registry</h2>
-          <pre className="mt-5 overflow-auto rounded-xl border border-white/[0.075] bg-[#0b0d0e] p-5 text-sm leading-7 text-[#c3c7c9]"><code>{`# Atomic tools\ncurl ${markgitApiUrl}/v1/registry/tools?limit=100\n\n# Durable harnesses\ncurl ${markgitApiUrl}/v1/registry/harnesses?limit=100\n\n# Remote MCP servers\ncurl ${markgitApiUrl}/v1/registry/mcps?limit=100\n\n# Source-hosted agent skills\ncurl ${markgitApiUrl}/v1/registry/skills?limit=100\n\n# Per-category rankings\ncurl ${markgitApiUrl}/v1/registry/leaderboard?limit=25\n\n# LLM-friendly combined index\ncurl ${markgitApiUrl}/v1/registry/llms.txt\n\n# Exact schemas for one tool\ncurl ${markgitApiUrl}/v1/registry/tools/{slug}/docs\n\n# Access, pricing, compaction, and monitoring for one harness\ncurl ${markgitApiUrl}/v1/registry/harnesses/{slug}/docs\n\n# Direct connection, source, and README snapshot\ncurl ${markgitApiUrl}/v1/registry/mcps/{slug}/docs\ncurl ${markgitApiUrl}/v1/registry/mcps/{slug}/review.md\n\n# Provenance, install guidance, and SKILL.md snapshot\ncurl ${markgitApiUrl}/v1/registry/skills/{slug}/docs\ncurl ${markgitApiUrl}/v1/registry/skills/{slug}/review.md`}</code></pre>
+          <pre className="mt-5 overflow-auto rounded-xl border border-white/[0.075] bg-[#0b0d0e] p-5 text-sm leading-7 text-[#c3c7c9]"><code>{`# Atomic tools\ncurl ${markgitApiUrl}/v1/registry/tools?limit=100\n\n# Custom loops (legacy API path retained)\ncurl ${markgitApiUrl}/v1/registry/harnesses?limit=100\n\n# Remote MCP servers\ncurl ${markgitApiUrl}/v1/registry/mcps?limit=100\n\n# Source-hosted agent skills\ncurl ${markgitApiUrl}/v1/registry/skills?limit=100\n\n# Per-category rankings\ncurl ${markgitApiUrl}/v1/registry/leaderboard?limit=25\n\n# LLM-friendly combined index\ncurl ${markgitApiUrl}/v1/registry/llms.txt\n\n# Exact schemas for one tool\ncurl ${markgitApiUrl}/v1/registry/tools/{slug}/docs\n\n# Goal, access, pricing, compaction, and monitoring for one custom loop\ncurl ${markgitApiUrl}/v1/registry/harnesses/{slug}/docs\n\n# Direct connection, source, and README snapshot\ncurl ${markgitApiUrl}/v1/registry/mcps/{slug}/docs\ncurl ${markgitApiUrl}/v1/registry/mcps/{slug}/review.md\n\n# Provenance, install guidance, and SKILL.md snapshot\ncurl ${markgitApiUrl}/v1/registry/skills/{slug}/docs\ncurl ${markgitApiUrl}/v1/registry/skills/{slug}/review.md`}</code></pre>
         </section>
       </div>
     </main>

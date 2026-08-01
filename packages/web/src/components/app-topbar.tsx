@@ -18,7 +18,7 @@ import {
 
 const nav = [
   { label: "Tools", href: "/marketplace", matches: ["/marketplace", "/tools"] },
-  { label: "Harnesses", href: "/harnesses", matches: ["/harnesses"] },
+  { label: "Custom Loops", href: "/harnesses", matches: ["/harnesses"] },
   { label: "MCPs", href: "/mcps", matches: ["/mcps"] },
   { label: "Skills", href: "/skills", matches: ["/skills"] },
   { label: "Leaderboard", href: "/leaderboard", matches: ["/leaderboard"] },
