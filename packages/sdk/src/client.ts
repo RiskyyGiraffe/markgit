@@ -61,6 +61,11 @@ import type {
   OriginVerificationChallenge,
   AuthorizationMode,
   QuicklistResponse,
+  SkillCard,
+  SkillListResponse,
+  SkillDocumentation,
+  SkillManifest,
+  PublishSkillResponse,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -236,6 +241,25 @@ export class MarkgitClient {
 
   async getMcpDocumentation(identifier: string): Promise<McpDocumentation> {
     return this.request('GET', `/v1/registry/mcps/${encodeURIComponent(identifier)}/docs`);
+  }
+
+  // ── Agent skills ──────────────────────────────────────────────────
+
+  async listSkills(query = '', limit = 20, offset = 0): Promise<SkillListResponse> {
+    const params = new URLSearchParams({ q: query, limit: String(limit), offset: String(offset) });
+    return this.request('GET', `/v1/registry/skills?${params}`);
+  }
+
+  async publishSkill(manifest: SkillManifest): Promise<PublishSkillResponse> {
+    return this.request('POST', '/v1/skills', manifest);
+  }
+
+  async getSkill(identifier: string): Promise<SkillCard> {
+    return this.request('GET', `/v1/registry/skills/${encodeURIComponent(identifier)}`);
+  }
+
+  async getSkillDocumentation(identifier: string): Promise<SkillDocumentation> {
+    return this.request('GET', `/v1/registry/skills/${encodeURIComponent(identifier)}/docs`);
   }
 
   // ── Products ────────────────────────────────────────────────────────

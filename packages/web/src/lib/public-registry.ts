@@ -1,4 +1,4 @@
-import type { HarnessCard, HarnessDocumentation, McpCard, McpDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
+import type { HarnessCard, HarnessDocumentation, McpCard, McpDocumentation, SkillCard, SkillDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
 
 export const markgitApiUrl = (process.env.MARKGIT_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -110,4 +110,39 @@ export async function getPublicMcpDocumentation(identifier: string) {
   const response = await fetch(`${markgitApiUrl}/v1/registry/mcps/${encodeURIComponent(identifier)}/docs`, { cache: "no-store" });
   if (!response.ok) return null;
   return response.json() as Promise<McpDocumentation>;
+}
+
+export async function getAllPublicSkills(query = "") {
+  const skills: SkillCard[] = [];
+  const pageSize = 100;
+  let offset = 0;
+  let total = Number.POSITIVE_INFINITY;
+  try {
+    while (offset < total && offset < 5_000) {
+      const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
+      if (query) params.set("q", query);
+      const response = await fetch(`${markgitApiUrl}/v1/registry/skills?${params}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Registry returned ${response.status}`);
+      const page = (await response.json()) as { skills: SkillCard[]; total: number };
+      skills.push(...page.skills);
+      total = page.total;
+      if (page.skills.length === 0) break;
+      offset += page.skills.length;
+    }
+    return { skills, total: Number.isFinite(total) ? total : skills.length };
+  } catch {
+    return { skills: [] as SkillCard[], total: 0 };
+  }
+}
+
+export async function getPublicSkill(identifier: string) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/skills/${encodeURIComponent(identifier)}`, { cache: "no-store" });
+  if (!response.ok) return null;
+  return response.json() as Promise<SkillCard>;
+}
+
+export async function getPublicSkillDocumentation(identifier: string) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/skills/${encodeURIComponent(identifier)}/docs`, { cache: "no-store" });
+  if (!response.ok) return null;
+  return response.json() as Promise<SkillDocumentation>;
 }

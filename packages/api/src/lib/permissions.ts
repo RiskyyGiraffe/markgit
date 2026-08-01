@@ -129,6 +129,7 @@ export function requiredPermission(method: string, rawPath: string): ApiPermissi
   if (verb === 'POST' && /^\/harness-runs\/[^/]+\/cancel$/.test(path)) return 'harnesses:run';
 
   if (verb === 'POST' && path === '/mcps') return 'mcps:publish';
+  if (verb === 'POST' && path === '/skills') return 'tools:publish';
 
   if (verb === 'GET' && /^\/spend-controls(?:\/tools\/[^/]+)?$/.test(path)) return 'spend:read';
   if (

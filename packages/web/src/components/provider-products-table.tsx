@@ -31,7 +31,7 @@ type ProviderProduct = {
   name: string;
   slug: string;
   status: string;
-  kind: "tool" | "harness" | "mcp";
+  kind: "tool" | "harness" | "mcp" | "skill";
   pricePerCallUsd: string;
   updatedAt: string;
 };

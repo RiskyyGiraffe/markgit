@@ -14,6 +14,7 @@
     "db:migrate": "pnpm --filter @markgit/api db:migrate",
     "db:seed": "pnpm --filter @markgit/api db:seed",
     "onboard:public-apis": "node scripts/onboard-public-apis.mjs",
+    "onboard:official-skills": "pnpm --filter @markgit/api db:seed:official-skills",
     "test": "pnpm -r test",
     "deploy:api": "./scripts/deploy-api.sh"
   },

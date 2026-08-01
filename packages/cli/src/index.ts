@@ -165,11 +165,11 @@ async function balance(): Promise<void> {
 
 async function walletForAgent(): Promise<void> {
   const config = await loadConfig();
-  const wallet = await request<{ walletId: string; balance: string; heldAmount: string; available: string }>('/v1/wallet', {
+  const wallet = await request<{ available: string }>('/v1/wallet', {
     apiUrl: config!.apiUrl,
     apiKey: config!.apiKey,
   });
-  console.log(JSON.stringify({ ...wallet, currency: 'USD' }, null, 2));
+  console.log(`$${Number.parseFloat(wallet.available).toFixed(4)} USD`);
 }
 
 type AuthorizationMode = 'ask_paid' | 'ask_every' | 'never_ask';
@@ -201,18 +201,15 @@ async function quicklist(args: string[]): Promise<void> {
       total: number;
     }>('/v1/quicklist', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
     if (args.includes('--json') || command === '--json') {
-      console.log(JSON.stringify(result, null, 2));
+      console.log(JSON.stringify(result.entries.map((entry) => entry.tool.slug)));
       return;
     }
     if (!result.entries.length) {
       console.log('Your agent quicklist is empty. Add one with `markgit quicklist add <tool-slug>`.');
       return;
     }
-    for (const entry of result.entries) {
-      const price = entry.tool.pricing.type === 'free' ? 'free' : `$${entry.tool.pricing.amount}/call`;
-      console.log(`${entry.tool.slug}  ${price}  ${entry.authorization.label}${entry.authorization.versionCurrent ? '' : ' (reauthorization required)'}`);
-      console.log(`  ${entry.tool.name} by ${entry.tool.provider.name}`);
-    }
+    for (const entry of result.entries) console.log(entry.tool.slug);
+    console.log('\nRun `markgit <quicklist-name>` to see details.');
     return;
   }
   if (!identifier) throw new Error(`Usage: markgit quicklist ${command} <tool-slug>`);
@@ -232,6 +229,28 @@ async function quicklist(args: string[]): Promise<void> {
     body: JSON.stringify({ authorizationMode: mode }),
   });
   console.log(`${result.tool.name} is synced to your agent quicklist with authorization: ${mode}.`);
+}
+
+async function inspectQuicklistShortcut(identifier: string): Promise<boolean> {
+  const config = await loadConfig(false);
+  if (!config) return false;
+  const result = await request<{
+    entries: Array<{
+      tool: { slug: string; name: string };
+      authorization: { mode: AuthorizationMode; label: string; versionCurrent: boolean };
+    }>;
+  }>('/v1/quicklist', { apiUrl: config.apiUrl, apiKey: config.apiKey });
+  const normalized = identifier.toLowerCase();
+  const entry = result.entries.find((candidate) => (
+    candidate.tool.slug === normalized
+    || candidate.tool.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === normalized
+  ));
+  if (!entry) return false;
+  const tool = await request<Record<string, unknown>>(`/v1/registry/tools/${encodeURIComponent(entry.tool.slug)}`, {
+    apiUrl: config.apiUrl,
+  });
+  console.log(JSON.stringify({ tool, authorization: entry.authorization }, null, 2));
+  return true;
 }
 
 async function search(args: string[]): Promise<void> {
@@ -328,6 +347,35 @@ async function inspectMcp(identifier: string | undefined): Promise<void> {
   const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
   const mcp = await request<Record<string, unknown>>(`/v1/registry/mcps/${encodeURIComponent(identifier)}`, { apiUrl });
   console.log(JSON.stringify(mcp, null, 2));
+}
+
+async function searchSkills(args: string[]): Promise<void> {
+  const query = args.join(' ').trim();
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const result = await request<{ skills: Array<{
+    slug: string;
+    name: string;
+    description: string | null;
+    compatibility: string[];
+    provenance: { publisher: string | null; repository: string };
+    contents: { scripts: boolean; references: boolean; assets: boolean };
+  }> }>(`/v1/registry/skills?q=${encodeURIComponent(query)}`, { apiUrl });
+  if (!result.skills.length) {
+    console.log('No matching skills.');
+    return;
+  }
+  for (const skill of result.skills) {
+    console.log(`${skill.slug}  ${skill.compatibility.join(',')}`);
+    console.log(`  ${skill.name} by ${skill.provenance.publisher ?? new URL(skill.provenance.repository).hostname} · free · source hosted`);
+    if (skill.description) console.log(`  ${skill.description}`);
+  }
+}
+
+async function inspectSkill(identifier: string | undefined): Promise<void> {
+  if (!identifier) throw new Error('Usage: markgit skill inspect <skill-slug>');
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const skill = await request<Record<string, unknown>>(`/v1/registry/skills/${encodeURIComponent(identifier)}`, { apiUrl });
+  console.log(JSON.stringify(skill, null, 2));
 }
 
 async function runHarness(args: string[]): Promise<void> {
@@ -826,6 +874,41 @@ async function mcpCommand(args: string[]): Promise<void> {
   }
 }
 
+async function publishSkill(args: string[], activate = false): Promise<void> {
+  const manifestPath = args[0];
+  if (!manifestPath) throw new Error('Usage: markgit skill publish <markgit-skill.json>');
+  const config = await loadConfig();
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as PublishManifest;
+  try {
+    await request('/v1/providers', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
+  } catch (error) {
+    if ((error as { status?: number }).status !== 404) throw error;
+    await request('/v1/providers', {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+      body: JSON.stringify(manifest.provider ?? { name: 'Local Markgit Provider' }),
+    });
+  }
+  const result = await request<{ skill: { id: string; slug: string; status: string }; created: boolean }>('/v1/skills', {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST', body: JSON.stringify(manifest),
+  });
+  if (activate) {
+    if (result.skill.status === 'draft') await request(`/v1/products/${result.skill.id}/submit`, { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' });
+    if (['draft', 'pending_review'].includes(result.skill.status)) await request(`/v1/products/${result.skill.id}/publish`, { apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST' });
+  }
+  console.log(JSON.stringify({ ...result, status: activate ? 'active' : result.skill.status }, null, 2));
+}
+
+async function skillCommand(args: string[]): Promise<void> {
+  const [command, ...rest] = args;
+  switch (command) {
+    case 'search': return searchSkills(rest);
+    case 'inspect': return inspectSkill(rest[0]);
+    case 'publish': return publishSkill(rest);
+    case 'onboard': return publishSkill(rest, true);
+    default: throw new Error('Usage: markgit skill <search|inspect|publish|onboard>');
+  }
+}
+
 function help(): void {
   console.log(`Markgit — a thin client for searchable, metered agent tools
 
@@ -834,8 +917,9 @@ Usage:
   markgit logout                 Remove the account from this machine
   markgit status                 Show the linked account and available balance
   markgit balance                Show wallet balances
-  markgit wallet                 Print machine-readable wallet balance JSON
-  markgit quicklist [--json]     Show tools synced to this account
+  markgit wallet                 Show the available wallet balance
+  markgit quicklist [--json]     List tool names synced to this account
+  markgit <quicklist-name>       Show details for a synced tool
   markgit quicklist add <slug> [paid|every|never]
   markgit quicklist auth <slug> <paid|every|never>
   markgit quicklist remove <slug>
@@ -856,6 +940,10 @@ Usage:
   markgit mcp inspect <slug>     Show transport, auth, trust, and declared tools
   markgit mcp publish <file>     Publish an MCP server as a draft
   markgit mcp onboard <file>     Publish and activate an MCP server
+  markgit skill search [query]   Search source-hosted agent skills
+  markgit skill inspect <slug>   Show provenance and install guidance
+  markgit skill publish <file>   Publish a skill listing as a draft
+  markgit skill onboard <file>   Publish and activate a skill listing
   markgit limits                 Show global spend and rate controls
   markgit limits set [limits]    Set --per-call, --daily, --monthly, --rpm, --rph
   markgit limits tool <slug>     View/set limits; use --allow, --block, or --inherit
@@ -887,6 +975,7 @@ async function main(): Promise<void> {
     case 'onboard': return publish(args, true);
     case 'harness': return harnessCommand(args);
     case 'mcp': return mcpCommand(args);
+    case 'skill': return skillCommand(args);
     case 'limits': return limits(args);
     case 'earnings': return earnings();
     case 'verify-origin': return verifyOrigin(args);
@@ -901,6 +990,7 @@ async function main(): Promise<void> {
       console.log('0.1.0');
       return;
     default:
+      if (await inspectQuicklistShortcut(command)) return;
       throw new Error(`Unknown command: ${command}. Run \`markgit help\`.`);
   }
 }

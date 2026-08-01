@@ -7,15 +7,16 @@ npm install -g @markgit/cli
 markgit login
 markgit search "weather"
 markgit quicklist add open-meteo-current-weather paid
-markgit quicklist --json
+markgit quicklist
+markgit open-meteo-current-weather
 markgit wallet
 markgit inspect open-meteo-current-weather
 markgit call paid-tool --input '{"city":"New York"}' --max-cost 0.02
 ```
 
-The account quicklist syncs between the website and every linked CLI. Each tool can use `paid` (ask for charged calls), `every` (ask every call), or `never` (standing authorization for the exact manifest version). Spend limits, blocked tools, and unverified endpoint warnings always remain enforced.
+The account quicklist syncs between the website and every linked CLI. `markgit quicklist` prints only its tool names; `markgit <quicklist-name>` returns the selected tool details and authorization. Each tool can use `paid` (ask for charged calls), `every` (ask every call), or `never` (standing authorization for the exact manifest version). Spend limits, blocked tools, and unverified endpoint warnings always remain enforced.
 
-Paid calls always obtain an exact quote first. Use `--max-cost` for bounded agent approval or `--yes` for an explicit interactive approval. `markgit wallet` and `markgit quicklist --json` provide machine-readable state for agents.
+Paid calls always obtain an exact quote first. Use `--max-cost` for bounded agent approval or `--yes` for an explicit interactive approval. `markgit wallet` prints only the available balance.
 
 Providers can register themselves and activate a hosted tool in one repeatable command:
 

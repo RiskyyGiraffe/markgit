@@ -7,6 +7,7 @@ const publicPaths = [
   "/tools",
   "/harnesses",
   "/mcps",
+  "/skills",
   "/docs",
   "/llms.txt",
   "/.well-known/llms.txt",

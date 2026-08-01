@@ -1,6 +1,6 @@
-# Markgit — Agent Tool, Harness, and MCP Registry
+# Markgit — Agent Tool, Harness, MCP, and Skill Registry
 
-Markgit is a thin standardization and marketplace layer for tools, durable agent harnesses, and remote MCP servers. Publishers host their own endpoints and compute. Free standardized tools can be called directly; paid tools use Markgit only for wallet authorization, metering, and settlement. Harnesses and MCP traffic are never charged by Markgit.
+Markgit is a thin standardization and marketplace layer for tools, durable agent harnesses, remote MCP servers, and source-hosted skills. Publishers host their own endpoints, compute, and skill packages. Free standardized tools can be called directly; paid tools use Markgit only for wallet authorization, metering, and settlement. Harnesses, MCP traffic, and skills are never charged by Markgit.
 
 **Repo**: [github.com/RiskyyGiraffe/markgit](https://github.com/RiskyyGiraffe/markgit)
 
@@ -87,6 +87,9 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | `/v1/registry/mcps` | GET | Public remote MCP server catalog |
 | `/v1/registry/mcps/:slug/docs` | GET | Direct connection, authentication, tool surface, and trust |
 | `/v1/mcps` | POST | Publish a provider-hosted MCP manifest as a draft |
+| `/v1/registry/skills` | GET | Public source-hosted agent skill catalog |
+| `/v1/registry/skills/:slug/docs` | GET | Skill provenance, package contents, compatibility, and install guidance |
+| `/v1/skills` | POST | Publish a source-hosted skill manifest as a draft |
 | `/v1/registry/llms.txt` | GET | Plain-text LLM registry index |
 | `/webhooks/stripe` | POST | Stripe webhook endpoint (signature-verified, no auth) |
 | `/v1/auth/keys` | POST | Create API key |
@@ -130,6 +133,7 @@ All authenticated routes are under `/v1/` and require `Authorization: Bearer <ap
 | Public tool docs | `/tools/[slug]` | Human and machine-readable schemas and call flow |
 | Public harnesses | `/harnesses` | Searchable durable agent-loop directory |
 | Public MCPs | `/mcps` | Searchable provider-hosted MCP directory |
+| Public skills | `/skills` | Searchable source-hosted SKILL.md directory |
 | Documentation | `/docs` | LLM discovery and invocation overview |
 
 ## Database Schema
@@ -142,6 +146,7 @@ Key tables (defined in `packages/api/src/db/schema.ts`):
 - `mkgt_providers` — vendor accounts (with Stripe Connect fields)
 - `mkgt_products` — marketplace listings (price, schema, execution config)
 - `mkgt_products.mcp_config` — direct MCP transport, authentication, and declared feature surface
+- `mkgt_products.skill_config` — skill source, immutable revision, compatibility, install guidance, and package contents
 - `mkgt_product_versions` — immutable, digest-addressed tool manifests
 - `mkgt_provider_origin_verifications` — time-limited endpoint ownership proofs
 - `mkgt_user_tool_approvals` — first-use approvals bound to an exact manifest digest

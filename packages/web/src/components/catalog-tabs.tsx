@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Boxes, Bot, Waypoints } from "lucide-react";
+import { Boxes, Bot, Sparkles, Waypoints } from "lucide-react";
 
 const tabs = [
   { id: "tools", label: "Tools", href: "/tools", icon: Boxes },
   { id: "harnesses", label: "Harnesses", href: "/harnesses", icon: Waypoints },
   { id: "mcps", label: "MCPs", href: "/mcps", icon: Bot },
+  { id: "skills", label: "Skills", href: "/skills", icon: Sparkles },
 ] as const;
 
 export function CatalogTabs({ active }: { active: (typeof tabs)[number]["id"] }) {

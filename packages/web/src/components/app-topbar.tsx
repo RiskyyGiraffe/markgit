@@ -20,6 +20,7 @@ const nav = [
   { label: "Tools", href: "/marketplace", matches: ["/marketplace", "/tools"] },
   { label: "Harnesses", href: "/harnesses", matches: ["/harnesses"] },
   { label: "MCPs", href: "/mcps", matches: ["/mcps"] },
+  { label: "Skills", href: "/skills", matches: ["/skills"] },
   { label: "Quicklist", href: "/dashboard", matches: ["/dashboard"] },
   { label: "Provider", href: "/provider", matches: ["/provider"] },
   { label: "Docs", href: "/docs", matches: ["/docs"] },

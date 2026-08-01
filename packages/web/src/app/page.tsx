@@ -39,14 +39,14 @@ export default async function Home({
         <div className="mx-auto max-w-3xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-[#aeb2b4]">
             <span className="size-1.5 rounded-full bg-[#91a4ad]" />
-            Open registry. Provider-hosted tools, harnesses, and MCPs.
+            Open registry. Tools, harnesses, MCPs, and agent skills.
           </div>
           <h1 className="font-display text-5xl font-medium leading-[0.98] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
-            Call a tool. Run a harness. Connect an MCP.
+            Call a tool. Run a harness. Add a skill.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#92979a] sm:text-lg sm:leading-8">
-            Tools are atomic calls. Harnesses are durable loops. MCPs connect clients directly
-            to provider-hosted servers. Your compute stays wherever you host it.
+            Tools are atomic calls. Harnesses are durable loops. MCPs connect clients directly.
+            Skills are source-hosted instructions agents load on demand.
           </p>
 
           <form action="/tools" method="get" className="mx-auto mt-9 flex max-w-2xl items-center gap-2 rounded-xl border border-white/[0.11] bg-[#1b1e20] p-2">
@@ -67,6 +67,7 @@ export default async function Home({
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Link href="/harnesses" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse harnesses <ArrowRight className="size-4" /></Link>
             <Link href="/mcps" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse MCPs <ArrowRight className="size-4" /></Link>
+            <Link href="/skills" className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-[#c8ccce] transition hover:bg-white/[0.08] hover:text-white">Browse skills <ArrowRight className="size-4" /></Link>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-[#777d81] sm:text-sm">
@@ -162,7 +163,7 @@ export default async function Home({
             </div>
             <h2 className="mt-5 font-display text-3xl font-medium tracking-[-0.045em] sm:text-4xl">Host your tool anywhere.</h2>
             <p className="mt-4 max-w-lg text-sm leading-7 text-white/55">
-              Keep the code and compute. Publish a priced or free atomic tool, a free durable harness, or a direct provider-hosted MCP server through one agent-neutral registry.
+              Keep the code and compute. Publish a priced or free atomic tool, a free durable harness, a direct provider-hosted MCP server, or a source-hosted skill through one agent-neutral registry.
             </p>
           </div>
           <InstallCommandCard />
@@ -171,7 +172,7 @@ export default async function Home({
 
       <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-[#656b6f] sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <span className="font-display text-lg font-semibold tracking-[-0.04em] text-[#e7e9e9]">markgit</span>
-        <span>Open discovery for tools, harnesses, and MCPs. Commerce applies only to tools.</span>
+        <span>Open discovery for tools, harnesses, MCPs, and skills. Commerce applies only to tools.</span>
       </footer>
     </main>
   );

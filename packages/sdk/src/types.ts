@@ -541,6 +541,79 @@ export interface McpDocumentation {
   documentation: { metadata: string; json: string; llms: string; human: string };
 }
 
+// ── Agent skills ─────────────────────────────────────────────────────
+
+export type SkillCompatibility = 'agent-skills' | 'codex' | 'claude-code';
+
+export interface SkillManifest {
+  schemaVersion: '1';
+  kind: 'skill';
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  description: string;
+  category?: string;
+  tags?: string[];
+  provider?: { name: string; description?: string; websiteUrl?: string };
+  source: {
+    publisher?: string;
+    repositoryUrl: string;
+    url: string;
+    path: string;
+    revision: string;
+    licenseUrl?: string;
+  };
+  compatibility: SkillCompatibility[];
+  install?: { codex?: string; claudeCode?: string; universal?: string };
+  contents?: { scripts?: boolean; references?: boolean; assets?: boolean };
+}
+
+export interface SkillCard {
+  kind: 'skill';
+  id: string;
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  provider: { id: string; name: string; trustTier: string };
+  version: ToolCard['version'];
+  format: 'agent-skills/v1';
+  entrypoint: 'SKILL.md';
+  source: SkillManifest['source'];
+  compatibility: SkillCompatibility[];
+  installation: {
+    commands: NonNullable<SkillManifest['install']>;
+    automatic: false;
+    note: string;
+  };
+  contents: { scripts: boolean; references: boolean; assets: boolean };
+  pricing: { type: 'free'; chargedByMarkgit: false; currency: 'USD'; amount: '0.0000' };
+  provenance: { sourceHosted: true; indexedByMarkgit: true; publisher: string | null; repository: string; revision: string };
+  usage: { tracked: false; label: 'New' };
+  documentation: { json: string; llms: string; human: string };
+  updatedAt: string;
+}
+
+export interface SkillListResponse {
+  skills: SkillCard[];
+  total: number;
+}
+
+export interface PublishSkillResponse {
+  skill: Product;
+  created: boolean;
+  next: string;
+}
+
+export interface SkillDocumentation {
+  schemaVersion: 'markgit.skill-docs/v1';
+  skill: SkillCard;
+  safety: { sourceHosted: true; autoInstall: false; guidance: string };
+  documentation: { metadata: string; json: string; llms: string; human: string; source: string };
+}
+
 export interface ProductSummary {
   id: string;
   name: string;
@@ -565,7 +638,7 @@ export interface Product {
   logoUrl: string | null;
   description: string | null;
   category: string | null;
-  kind: 'tool' | 'harness' | 'mcp';
+  kind: 'tool' | 'harness' | 'mcp' | 'skill';
   status: string;
   moderationStatus: string;
   inputSchema: Record<string, unknown> | null;
@@ -573,6 +646,7 @@ export interface Product {
   executionConfig: Record<string, unknown> | null;
   harnessConfig: Record<string, unknown> | null;
   mcpConfig: Record<string, unknown> | null;
+  skillConfig: Record<string, unknown> | null;
   capabilities: ToolCapabilities | null;
   manifestDigest: string | null;
   currentVersion: number;
