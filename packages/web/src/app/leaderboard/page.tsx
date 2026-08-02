@@ -44,7 +44,7 @@ export default async function LeaderboardPage() {
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{entry.rank}</TableCell>
                     <TableCell><Link href={hrefFor(entry)} className="flex items-center gap-3"><ToolLogo name={entry.name} logoUrl={entry.logoUrl} category={entry.kind} tags={[entry.kind]} /><span className="min-w-0"><span className="block truncate text-sm font-medium">{entry.name}</span><span className="mt-1 block max-w-md truncate text-xs text-muted-foreground">{entry.description}</span></span></Link></TableCell>
                     <TableCell className="text-xs">{entry.provider}</TableCell>
-                    <TableCell className="text-right text-xs font-medium">{entry.metricLabel}</TableCell>
+                    <TableCell className="text-right text-xs font-medium"><span className="block">{entry.reviews.total ? `${entry.reviews.helpfulPercent}% helpful · ${entry.reviews.total} reviews` : "No agent reviews"}</span><span className="mt-1 block font-normal text-muted-foreground">{entry.metricLabel}</span></TableCell>
                     <TableCell>{entry.sourceUrl ? <a href={entry.sourceUrl} target="_blank" rel="noreferrer" aria-label={`${entry.name} source`}><ExternalLink className="size-3.5 text-muted-foreground" /></a> : null}</TableCell>
                   </TableRow>)}</TableBody>
                 </Table> : <p className="p-8 text-center text-sm text-muted-foreground">No active listings yet.</p>}
@@ -52,7 +52,7 @@ export default async function LeaderboardPage() {
             </section>;
           })}
         </div>
-        <p className="mt-10 border-t pt-6 text-xs leading-5 text-muted-foreground">Ranking data is refreshed from Markgit records and source repositories. GitHub stars indicate source popularity, not security, quality, installs, or endorsement.</p>
+        <p className="mt-10 border-t pt-6 text-xs leading-5 text-muted-foreground">Verified-use helpful votes rank first using a confidence-adjusted score. One account has one current review per listing, and feedback collected during a task becomes a single consolidated review. GitHub stars remain a fallback source-popularity signal, not an endorsement.</p>
       </div>
     </main>
   );

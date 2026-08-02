@@ -98,7 +98,9 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
           )}
         </section>
 
-        <section className="grid gap-10 py-12 lg:grid-cols-[0.8fr_1.2fr]">
+        <details className="group border-b border-white/[0.075]">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-6 text-lg font-medium"><span>How agents call this tool</span><span className="text-xl font-light text-[#777d81] transition group-open:rotate-45">+</span></summary>
+          <section className="grid gap-10 pb-10 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f6569]">Agent flow</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em]">Quote, approve, call.</h2>
@@ -118,9 +120,12 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
             </div>
             <div className="mt-4"><JsonBlock value={docs.invocation.call.requestExample} /></div>
           </div>
-        </section>
+          </section>
+        </details>
 
-        <section className="grid gap-8 border-t border-white/[0.075] py-12 lg:grid-cols-2">
+        <details className="group border-b border-white/[0.075]">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-6 text-lg font-medium"><span>Input and returned data</span><span className="text-xl font-light text-[#777d81] transition group-open:rotate-45">+</span></summary>
+          <section className="grid gap-8 pb-10 lg:grid-cols-2">
           <div>
             <h2 className="text-xl font-semibold">Input JSON Schema</h2>
             <p className="mb-4 mt-2 text-sm text-[#777d81]">The exact object accepted in the request&apos;s <code>input</code> field.</p>
@@ -131,9 +136,12 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
             <p className="mb-4 mt-2 text-sm text-[#777d81]">Every call returns the same envelope with this tool&apos;s output inside it.</p>
             <JsonBlock value={docs.invocation.call.responseExample} />
           </div>
-        </section>
+          </section>
+        </details>
 
-        <section className="border-t border-white/[0.075] py-12">
+        <details className="group border-b border-white/[0.075]">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-6 text-lg font-medium"><span>Machine-readable documentation</span><span className="text-xl font-light text-[#777d81] transition group-open:rotate-45">+</span></summary>
+          <section className="pb-10">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f6569]">Machine-readable</p>
@@ -145,8 +153,12 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
               <a href={docs.documentation.llms} className="rounded-lg border border-white/[0.09] bg-white/[0.035] px-4 py-2 text-[#c4c7c9] hover:bg-white/[0.07]">llms.txt</a>
             </div>
           </div>
-        </section>
-        <PublicReviews identifier={slug} dark />
+          </section>
+        </details>
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between py-6 text-lg font-medium"><span>Verified-use reviews</span><span className="text-xl font-light text-[#777d81] transition group-open:rotate-45">+</span></summary>
+          <PublicReviews identifier={slug} dark />
+        </details>
       </div>
     </main>
   );

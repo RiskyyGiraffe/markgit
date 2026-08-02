@@ -9,6 +9,13 @@ import { searchPublicRegistry } from "@/lib/public-registry";
 
 type Kind = "tool" | "harness" | "mcp" | "skill";
 const validKinds = new Set<Kind>(["tool", "harness", "mcp", "skill"]);
+const tabs: Array<{ kind?: Kind; label: string }> = [
+  { label: "All" },
+  { kind: "tool", label: "Tools" },
+  { kind: "harness", label: "Custom Loops" },
+  { kind: "mcp", label: "MCPs" },
+  { kind: "skill", label: "Skills" },
+];
 
 export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ q?: string; kind?: string }> }) {
   const { q = "", kind: rawKind } = await searchParams;
@@ -28,9 +35,18 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           <select name="kind" defaultValue={kind ?? ""} className="h-11 rounded-xl border bg-background px-3 text-sm"><option value="">Everything</option><option value="tool">Tools</option><option value="harness">Custom loops</option><option value="mcp">MCPs</option><option value="skill">Skills</option></select>
           <button className="h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background">Search</button>
         </form>
+        <nav aria-label="Marketplace types" className="mt-4 flex gap-1 overflow-x-auto border-b">
+          {tabs.map((tab) => {
+            const params = new URLSearchParams();
+            if (query) params.set("q", query);
+            if (tab.kind) params.set("kind", tab.kind);
+            const active = tab.kind === kind || (!tab.kind && !kind);
+            return <Link key={tab.label} href={`/marketplace${params.size ? `?${params}` : ""}`} className={`relative whitespace-nowrap px-3 py-3 text-sm transition ${active ? "font-medium text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-foreground" : "text-muted-foreground hover:text-foreground"}`}>{tab.label}</Link>;
+          })}
+        </nav>
       </section>
 
-      <div className="mt-8 flex items-center justify-between"><h2 className="text-sm font-medium">Registry</h2><span className="text-xs text-muted-foreground">{registry.total} matches · {quicklist.total} tools synced · {registry.semantic ? "semantic ranking" : "full-document matching"}</span></div>
+      <div className="mt-8 flex items-center justify-between"><h2 className="text-sm font-medium">{tabs.find((tab) => tab.kind === kind)?.label ?? "Everything"}</h2><span className="text-xs text-muted-foreground">{registry.total} matches · {quicklist.total} tools synced · {registry.semantic ? "semantic ranking" : "full-document matching"}</span></div>
       <section className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
         {registry.results.length === 0 ? <div className="px-6 py-20 text-center"><p className="font-medium">No registry items found.</p><p className="mt-2 text-sm text-muted-foreground">Try describing the desired result or returned data instead of a product name.</p></div> : (
           <Table>

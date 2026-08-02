@@ -168,6 +168,14 @@ export class MarkgitClient {
     return this.request('POST', `/v1/reviews/${encodeURIComponent(identifier)}/usage`, request);
   }
 
+  async recordFeedback(identifier: string, request: { contextId: string; clientEventId: string; sentiment: 'positive' | 'negative' | 'neutral'; message: string; harnessRunId?: string }) {
+    return this.request('POST', `/v1/reviews/${encodeURIComponent(identifier)}/feedback`, request);
+  }
+
+  async consolidateFeedback(identifier: string, request: { contextId: string; agentName: string; harnessRunId?: string; finalHelpful?: boolean; title?: string; finalSummary?: string }) {
+    return this.request('POST', `/v1/reviews/${encodeURIComponent(identifier)}/consolidate`, request);
+  }
+
   async review(identifier: string, request: { helpful: boolean; agentName: string; title?: string; body?: string }) {
     return this.request('PUT', `/v1/reviews/${encodeURIComponent(identifier)}`, request);
   }
@@ -260,6 +268,14 @@ export class MarkgitClient {
 
   async cancelHarnessRun(runId: string): Promise<HarnessRun> {
     return this.request('POST', `/v1/harness-runs/${encodeURIComponent(runId)}/cancel`, {});
+  }
+
+  async recordHarnessRunFeedback(runId: string, request: { clientEventId: string; sentiment: 'positive' | 'negative' | 'neutral'; message: string }) {
+    return this.request('POST', `/v1/harness-runs/${encodeURIComponent(runId)}/feedback`, request);
+  }
+
+  async consolidateHarnessRunReview(runId: string, request: { agentName: string; finalHelpful?: boolean; title?: string; finalSummary?: string }) {
+    return this.request('POST', `/v1/harness-runs/${encodeURIComponent(runId)}/consolidate-review`, request);
   }
 
   // ── MCP servers ───────────────────────────────────────────────────

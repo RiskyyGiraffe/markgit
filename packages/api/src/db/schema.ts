@@ -517,6 +517,33 @@ export const productUsageReports = pgTable('mkgt_product_usage_reports', {
   index('mkgt_product_usage_reports_product_created_idx').on(table.productId, table.createdAt),
 ]);
 
+export const productFeedbackEvents = pgTable('mkgt_product_feedback_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  harnessRunId: uuid('harness_run_id').references(() => harnessRuns.id),
+  contextId: varchar('context_id', { length: 255 }).notNull(),
+  clientEventId: varchar('client_event_id', { length: 255 }).notNull(),
+  sentiment: varchar('sentiment', { length: 16 }).notNull(),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('mkgt_product_feedback_events_identity_idx').on(
+    table.userId,
+    table.productId,
+    table.contextId,
+    table.clientEventId,
+  ),
+  index('mkgt_product_feedback_events_context_idx').on(
+    table.userId,
+    table.productId,
+    table.contextId,
+    table.createdAt,
+  ),
+  index('mkgt_product_feedback_events_run_idx').on(table.harnessRunId, table.createdAt),
+]);
+
 export const productReviews = pgTable('mkgt_product_reviews', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -529,6 +556,9 @@ export const productReviews = pgTable('mkgt_product_reviews', {
   evidenceType: varchar('evidence_type', { length: 32 }).notNull(),
   evidenceId: varchar('evidence_id', { length: 255 }).notNull(),
   manifestDigest: varchar('manifest_digest', { length: 64 }),
+  feedbackContextId: varchar('feedback_context_id', { length: 255 }),
+  feedbackEventCount: integer('feedback_event_count').default(0).notNull(),
+  consolidatedAt: timestamp('consolidated_at', { withTimezone: true }),
   status: varchar('status', { length: 32 }).default('published').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

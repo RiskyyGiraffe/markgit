@@ -102,6 +102,7 @@ export function requiredPermission(method: string, rawPath: string): ApiPermissi
   if (verb === 'POST' && path === '/search') return 'registry:read';
   if (verb === 'GET' && /^\/reviews\/[^/]+\/eligibility$/.test(path)) return 'registry:read';
   if (verb === 'POST' && /^\/reviews\/[^/]+\/usage$/.test(path)) return 'tools:call';
+  if (verb === 'POST' && /^\/reviews\/[^/]+\/(feedback|consolidate)$/.test(path)) return 'tools:call';
   if (['PUT', 'DELETE'].includes(verb) && /^\/reviews\/[^/]+$/.test(path)) return 'tools:call';
 
   if (verb === 'GET' && path === '/quicklist') return 'registry:read';
@@ -130,6 +131,7 @@ export function requiredPermission(method: string, rawPath: string): ApiPermissi
   if (verb === 'POST' && /^\/harnesses\/[^/]+\/runs$/.test(path)) return 'harnesses:run';
   if (verb === 'GET' && /^\/harness-runs(?:\/[^/]+(?:\/events)?)?$/.test(path)) return 'harnesses:monitor';
   if (verb === 'POST' && /^\/harness-runs\/[^/]+\/cancel$/.test(path)) return 'harnesses:run';
+  if (verb === 'POST' && /^\/harness-runs\/[^/]+\/(feedback|consolidate-review)$/.test(path)) return 'tools:call';
 
   if (verb === 'POST' && path === '/mcps') return 'mcps:publish';
   if (verb === 'POST' && path === '/skills') return 'tools:publish';

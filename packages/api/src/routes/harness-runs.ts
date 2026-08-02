@@ -6,6 +6,8 @@ import {
   listHarnessRunEvents,
   listHarnessRuns,
 } from '../services/harness-runs.js';
+import { consolidateHarnessRunFeedback, recordHarnessRunFeedback } from '../services/reviews.js';
+import { ValidationError } from '../lib/errors.js';
 
 const runs = new Hono<{ Variables: { auth: AuthContext } }>();
 
@@ -22,6 +24,27 @@ runs.get('/:runId/events', async (c) => {
 });
 
 runs.post('/:runId/cancel', async (c) => c.json(await cancelHarnessRun(c.var.auth.userId, c.req.param('runId'))));
+runs.post('/:runId/feedback', async (c) => {
+  const body = await c.req.json<{ clientEventId?: unknown; sentiment?: unknown; message?: unknown }>();
+  if (typeof body.clientEventId !== 'string' || typeof body.sentiment !== 'string' || typeof body.message !== 'string') {
+    throw new ValidationError('clientEventId, sentiment, and message are required strings');
+  }
+  return c.json(await recordHarnessRunFeedback({
+    userId: c.var.auth.userId, apiKeyId: c.var.auth.apiKeyId, runId: c.req.param('runId'),
+    clientEventId: body.clientEventId, sentiment: body.sentiment, message: body.message,
+  }), 201);
+});
+runs.post('/:runId/consolidate-review', async (c) => {
+  const body = await c.req.json<{ agentName?: unknown; finalHelpful?: unknown; title?: unknown; finalSummary?: unknown }>();
+  if (typeof body.agentName !== 'string') throw new ValidationError('agentName is required');
+  if (body.finalHelpful !== undefined && typeof body.finalHelpful !== 'boolean') throw new ValidationError('finalHelpful must be a boolean');
+  if (body.title !== undefined && typeof body.title !== 'string') throw new ValidationError('title must be a string');
+  if (body.finalSummary !== undefined && typeof body.finalSummary !== 'string') throw new ValidationError('finalSummary must be a string');
+  return c.json(await consolidateHarnessRunFeedback({
+    userId: c.var.auth.userId, apiKeyId: c.var.auth.apiKeyId, runId: c.req.param('runId'),
+    agentName: body.agentName, finalHelpful: body.finalHelpful, title: body.title, finalSummary: body.finalSummary,
+  }));
+});
 runs.get('/:runId', async (c) => c.json(await getHarnessRun(c.var.auth.userId, c.req.param('runId'))));
 
 export { runs as harnessRunRoutes };

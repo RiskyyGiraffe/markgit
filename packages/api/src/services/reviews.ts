@@ -1,7 +1,8 @@
-import { and, desc, eq, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import {
   harnessRuns,
+  productFeedbackEvents,
   productReviews,
   products,
   productUsageReports,
@@ -42,6 +43,9 @@ export async function getPublicReviews(identifier: string, limit = 20, offset = 
     agentName: productReviews.agentName,
     evidenceType: productReviews.evidenceType,
     manifestDigest: productReviews.manifestDigest,
+    feedbackContextId: productReviews.feedbackContextId,
+    feedbackEventCount: productReviews.feedbackEventCount,
+    consolidatedAt: productReviews.consolidatedAt,
     createdAt: productReviews.createdAt,
     updatedAt: productReviews.updatedAt,
   }).from(productReviews).where(and(
@@ -63,6 +67,12 @@ export async function getPublicReviews(identifier: string, limit = 20, offset = 
     reviews: reviews.map((review) => ({
       ...review,
       verification: review.evidenceType === 'agent_attested' ? 'agent_attested' : 'markgit_observed',
+      consolidation: review.consolidatedAt ? {
+        contextId: review.feedbackContextId,
+        feedbackEventCount: review.feedbackEventCount,
+        consolidatedAt: review.consolidatedAt,
+        provenance: 'authenticated_agent_relay' as const,
+      } : null,
     })),
   };
 }
@@ -107,7 +117,7 @@ async function findReviewEvidence(userId: string, productId: string) {
     .where(and(
       eq(purchases.userId, userId),
       eq(purchases.productId, productId),
-      eq(purchases.status, 'completed'),
+      inArray(purchases.status, ['completed', 'failed']),
     )).orderBy(desc(purchases.createdAt)).limit(1);
   if (purchase) return { type: 'markgit_purchase', id: purchase.id, verification: 'markgit_observed' } as const;
 
@@ -116,7 +126,7 @@ async function findReviewEvidence(userId: string, productId: string) {
     .where(and(
       eq(harnessRuns.userId, userId),
       eq(harnessRuns.productId, productId),
-      eq(harnessRuns.status, 'completed'),
+      inArray(harnessRuns.status, ['completed', 'failed', 'cancelled']),
     )).orderBy(desc(harnessRuns.createdAt)).limit(1);
   if (run) return { type: 'markgit_loop', id: run.id, verification: 'markgit_observed' } as const;
 
@@ -164,6 +174,7 @@ export async function upsertProductReview(input: {
   title?: string;
   body?: string;
   agentName: string;
+  feedbackConsolidation?: { contextId: string; eventCount: number; consolidatedAt: Date };
 }) {
   const product = await resolveProduct(input.identifier);
   const agentName = input.agentName.trim();
@@ -188,6 +199,9 @@ export async function upsertProductReview(input: {
     evidenceType: evidence.type,
     evidenceId: evidence.id,
     manifestDigest: product.manifestDigest,
+    feedbackContextId: input.feedbackConsolidation?.contextId ?? null,
+    feedbackEventCount: input.feedbackConsolidation?.eventCount ?? 0,
+    consolidatedAt: input.feedbackConsolidation?.consolidatedAt ?? null,
     status: 'published',
   }).onConflictDoUpdate({
     target: [productReviews.userId, productReviews.productId],
@@ -200,6 +214,9 @@ export async function upsertProductReview(input: {
       evidenceType: evidence.type,
       evidenceId: evidence.id,
       manifestDigest: product.manifestDigest,
+      feedbackContextId: input.feedbackConsolidation?.contextId ?? null,
+      feedbackEventCount: input.feedbackConsolidation?.eventCount ?? 0,
+      consolidatedAt: input.feedbackConsolidation?.consolidatedAt ?? null,
       status: 'published',
       updatedAt: new Date(),
     },
@@ -213,12 +230,225 @@ export async function upsertProductReview(input: {
       agentName: review.agentName,
       evidenceType: review.evidenceType,
       manifestDigest: review.manifestDigest,
+      feedbackContextId: review.feedbackContextId,
+      feedbackEventCount: review.feedbackEventCount,
+      consolidatedAt: review.consolidatedAt,
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
     },
     verification: evidence.verification,
   };
+}
+
+const FEEDBACK_SENTIMENTS = new Set(['positive', 'negative', 'neutral']);
+
+export function consolidateFeedbackText(
+  events: Array<{ sentiment: string; message: string }>,
+  input: { finalHelpful?: boolean; title?: string; finalSummary?: string },
+) {
+  if (events.length === 0) throw new ValidationError('No feedback has been recorded for this context');
+  const score = events.reduce((total, event) => total + (event.sentiment === 'positive' ? 1 : event.sentiment === 'negative' ? -1 : 0), 0);
+  if (score === 0 && input.finalHelpful === undefined) {
+    throw new ValidationError('Mixed or neutral feedback requires finalHelpful to reflect the user outcome');
+  }
+  const helpful = input.finalHelpful ?? (score > 0);
+  const title = input.title?.trim() || (score > 0
+    ? 'Helped the user over this task'
+    : score < 0
+      ? 'Did not meet the user’s needs'
+      : helpful ? 'Ultimately helped the user' : 'Ultimately did not help the user');
+  const feedbackLines = events.slice(-12).map((event) => `- ${event.sentiment}: ${event.message}`);
+  const finalSummary = input.finalSummary?.replace(/\s+/g, ' ').trim();
+  if ((finalSummary?.length ?? 0) > 2_000) throw new ValidationError('finalSummary cannot exceed 2000 characters');
+  const body = [
+    finalSummary,
+    `Consolidated from ${events.length} user feedback signal${events.length === 1 ? '' : 's'} over this task:`,
+    ...feedbackLines,
+  ].filter(Boolean).join('\n\n').slice(0, 4_000);
+  return { helpful, title, body, score };
+}
+
+export async function recordProductFeedback(input: {
+  userId: string;
+  apiKeyId: string;
+  identifier: string;
+  contextId: string;
+  clientEventId: string;
+  sentiment: string;
+  message: string;
+  harnessRunId?: string;
+}) {
+  const product = await resolveProduct(input.identifier);
+  const contextId = input.contextId.trim();
+  const clientEventId = input.clientEventId.trim();
+  const message = input.message.replace(/\s+/g, ' ').trim();
+  if (!contextId || contextId.length > 255) throw new ValidationError('contextId must be 1-255 characters');
+  if (!clientEventId || clientEventId.length > 255) throw new ValidationError('clientEventId must be 1-255 characters');
+  if (!FEEDBACK_SENTIMENTS.has(input.sentiment)) throw new ValidationError('sentiment must be positive, negative, or neutral');
+  if (!message || message.length > 1_000) throw new ValidationError('message must be 1-1000 characters');
+  if (input.harnessRunId) {
+    const [run] = await db.select({ id: harnessRuns.id }).from(harnessRuns).where(and(
+      eq(harnessRuns.id, input.harnessRunId),
+      eq(harnessRuns.userId, input.userId),
+      eq(harnessRuns.productId, product.id),
+    )).limit(1);
+    if (!run) throw new ValidationError('harnessRunId must belong to this account and listing');
+  }
+  const [existing, count] = await Promise.all([
+    db.select({ id: productFeedbackEvents.id }).from(productFeedbackEvents).where(and(
+      eq(productFeedbackEvents.userId, input.userId),
+      eq(productFeedbackEvents.productId, product.id),
+      eq(productFeedbackEvents.contextId, contextId),
+      eq(productFeedbackEvents.clientEventId, clientEventId),
+    )).limit(1),
+    db.select({ value: sql<number>`count(*)::int` }).from(productFeedbackEvents).where(and(
+      eq(productFeedbackEvents.userId, input.userId),
+      eq(productFeedbackEvents.productId, product.id),
+      eq(productFeedbackEvents.contextId, contextId),
+    )),
+  ]);
+  if (!existing.length && Number(count[0]?.value ?? 0) >= 100) {
+    throw new ValidationError('A feedback context can contain at most 100 events');
+  }
+  const [event] = await db.insert(productFeedbackEvents).values({
+    userId: input.userId,
+    apiKeyId: input.apiKeyId,
+    productId: product.id,
+    harnessRunId: input.harnessRunId ?? null,
+    contextId,
+    clientEventId,
+    sentiment: input.sentiment,
+    message,
+  }).onConflictDoUpdate({
+    target: [
+      productFeedbackEvents.userId,
+      productFeedbackEvents.productId,
+      productFeedbackEvents.contextId,
+      productFeedbackEvents.clientEventId,
+    ],
+    set: { sentiment: input.sentiment, message, apiKeyId: input.apiKeyId },
+  }).returning();
+  return {
+    event: {
+      id: event.id,
+      contextId: event.contextId,
+      clientEventId: event.clientEventId,
+      sentiment: event.sentiment,
+      message: event.message,
+      createdAt: event.createdAt,
+    },
+    privacy: 'This feedback is private until an authenticated agent consolidates the context into one public review.',
+  };
+}
+
+export async function consolidateProductFeedback(input: {
+  userId: string;
+  apiKeyId: string;
+  identifier: string;
+  contextId: string;
+  agentName: string;
+  harnessRunId?: string;
+  finalHelpful?: boolean;
+  title?: string;
+  finalSummary?: string;
+}) {
+  const product = await resolveProduct(input.identifier);
+  const contextId = input.contextId.trim();
+  if (!contextId || contextId.length > 255) throw new ValidationError('contextId must be 1-255 characters');
+  if (input.harnessRunId) {
+    const [run] = await db.select({ status: harnessRuns.status }).from(harnessRuns).where(and(
+      eq(harnessRuns.id, input.harnessRunId),
+      eq(harnessRuns.userId, input.userId),
+      eq(harnessRuns.productId, product.id),
+    )).limit(1);
+    if (!run) throw new ValidationError('harnessRunId must belong to this account and listing');
+    if (!['completed', 'failed', 'cancelled'].includes(run.status)) {
+      throw new ValidationError('Run feedback can only be consolidated after the run reaches a terminal state');
+    }
+  }
+  const events = await db.select().from(productFeedbackEvents).where(and(
+    eq(productFeedbackEvents.userId, input.userId),
+    eq(productFeedbackEvents.productId, product.id),
+    eq(productFeedbackEvents.contextId, contextId),
+  )).orderBy(asc(productFeedbackEvents.createdAt));
+  const consolidated = consolidateFeedbackText(events, {
+    finalHelpful: input.finalHelpful,
+    title: input.title,
+    finalSummary: input.finalSummary,
+  });
+  return upsertProductReview({
+    userId: input.userId,
+    apiKeyId: input.apiKeyId,
+    identifier: product.id,
+    helpful: consolidated.helpful,
+    title: consolidated.title,
+    body: consolidated.body,
+    agentName: input.agentName,
+    feedbackConsolidation: { contextId, eventCount: events.length, consolidatedAt: new Date() },
+  });
+}
+
+export async function recordHarnessRunFeedback(input: {
+  userId: string;
+  apiKeyId: string;
+  runId: string;
+  clientEventId: string;
+  sentiment: string;
+  message: string;
+}) {
+  const [run] = await db.select({ productId: harnessRuns.productId }).from(harnessRuns).where(and(
+    eq(harnessRuns.id, input.runId),
+    eq(harnessRuns.userId, input.userId),
+  )).limit(1);
+  if (!run) throw new NotFoundError('Harness run');
+  return recordProductFeedback({
+    ...input,
+    identifier: run.productId,
+    contextId: input.runId,
+    harnessRunId: input.runId,
+  });
+}
+
+export async function consolidateHarnessRunFeedback(input: {
+  userId: string;
+  apiKeyId: string;
+  runId: string;
+  agentName: string;
+  finalHelpful?: boolean;
+  title?: string;
+  finalSummary?: string;
+}) {
+  const [run] = await db.select({ productId: harnessRuns.productId }).from(harnessRuns).where(and(
+    eq(harnessRuns.id, input.runId),
+    eq(harnessRuns.userId, input.userId),
+  )).limit(1);
+  if (!run) throw new NotFoundError('Harness run');
+  return consolidateProductFeedback({
+    ...input,
+    identifier: run.productId,
+    contextId: input.runId,
+    harnessRunId: input.runId,
+  });
+}
+
+export async function autoConsolidateHarnessRunFeedback(runId: string) {
+  const [run] = await db.select({ userId: harnessRuns.userId, apiKeyId: harnessRuns.apiKeyId })
+    .from(harnessRuns).where(eq(harnessRuns.id, runId)).limit(1);
+  if (!run) return null;
+  try {
+    return await consolidateHarnessRunFeedback({
+      userId: run.userId,
+      apiKeyId: run.apiKeyId,
+      runId,
+      agentName: 'markgit-run-feedback',
+    });
+  } catch (error) {
+    // No feedback or a mixed outcome remains private until the agent supplies
+    // the final user outcome explicitly.
+    if (error instanceof ValidationError) return null;
+    throw error;
+  }
 }
 
 export async function deleteProductReview(userId: string, identifier: string) {

@@ -366,6 +366,76 @@ async function reviewItem(args: string[]): Promise<void> {
   console.log(JSON.stringify(result, null, 2));
 }
 
+function feedbackSentiment(args: string[]) {
+  const sentiment = valueAfter(args, '--sentiment');
+  if (!sentiment || !['positive', 'negative', 'neutral'].includes(sentiment)) {
+    throw new Error('--sentiment must be positive, negative, or neutral');
+  }
+  return sentiment;
+}
+
+async function feedbackCommand(args: string[]): Promise<void> {
+  const consolidate = args[0] === 'consolidate';
+  const identifier = args[consolidate ? 1 : 0];
+  if (!identifier) throw new Error('Usage: markgit feedback <slug> --context <id> --sentiment <value> --message <text>');
+  const contextId = valueAfter(args, '--context');
+  if (!contextId) throw new Error('--context is required so feedback can be consolidated once');
+  const config = await loadConfig();
+  if (consolidate) {
+    const finalHelpful = args.includes('--helpful') ? true : args.includes('--not-helpful') ? false : undefined;
+    const result = await request<Record<string, unknown>>(`/v1/reviews/${encodeURIComponent(identifier)}/consolidate`, {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+      body: JSON.stringify({
+        contextId,
+        agentName: valueAfter(args, '--agent') ?? 'markgit-cli-agent',
+        harnessRunId: valueAfter(args, '--run'),
+        finalHelpful,
+        title: valueAfter(args, '--title'),
+        finalSummary: valueAfter(args, '--summary'),
+      }),
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  const message = valueAfter(args, '--message');
+  if (!message) throw new Error('--message is required');
+  const result = await request<Record<string, unknown>>(`/v1/reviews/${encodeURIComponent(identifier)}/feedback`, {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+    body: JSON.stringify({
+      contextId,
+      clientEventId: valueAfter(args, '--event') ?? randomUUID(),
+      sentiment: feedbackSentiment(args),
+      message,
+      harnessRunId: valueAfter(args, '--run'),
+    }),
+  });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function runFeedback(args: string[]): Promise<void> {
+  const runId = args[0];
+  const message = valueAfter(args, '--message');
+  if (!runId || !message) throw new Error('Usage: markgit loop feedback <run-id> --sentiment positive|negative|neutral --message <text>');
+  const config = await loadConfig();
+  const result = await request<Record<string, unknown>>(`/v1/harness-runs/${encodeURIComponent(runId)}/feedback`, {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+    body: JSON.stringify({ clientEventId: valueAfter(args, '--event') ?? randomUUID(), sentiment: feedbackSentiment(args), message }),
+  });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function consolidateRunReview(args: string[]): Promise<void> {
+  const runId = args[0];
+  if (!runId) throw new Error('Usage: markgit loop review <run-id> [--helpful|--not-helpful] [--summary text]');
+  const config = await loadConfig();
+  const finalHelpful = args.includes('--helpful') ? true : args.includes('--not-helpful') ? false : undefined;
+  const result = await request<Record<string, unknown>>(`/v1/harness-runs/${encodeURIComponent(runId)}/consolidate-review`, {
+    apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'POST',
+    body: JSON.stringify({ agentName: valueAfter(args, '--agent') ?? 'markgit-cli-agent', finalHelpful, title: valueAfter(args, '--title'), finalSummary: valueAfter(args, '--summary') }),
+  });
+  console.log(JSON.stringify(result, null, 2));
+}
+
 async function searchHarnesses(args: string[]): Promise<void> {
   const query = args.join(' ').trim();
   const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
@@ -920,9 +990,11 @@ async function harnessCommand(args: string[]): Promise<void> {
     case 'run': return runHarness(rest);
     case 'monitor': return monitorHarness(rest);
     case 'cancel': return cancelHarness(rest[0]);
+    case 'feedback': return runFeedback(rest);
+    case 'review': return consolidateRunReview(rest);
     case 'publish': return publishHarness(rest);
     case 'onboard': return publishHarness(rest, true);
-    default: throw new Error('Usage: markgit loop <search|inspect|run|monitor|cancel|publish|onboard>');
+    default: throw new Error('Usage: markgit loop <search|inspect|run|monitor|cancel|feedback|review|publish|onboard>');
   }
 }
 
@@ -1017,6 +1089,8 @@ Usage:
   markgit reviews <slug>         Read public verified-use agent reviews
   markgit used <slug>            Attest direct MCP/skill use before reviewing
   markgit review <slug> --helpful|--not-helpful|--delete [--title text] [--body text]
+  markgit feedback <slug> --context <id> --sentiment <value> --message <text>
+  markgit feedback consolidate <slug> --context <id> [--helpful|--not-helpful]
   markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD] [--allow-unverified]
   markgit publish <manifest>     Publish a provider-hosted tool as a draft
   markgit onboard <manifest>     Register provider, publish, and activate a tool
@@ -1025,6 +1099,8 @@ Usage:
   markgit loop run <slug> --input '{}' [--yes] [--allow-unverified]
   markgit loop monitor <id> [--follow]  Read the shared vendor-neutral event stream
   markgit loop cancel <id>       Request cancellation of a running loop
+  markgit loop feedback <id>     Relay one user-feedback signal during a run
+  markgit loop review <id>       Consolidate run feedback into one public review
   markgit loop publish <file>    Publish a custom loop draft with explicit access
   markgit loop onboard <file>    Publish and activate a custom loop
   markgit mcp search [query]     Search provider-hosted MCP servers
@@ -1064,6 +1140,7 @@ async function main(): Promise<void> {
     case 'reviews': return listReviews(args);
     case 'used': return reportUsage(args);
     case 'review': return reviewItem(args);
+    case 'feedback': return feedbackCommand(args);
     case 'call': return callTool(args);
     case 'publish': return publish(args);
     case 'onboard': return publish(args, true);

@@ -27,6 +27,7 @@ import { getExecutionCredential, type CredentialPayload } from './credentials.js
 import { createPurchase, createQuote } from './purchases.js';
 import { getPublicTool } from './registry.js';
 import { getOrCreateWallet } from './wallet.js';
+import { autoConsolidateHarnessRunFeedback } from './reviews.js';
 
 type HarnessEventInput = {
   type: string;
@@ -197,8 +198,11 @@ function publicRun(run: typeof harnessRuns.$inferSelect, events?: Array<typeof h
       method: 'GET' as const,
       path: `/v1/harness-runs/${run.id}`,
       eventsPath: `/v1/harness-runs/${run.id}/events`,
+      feedbackPath: `/v1/harness-runs/${run.id}/feedback`,
+      consolidateReviewPath: `/v1/harness-runs/${run.id}/consolidate-review`,
       authentication: 'Bearer Markgit API key belonging to the run owner',
       vendorNeutral: true,
+      feedbackFlow: 'Relay individual user feedback during the run, then consolidate it into one public verified-use review after the run ends.',
     },
     ...(events ? { events } : {}),
   };
@@ -480,7 +484,11 @@ export async function ingestHarnessEvent(runId: string, token: string | undefine
   if (event.type === 'markgit_tool.reserved' || event.type === 'markgit_tool.call') {
     throw new ForbiddenError(`${event.type} is emitted only by the Markgit wallet gateway`);
   }
-  return appendRunEvent(runId, 'provider', event);
+  const created = await appendRunEvent(runId, 'provider', event);
+  if (event.type === 'run.completed' || event.type === 'run.failed') {
+    await autoConsolidateHarnessRunFeedback(runId);
+  }
+  return created;
 }
 
 async function authenticatedCallbackRun(runId: string, token: string | undefined) {
@@ -598,6 +606,7 @@ export async function cancelHarnessRun(userId: string, runId: string) {
     message: 'The run owner cancelled this custom loop.',
     data: { phase: 'cancelled' },
   });
+  await autoConsolidateHarnessRunFeedback(run.id);
   return getHarnessRun(userId, run.id);
 }
 

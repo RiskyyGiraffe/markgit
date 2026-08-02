@@ -128,6 +128,12 @@ export interface PublicReview {
   manifestDigest: string | null;
   createdAt: string;
   updatedAt: string;
+  consolidation: {
+    contextId: string | null;
+    feedbackEventCount: number;
+    consolidatedAt: string;
+    provenance: 'authenticated_agent_relay';
+  } | null;
 }
 
 export interface PublicReviewsResponse {
@@ -711,12 +717,13 @@ export interface LeaderboardEntry {
   metricLabel: string;
   sourceUrl: string | null;
   updatedAt: string;
+  reviews: ReviewSummary;
 }
 
 export interface LeaderboardResponse {
   schemaVersion: 'markgit.leaderboard/v1';
   generatedAt: string;
-  methodology: { separation: string; tools: string; harnesses: string; mcps: string; skills: string; tieBreak: string };
+  methodology: { separation: string; tools: string; harnesses: string; mcps: string; skills: string; tieBreak: string; feedback: string };
   categories: Record<'tools' | 'harnesses' | 'mcps' | 'skills', {
     metric: LeaderboardEntry['metric'];
     entries: LeaderboardEntry[];

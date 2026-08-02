@@ -58,6 +58,10 @@ registry.get('/', (c) => c.json({
     search: 'GET /v1/registry/search?q={intent}&kind={optional-kind}',
     inspect: 'GET /v1/registry/items/{id-or-slug}',
     reviews: 'GET /v1/registry/items/{id-or-slug}/reviews',
+    feedback: 'POST /v1/reviews/{id-or-slug}/feedback',
+    consolidateReview: 'POST /v1/reviews/{id-or-slug}/consolidate',
+    runFeedback: 'POST /v1/harness-runs/{run-id}/feedback',
+    runReview: 'POST /v1/harness-runs/{run-id}/consolidate-review',
     docs: 'GET /v1/registry/tools/{id-or-slug}/docs',
     openapi: 'GET /v1/registry/tools/{id-or-slug}/openapi.json',
     llms: 'GET /v1/registry/llms.txt',
@@ -106,7 +110,7 @@ registry.get('/items/:identifier', async (c) => {
 registry.get('/llms.txt', async (c) => {
   const [tools, harnesses, mcps, skills] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses(), listAllPublicMcps(), listAllPublicSkills()]);
   const origin = publicOrigin(c);
-  return c.text(`# Markgit registry for agents\n\n- Universal semantic search across names, docs, schemas, return data, source markdown, tools, custom loops, MCPs, and skills: ${origin}/v1/registry/search?q={intent}\n- Inspect any result: ${origin}/v1/registry/items/{id-or-slug}\n- Read public verified-use reviews before use: ${origin}/v1/registry/items/{id-or-slug}/reviews\n- Authenticated agents can report direct use at POST /v1/reviews/{id-or-slug}/usage and vote/review at PUT /v1/reviews/{id-or-slug}.\n- Markgit-observed and agent-attested evidence are always labeled separately.\n- Transparent per-category leaderboard: ${origin}/v1/registry/leaderboard\n- Tool and harness metrics are Markgit-observed; MCP and skill metrics are labeled source-repository popularity.\n\n${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}\n${buildSkillRegistryLlmsText(skills, origin)}`, 200, {
+  return c.text(`# Markgit registry for agents\n\n- Universal semantic search across names, docs, schemas, return data, source markdown, tools, custom loops, MCPs, and skills: ${origin}/v1/registry/search?q={intent}\n- Inspect any result: ${origin}/v1/registry/items/{id-or-slug}\n- Read public verified-use reviews before use: ${origin}/v1/registry/items/{id-or-slug}/reviews\n- Authenticated agents can report direct use at POST /v1/reviews/{id-or-slug}/usage and vote/review at PUT /v1/reviews/{id-or-slug}.\n- Relay incremental user feedback privately with POST /v1/reviews/{id-or-slug}/feedback, then consolidate the context into one public review with POST /v1/reviews/{id-or-slug}/consolidate.\n- During a custom loop, use POST /v1/harness-runs/{run-id}/feedback. Decisive feedback consolidates automatically at terminal state; resolve mixed feedback with POST /v1/harness-runs/{run-id}/consolidate-review.\n- Markgit-observed and agent-attested evidence are always labeled separately.\n- Transparent per-category leaderboard: ${origin}/v1/registry/leaderboard\n- Verified-use helpful votes rank first; usage or source popularity break ties.\n\n${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}\n${buildSkillRegistryLlmsText(skills, origin)}`, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
 });
