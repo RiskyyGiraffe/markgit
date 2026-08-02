@@ -49,14 +49,14 @@ export default async function Home({
             Skills are source-hosted instructions agents load on demand.
           </p>
 
-          <form action="/tools" method="get" className="mx-auto mt-9 flex max-w-2xl items-center gap-2 rounded-xl border border-white/[0.11] bg-[#1b1e20] p-2">
+          <form action="/search" method="get" className="mx-auto mt-9 flex max-w-2xl items-center gap-2 rounded-xl border border-white/[0.11] bg-[#1b1e20] p-2">
             <Search className="ml-3 size-5 shrink-0 text-[#777d81]" />
             <input
               type="search"
               name="q"
               defaultValue={query}
-              placeholder="Search tools by capability…"
-              aria-label="Search public tools"
+              placeholder="Search tools, loops, MCPs, skills, docs, and returned data…"
+              aria-label="Search the public registry"
               className="h-11 min-w-0 flex-1 bg-transparent px-2 text-[15px] outline-none placeholder:text-[#777d81]"
             />
             <button type="submit" className="h-10 rounded-lg bg-[#e7e9e9] px-5 text-sm font-medium text-[#101213] transition hover:bg-white">

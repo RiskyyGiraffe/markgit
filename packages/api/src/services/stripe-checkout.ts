@@ -92,6 +92,7 @@ export async function handleCheckoutCompleted(stripeSessionId: string) {
       description: 'Stripe checkout funding',
       referenceType: 'funding',
       referenceId: existing.id,
+      cashBacked: true,
     });
   });
 }

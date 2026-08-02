@@ -67,6 +67,9 @@ import type {
   SkillManifest,
   PublishSkillResponse,
   LeaderboardResponse,
+  RegistrySearchResult,
+  PublicReviewsResponse,
+  ReviewEligibility,
 } from './types.js';
 
 export class MarkgitApiError extends Error {
@@ -137,6 +140,40 @@ export class MarkgitClient {
 
   async search(request: SearchRequest): Promise<SearchResponse> {
     return this.request('POST', '/v1/search', request);
+  }
+
+  async searchRegistry(request: SearchRequest): Promise<SearchResponse> {
+    const params = new URLSearchParams({
+      q: request.query,
+      limit: String(request.limit ?? 20),
+      offset: String(request.offset ?? 0),
+    });
+    if (request.kind) params.set('kind', request.kind);
+    return this.request('GET', `/v1/registry/search?${params}`);
+  }
+
+  async getRegistryItem(identifier: string): Promise<RegistrySearchResult> {
+    return this.request('GET', `/v1/registry/items/${encodeURIComponent(identifier)}`);
+  }
+
+  async getReviews(identifier: string, limit = 20, offset = 0): Promise<PublicReviewsResponse> {
+    return this.request('GET', `/v1/registry/items/${encodeURIComponent(identifier)}/reviews?limit=${limit}&offset=${offset}`);
+  }
+
+  async getReviewEligibility(identifier: string): Promise<ReviewEligibility> {
+    return this.request('GET', `/v1/reviews/${encodeURIComponent(identifier)}/eligibility`);
+  }
+
+  async reportUsage(identifier: string, request: { interactionId: string; agentName: string; evidenceSummary?: string }) {
+    return this.request('POST', `/v1/reviews/${encodeURIComponent(identifier)}/usage`, request);
+  }
+
+  async review(identifier: string, request: { helpful: boolean; agentName: string; title?: string; body?: string }) {
+    return this.request('PUT', `/v1/reviews/${encodeURIComponent(identifier)}`, request);
+  }
+
+  async deleteReview(identifier: string) {
+    return this.request('DELETE', `/v1/reviews/${encodeURIComponent(identifier)}`);
   }
 
   async listTools(query = '', limit = 20, offset = 0): Promise<ToolListResponse> {

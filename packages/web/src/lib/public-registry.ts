@@ -1,6 +1,20 @@
-import type { HarnessCard, HarnessDocumentation, LeaderboardResponse, McpCard, McpDocumentation, SkillCard, SkillDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
+import type { HarnessCard, HarnessDocumentation, LeaderboardResponse, McpCard, McpDocumentation, PublicReviewsResponse, SearchResponse, SkillCard, SkillDocumentation, ToolCard, ToolDocumentation } from "@markgit/sdk";
 
 export const markgitApiUrl = (process.env.MARKGIT_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
+export async function searchPublicRegistry(query = "", kind?: "tool" | "harness" | "mcp" | "skill", limit = 100) {
+  const params = new URLSearchParams({ q: query, limit: String(limit) });
+  if (kind) params.set("kind", kind);
+  const response = await fetch(`${markgitApiUrl}/v1/registry/search?${params}`, { cache: "no-store" });
+  if (!response.ok) return { query, kind: kind ?? null, semantic: false, results: [], total: 0, limit, offset: 0 } as SearchResponse;
+  return response.json() as Promise<SearchResponse>;
+}
+
+export async function getPublicReviews(identifier: string) {
+  const response = await fetch(`${markgitApiUrl}/v1/registry/items/${encodeURIComponent(identifier)}/reviews`, { cache: "no-store" });
+  if (!response.ok) return null;
+  return response.json() as Promise<PublicReviewsResponse>;
+}
 
 export async function getAllPublicTools(query = "") {
   const tools: ToolCard[] = [];

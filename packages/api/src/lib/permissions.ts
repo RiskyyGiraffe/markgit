@@ -100,6 +100,9 @@ export function requiredPermission(method: string, rawPath: string): ApiPermissi
   if (verb === 'POST' && (path === '/wallet/fund' || path === '/wallet/fund/checkout')) return 'wallet:fund';
 
   if (verb === 'POST' && path === '/search') return 'registry:read';
+  if (verb === 'GET' && /^\/reviews\/[^/]+\/eligibility$/.test(path)) return 'registry:read';
+  if (verb === 'POST' && /^\/reviews\/[^/]+\/usage$/.test(path)) return 'tools:call';
+  if (['PUT', 'DELETE'].includes(verb) && /^\/reviews\/[^/]+$/.test(path)) return 'tools:call';
 
   if (verb === 'GET' && path === '/quicklist') return 'registry:read';
   if (['PUT', 'DELETE'].includes(verb) && /^\/quicklist\/[^/]+$/.test(path)) return 'spend:write';

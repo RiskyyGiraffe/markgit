@@ -10,6 +10,8 @@ Markgit is a thin standardization and marketplace layer for tools, durable agent
 npm install -g @markgit/cli
 markgit login
 markgit search "weather"
+markgit search "returns hourly precipitation probability" --kind tool
+markgit reviews open-meteo-current-weather
 markgit quicklist add open-meteo-current-weather paid
 markgit wallet
 ```

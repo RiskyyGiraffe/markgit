@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Bot, Braces, ExternalLink, ShieldCheck, Users, Zap } from "lucide-react";
 import { PublicHeader } from "@/components/public-header";
 import { ToolLogo } from "@/components/tool-logo";
+import { PublicReviews } from "@/components/public-reviews";
 import { getPublicToolDocumentation } from "@/lib/public-registry";
 
 export const dynamic = "force-dynamic";
@@ -145,6 +146,7 @@ export default async function PublicToolPage({ params }: { params: Promise<{ slu
             </div>
           </div>
         </section>
+        <PublicReviews identifier={slug} dark />
       </div>
     </main>
   );

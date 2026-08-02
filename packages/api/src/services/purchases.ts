@@ -37,6 +37,11 @@ import { applyQuicklistAuthorization, getQuicklistPreference } from './quicklist
 
 const MARKGIT_FEE_RATE = 0.10; // 10%
 const QUOTE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+export const PROVIDER_EARNINGS_DELAY_MS = 3 * 24 * 60 * 60 * 1000;
+
+export function providerPayoutEligibleAt(now = new Date()) {
+  return new Date(now.getTime() + PROVIDER_EARNINGS_DELAY_MS);
+}
 
 function paymentVerificationSatisfied(status: string | null) {
   return status === 'active' || (
@@ -404,6 +409,15 @@ export async function createPurchase(
     const balance = balanceResult?.balance ?? '0';
 
     if (result.success) {
+      const [backingResult] = await tx.select({
+        available: sql<string>`coalesce(sum(case
+          when ${walletLedgerEntries.entryType} = 'credit' and ${walletLedgerEntries.cashBacked} = true
+            then ${walletLedgerEntries.amountUsd}
+          when ${walletLedgerEntries.entryType} = 'capture' and ${walletLedgerEntries.cashBacked} = true
+            then -${walletLedgerEntries.amountUsd}
+          else 0 end), '0')`,
+      }).from(walletLedgerEntries).where(eq(walletLedgerEntries.walletId, currentHold.walletId));
+      const cashBacked = Number.parseFloat(backingResult?.available ?? '0') >= Number.parseFloat(hold.amountUsd);
       await tx.update(holds).set({ status: 'captured', updatedAt: new Date() }).where(eq(holds.id, hold.id));
       const newBalance = (Number.parseFloat(balance) - Number.parseFloat(hold.amountUsd)).toFixed(4);
       await tx.insert(walletLedgerEntries).values({
@@ -414,10 +428,11 @@ export async function createPurchase(
         description: 'Hold captured for completed purchase',
         referenceType: 'hold',
         referenceId: hold.id,
+        cashBacked,
       });
       await tx
         .update(purchases)
-        .set({ status: 'completed', updatedAt: new Date() })
+        .set({ status: 'completed', cashBacked, updatedAt: new Date() })
         .where(eq(purchases.id, purchase.id));
       await tx
         .insert(providerEarnings)
@@ -427,15 +442,8 @@ export async function createPurchase(
           grossAmountUsd: quote.priceUsd,
           markgitFeeUsd: '0.0000',
           netAmountUsd: quote.priceUsd,
-          payoutEligibleAt: new Date(Date.now() + (
-            provider.trustTier === 'premium'
-              ? 0
-              : provider.trustTier === 'verified'
-                ? 2
-                : provider.trustTier === 'basic'
-                  ? 7
-                  : 14
-          ) * 86_400_000),
+          cashBacked,
+          payoutEligibleAt: providerPayoutEligibleAt(),
         })
         .onConflictDoNothing({ target: providerEarnings.purchaseId });
     } else {

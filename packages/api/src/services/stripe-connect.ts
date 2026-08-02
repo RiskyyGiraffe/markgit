@@ -201,8 +201,9 @@ export async function getEarningsSummary(providerId: string) {
       totalGross: sql<string>`coalesce(sum(${providerEarnings.grossAmountUsd}), '0')`,
       totalFees: sql<string>`coalesce(sum(${providerEarnings.markgitFeeUsd}), '0')`,
       totalNet: sql<string>`coalesce(sum(${providerEarnings.netAmountUsd}), '0')`,
-      unpaid: sql<string>`coalesce(sum(case when ${providerEarnings.payoutId} is null then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
-      paidOut: sql<string>`coalesce(sum(case when ${providerEarnings.payoutId} is not null then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
+      unpaid: sql<string>`coalesce(sum(case when ${providerEarnings.payoutId} is null and ${providerEarnings.cashBacked} = true then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
+      paidOut: sql<string>`coalesce(sum(case when ${providerEarnings.payoutId} is not null and ${providerEarnings.cashBacked} = true then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
+      nonPayable: sql<string>`coalesce(sum(case when ${providerEarnings.cashBacked} = false then ${providerEarnings.netAmountUsd} else 0 end), '0')`,
     })
     .from(providerEarnings)
     .where(eq(providerEarnings.providerId, providerId));
@@ -213,6 +214,7 @@ export async function getEarningsSummary(providerId: string) {
     totalNet: result.totalNet,
     unpaid: result.unpaid,
     paidOut: result.paidOut,
+    nonPayable: result.nonPayable,
   };
 }
 
@@ -226,6 +228,7 @@ export async function getUnpaidEarnings(providerId: string) {
       and(
         eq(providerEarnings.providerId, providerId),
         isNull(providerEarnings.payoutId),
+        eq(providerEarnings.cashBacked, true),
         lte(providerEarnings.payoutEligibleAt, new Date()),
       ),
     );
@@ -313,6 +316,7 @@ export async function createPayout(providerId: string) {
         and(
           eq(providerEarnings.providerId, providerId),
           isNull(providerEarnings.payoutId),
+          eq(providerEarnings.cashBacked, true),
           lte(providerEarnings.payoutEligibleAt, new Date()),
         ),
       );
@@ -356,6 +360,8 @@ export async function listEarnings(providerId: string, limit = 50, offset = 0) {
       grossAmountUsd: providerEarnings.grossAmountUsd,
       markgitFeeUsd: providerEarnings.markgitFeeUsd,
       netAmountUsd: providerEarnings.netAmountUsd,
+      cashBacked: providerEarnings.cashBacked,
+      payoutEligibleAt: providerEarnings.payoutEligibleAt,
       payoutId: providerEarnings.payoutId,
       createdAt: providerEarnings.createdAt,
     })

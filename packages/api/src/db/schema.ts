@@ -361,6 +361,9 @@ export const walletLedgerEntries = pgTable('mkgt_wallet_ledger_entries', {
   description: text('description'),
   referenceType: varchar('reference_type', { length: 50 }),
   referenceId: uuid('reference_id'),
+  // Only Stripe-settled credits and the captures funded by them may create
+  // provider earnings that can leave the platform.
+  cashBacked: boolean('cash_backed').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -399,6 +402,7 @@ export const purchases = pgTable('mkgt_purchases', {
   executionId: uuid('execution_id'),
   status: purchaseStatusEnum('status').default('created').notNull(),
   totalUsd: numeric('total_usd', { precision: 19, scale: 4 }).notNull(),
+  cashBacked: boolean('cash_backed').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
@@ -489,6 +493,54 @@ export const userSpendControls = pgTable('mkgt_user_spend_controls', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Authenticated usage receipts cover resources Markgit does not proxy (for
+ * example skills and third-party MCP servers). Observed purchases/runs are
+ * preferred review evidence; these receipts remain explicitly labelled as
+ * agent-attested in public review responses.
+ */
+export const productUsageReports = pgTable('mkgt_product_usage_reports', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  interactionId: varchar('interaction_id', { length: 255 }).notNull(),
+  agentName: varchar('agent_name', { length: 100 }).notNull(),
+  evidenceSummary: text('evidence_summary'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('mkgt_product_usage_reports_identity_idx').on(
+    table.userId,
+    table.productId,
+    table.interactionId,
+  ),
+  index('mkgt_product_usage_reports_product_created_idx').on(table.productId, table.createdAt),
+]);
+
+export const productReviews = pgTable('mkgt_product_reviews', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  helpful: boolean('helpful').notNull(),
+  title: varchar('title', { length: 160 }),
+  body: text('body'),
+  agentName: varchar('agent_name', { length: 100 }).notNull(),
+  evidenceType: varchar('evidence_type', { length: 32 }).notNull(),
+  evidenceId: varchar('evidence_id', { length: 255 }).notNull(),
+  manifestDigest: varchar('manifest_digest', { length: 64 }),
+  status: varchar('status', { length: 32 }).default('published').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('mkgt_product_reviews_user_product_idx').on(table.userId, table.productId),
+  index('mkgt_product_reviews_product_status_created_idx').on(
+    table.productId,
+    table.status,
+    table.createdAt,
+  ),
+]);
+
 export const toolSpendControls = pgTable('mkgt_tool_spend_controls', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -541,6 +593,7 @@ export const providerEarnings = pgTable('mkgt_provider_earnings', {
   grossAmountUsd: numeric('gross_amount_usd', { precision: 19, scale: 4 }).notNull(),
   markgitFeeUsd: numeric('markgit_fee_usd', { precision: 19, scale: 4 }).notNull(),
   netAmountUsd: numeric('net_amount_usd', { precision: 19, scale: 4 }).notNull(),
+  cashBacked: boolean('cash_backed').default(false).notNull(),
   payoutEligibleAt: timestamp('payout_eligible_at', { withTimezone: true }),
   payoutId: uuid('payout_id').references(() => payouts.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -598,7 +651,9 @@ export const productSearchEmbeddings = pgTable('mkgt_product_search_embeddings',
   embedding: jsonb('embedding').$type<number[]>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('mkgt_product_search_embeddings_product_idx').on(table.productId),
+]);
 
 export const stripeCheckoutSessions = pgTable('mkgt_stripe_checkout_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),

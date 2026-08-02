@@ -749,7 +749,7 @@ export function ProviderOnboardingWizard({
 
       {provider && earnings && (
         <>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Total Gross</CardDescription>
@@ -782,7 +782,17 @@ export function ProviderOnboardingWizard({
                 </CardTitle>
               </CardHeader>
             </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Test / non-payable</CardDescription>
+                <CardTitle className="text-2xl">
+                  ${parseFloat(earnings.nonPayable).toFixed(2)}
+                </CardTitle>
+              </CardHeader>
+            </Card>
           </div>
+
+          <p className="text-xs text-muted-foreground">Cash-backed earnings become payout-eligible exactly three days after a successful call. Test-funded wallet activity never enters Stripe payouts.</p>
 
           <Card>
             <CardHeader>

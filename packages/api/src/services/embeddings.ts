@@ -15,24 +15,43 @@ function normalizeText(value: unknown) {
   return JSON.stringify(value);
 }
 
+function boundedText(value: unknown, maxLength = 12_000) {
+  const normalized = normalizeText(value).replace(/\s+/g, ' ').trim();
+  return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength)}…`;
+}
+
 export function buildProductEmbeddingText(product: {
   name: string;
+  slug: string;
+  kind: string;
   description: string | null;
   category: string | null;
   tags: string[];
   inputSchema: Record<string, unknown> | null;
   outputSchema: Record<string, unknown> | null;
   executionConfig: Record<string, unknown> | null;
+  harnessConfig: Record<string, unknown> | null;
+  mcpConfig: Record<string, unknown> | null;
+  skillConfig: Record<string, unknown> | null;
+  sourceMetadata: Record<string, unknown> | null;
+  capabilities: Record<string, unknown> | null;
 }) {
   return [
     `name: ${product.name}`,
-    `description: ${normalizeText(product.description)}`,
-    `category: ${normalizeText(product.category)}`,
+    `slug: ${product.slug}`,
+    `kind: ${product.kind}`,
+    `description: ${boundedText(product.description)}`,
+    `category: ${boundedText(product.category)}`,
     `tags: ${product.tags.join(', ')}`,
-    `inputs: ${normalizeText(product.inputSchema)}`,
-    `outputs: ${normalizeText(product.outputSchema)}`,
-    `execution: ${normalizeText(product.executionConfig)}`,
-  ].join('\n');
+    `inputs and accepted data: ${boundedText(product.inputSchema)}`,
+    `outputs, return value, and returned data: ${boundedText(product.outputSchema)}`,
+    `tool execution: ${boundedText(product.executionConfig)}`,
+    `custom loop behavior: ${boundedText(product.harnessConfig)}`,
+    `MCP server and tools: ${boundedText(product.mcpConfig)}`,
+    `skill instructions and markdown: ${boundedText(product.skillConfig)}`,
+    `source documentation and README: ${boundedText(product.sourceMetadata, 12_000)}`,
+    `capabilities and access: ${boundedText(product.capabilities)}`,
+  ].join('\n').slice(0, 30_000);
 }
 
 async function requestEmbeddings(input: string[]) {
@@ -68,12 +87,19 @@ export async function ensureProductEmbeddings(productIds?: string[]) {
     .select({
       id: products.id,
       name: products.name,
+      slug: products.slug,
+      kind: products.kind,
       description: products.description,
       category: products.category,
       tags: products.tags,
       inputSchema: products.inputSchema,
       outputSchema: products.outputSchema,
       executionConfig: products.executionConfig,
+      harnessConfig: products.harnessConfig,
+      mcpConfig: products.mcpConfig,
+      skillConfig: products.skillConfig,
+      sourceMetadata: products.sourceMetadata,
+      capabilities: products.capabilities,
     })
     .from(products)
     .where(
@@ -106,33 +132,35 @@ export async function ensureProductEmbeddings(productIds?: string[]) {
 
   if (pending.length === 0) return existing;
 
-  const embeddings = await requestEmbeddings(pending.map((item) => item.sourceText));
-  if (!embeddings) return existing;
+  for (let batchStart = 0; batchStart < pending.length; batchStart += 50) {
+    const batch = pending.slice(batchStart, batchStart + 50);
+    const embeddings = await requestEmbeddings(batch.map((item) => item.sourceText));
+    if (!embeddings) continue;
+    for (let index = 0; index < batch.length; index += 1) {
+      const item = batch[index];
+      const embedding = embeddings[index];
+      if (!embedding) continue;
 
-  for (let index = 0; index < pending.length; index += 1) {
-    const item = pending[index];
-    const embedding = embeddings[index];
-    if (!embedding) continue;
-
-    if (item.current) {
-      await db
-        .update(productSearchEmbeddings)
-        .set({
+      if (item.current) {
+        await db
+          .update(productSearchEmbeddings)
+          .set({
+            model: DEFAULT_EMBED_MODEL,
+            contentHash: item.contentHash,
+            sourceText: item.sourceText,
+            embedding,
+            updatedAt: new Date(),
+          })
+          .where(eq(productSearchEmbeddings.id, item.current.id));
+      } else {
+        await db.insert(productSearchEmbeddings).values({
+          productId: item.row.id,
           model: DEFAULT_EMBED_MODEL,
           contentHash: item.contentHash,
           sourceText: item.sourceText,
           embedding,
-          updatedAt: new Date(),
-        })
-        .where(eq(productSearchEmbeddings.id, item.current.id));
-    } else {
-      await db.insert(productSearchEmbeddings).values({
-        productId: item.row.id,
-        model: DEFAULT_EMBED_MODEL,
-        contentHash: item.contentHash,
-        sourceText: item.sourceText,
-        embedding,
-      });
+        }).onConflictDoNothing({ target: productSearchEmbeddings.productId });
+      }
     }
   }
 

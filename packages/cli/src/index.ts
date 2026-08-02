@@ -254,37 +254,116 @@ async function inspectQuicklistShortcut(identifier: string): Promise<boolean> {
 }
 
 async function search(args: string[]): Promise<void> {
-  const query = args.join(' ').trim();
-  if (!query) throw new Error('Usage: markgit search <what you need>');
+  const kind = valueAfter(args, '--kind');
+  if (kind && !['tool', 'harness', 'mcp', 'skill'].includes(kind)) {
+    throw new Error('--kind must be tool, harness, mcp, or skill');
+  }
+  const limit = Math.min(100, Math.max(1, Number(valueAfter(args, '--limit') ?? 20)));
+  const query = args.filter((arg, index) => {
+    if (['--kind', '--limit'].includes(arg)) return false;
+    if (index > 0 && ['--kind', '--limit'].includes(args[index - 1])) return false;
+    return arg !== '--json';
+  }).join(' ').trim();
   const apiUrl = (process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL);
-  const result = await request<{ tools: Array<{
+  const params = new URLSearchParams({ q: query, limit: String(limit) });
+  if (kind) params.set('kind', kind);
+  const result = await request<{ semantic: boolean; results: Array<{
+    kind: 'tool' | 'harness' | 'mcp' | 'skill';
     slug: string;
     name: string;
     description: string | null;
-    provider: { name: string; trustTier: string };
-    trust: { endpoint: { status: string } };
-    risk: { level: string };
-    policy: { eligibleForAutoCall: boolean };
-    pricing: { type: string; amount: string; currency: string };
-  }> }>(`/v1/registry/tools?q=${encodeURIComponent(query)}`, { apiUrl });
+    providerName: string;
+    pricePerCallUsd: string;
+    score: number;
+    usage: { usageCount: number; uniqueUserCount: number };
+    reviews: { helpfulPercent: number | null; total: number };
+  }> }>(`/v1/registry/search?${params}`, { apiUrl });
 
-  if (!result.tools.length) {
-    console.log('No matching tools.');
+  if (args.includes('--json')) {
+    console.log(JSON.stringify(result, null, 2));
     return;
   }
-  for (const tool of result.tools) {
-    const price = tool.pricing.type === 'free' ? 'free' : `$${tool.pricing.amount}/call`;
-    console.log(`${tool.slug}  ${price}`);
-    console.log(`  ${tool.name} by ${tool.provider.name} · endpoint ${tool.trust.endpoint.status} · risk ${tool.risk.level}`);
-    if (tool.description) console.log(`  ${tool.description}`);
+  if (!result.results.length) {
+    console.log('No matching registry items.');
+    return;
   }
+  for (const item of result.results) {
+    const price = Number(item.pricePerCallUsd) === 0 ? 'free' : `$${item.pricePerCallUsd}/call`;
+    const rating = item.reviews.total > 0 ? `${item.reviews.helpfulPercent}% helpful (${item.reviews.total})` : 'no reviews';
+    console.log(`${item.kind.padEnd(7)} ${item.slug}  ${price}`);
+    console.log(`  ${item.name} by ${item.providerName} · ${rating} · ${item.usage.usageCount} uses`);
+    if (item.description) console.log(`  ${item.description}`);
+  }
+  console.log(`\nSearch mode: ${result.semantic ? 'semantic + full-document lexical' : 'full-document lexical fallback'}`);
 }
 
 async function inspect(identifier: string | undefined): Promise<void> {
-  if (!identifier) throw new Error('Usage: markgit inspect <tool-slug>');
+  if (!identifier) throw new Error('Usage: markgit inspect <slug>');
   const apiUrl = (process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL);
-  const tool = await request<Record<string, unknown>>(`/v1/registry/tools/${encodeURIComponent(identifier)}`, { apiUrl });
-  console.log(JSON.stringify(tool, null, 2));
+  const item = await request<Record<string, unknown>>(`/v1/registry/items/${encodeURIComponent(identifier)}`, { apiUrl });
+  console.log(JSON.stringify(item, null, 2));
+}
+
+async function listReviews(args: string[]): Promise<void> {
+  const identifier = args[0];
+  if (!identifier) throw new Error('Usage: markgit reviews <slug> [--json]');
+  const apiUrl = process.env.MARKGIT_API_URL ?? (await loadConfig(false))?.apiUrl ?? DEFAULT_API_URL;
+  const result = await request<{
+    summary: { helpful: number; notHelpful: number; total: number; helpfulPercent: number | null };
+    reviews: Array<{ helpful: boolean; agentName: string; title: string | null; body: string | null; verification: string; updatedAt: string }>;
+  }>(`/v1/registry/items/${encodeURIComponent(identifier)}/reviews`, { apiUrl });
+  if (args.includes('--json')) return void console.log(JSON.stringify(result, null, 2));
+  console.log(result.summary.total ? `${result.summary.helpfulPercent}% helpful · ${result.summary.total} verified-use reviews` : 'No reviews yet.');
+  for (const review of result.reviews) {
+    console.log(`\n${review.helpful ? 'helpful' : 'not helpful'} · ${review.agentName} · ${review.verification}`);
+    if (review.title) console.log(review.title);
+    if (review.body) console.log(review.body);
+  }
+}
+
+async function reportUsage(args: string[]): Promise<void> {
+  const identifier = args[0];
+  if (!identifier) throw new Error('Usage: markgit used <slug> [--agent codex] [--interaction id] [--summary text]');
+  const config = await loadConfig();
+  const result = await request<Record<string, unknown>>(`/v1/reviews/${encodeURIComponent(identifier)}/usage`, {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'POST',
+    body: JSON.stringify({
+      interactionId: valueAfter(args, '--interaction') ?? randomUUID(),
+      agentName: valueAfter(args, '--agent') ?? 'markgit-cli-agent',
+      evidenceSummary: valueAfter(args, '--summary'),
+    }),
+  });
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function reviewItem(args: string[]): Promise<void> {
+  const identifier = args[0];
+  if (!identifier) throw new Error('Usage: markgit review <slug> --helpful|--not-helpful|--delete');
+  const config = await loadConfig();
+  if (args.includes('--delete')) {
+    const result = await request<Record<string, unknown>>(`/v1/reviews/${encodeURIComponent(identifier)}`, {
+      apiUrl: config!.apiUrl, apiKey: config!.apiKey, method: 'DELETE',
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (!args.includes('--helpful') && !args.includes('--not-helpful')) {
+    throw new Error('Usage: markgit review <slug> --helpful|--not-helpful [--agent name] [--title text] [--body text]');
+  }
+  const result = await request<Record<string, unknown>>(`/v1/reviews/${encodeURIComponent(identifier)}`, {
+    apiUrl: config!.apiUrl,
+    apiKey: config!.apiKey,
+    method: 'PUT',
+    body: JSON.stringify({
+      helpful: args.includes('--helpful'),
+      agentName: valueAfter(args, '--agent') ?? 'markgit-cli-agent',
+      title: valueAfter(args, '--title'),
+      body: valueAfter(args, '--body'),
+    }),
+  });
+  console.log(JSON.stringify(result, null, 2));
 }
 
 async function searchHarnesses(args: string[]): Promise<void> {
@@ -649,11 +728,13 @@ async function fundWallet(args: string[]): Promise<void> {
 async function earnings(): Promise<void> {
   const config = await loadConfig();
   const result = await request<{
-    totalGross: string; totalFees: string; totalNet: string; unpaid: string; paidOut: string;
+    totalGross: string; totalFees: string; totalNet: string; unpaid: string; paidOut: string; nonPayable: string;
   }>('/v1/providers/earnings', { apiUrl: config!.apiUrl, apiKey: config!.apiKey });
   console.log(`Provider earnings: $${result.totalNet} USD`);
   console.log(`Unpaid:            $${result.unpaid} USD`);
   console.log(`Paid out:          $${result.paidOut} USD`);
+  console.log(`Test/non-payable:  $${result.nonPayable} USD`);
+  console.log('Cash-backed earnings become payout-eligible three days after the successful call.');
 }
 
 async function verifyOrigin(args: string[]): Promise<void> {
@@ -930,8 +1011,12 @@ Usage:
   markgit quicklist auth <slug> <paid|every|never>
   markgit quicklist remove <slug>
   markgit fund [amount]          Fund locally by amount, or open the wallet portal
-  markgit search <query>         Search the public tool registry
-  markgit inspect <tool-slug>    Print a tool's schemas, provider, and price
+  markgit search [query] [--kind tool|harness|mcp|skill] [--json]
+                                Semantically search every field of every registry item
+  markgit inspect <slug>         Print any tool, loop, MCP, or skill including schemas
+  markgit reviews <slug>         Read public verified-use agent reviews
+  markgit used <slug>            Attest direct MCP/skill use before reviewing
+  markgit review <slug> --helpful|--not-helpful|--delete [--title text] [--body text]
   markgit call <tool-slug> --input '{"key":"value"}' [--yes | --max-cost USD] [--allow-unverified]
   markgit publish <manifest>     Publish a provider-hosted tool as a draft
   markgit onboard <manifest>     Register provider, publish, and activate a tool
@@ -976,6 +1061,9 @@ async function main(): Promise<void> {
     case 'fund': return fundWallet(args);
     case 'search': return search(args);
     case 'inspect': return inspect(args[0]);
+    case 'reviews': return listReviews(args);
+    case 'used': return reportUsage(args);
+    case 'review': return reviewItem(args);
     case 'call': return callTool(args);
     case 'publish': return publish(args);
     case 'onboard': return publish(args, true);

@@ -1,100 +1,33 @@
+import Link from "next/link";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getProduct } from "@/actions/marketplace";
 import { getQuicklist } from "@/actions/quicklist";
+import { getReviewState } from "@/actions/reviews";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductExecuteForm } from "@/components/product-execute-form";
 import { QuicklistControl } from "@/components/quicklist-control";
+import { ReviewControl } from "@/components/review-control";
+import { ToolLogo } from "@/components/tool-logo";
 
-export default async function ProductDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+function routeFor(kind: string, slug: string) {
+  return `/${kind === "tool" ? "tools" : kind === "harness" ? "harnesses" : `${kind}s`}/${slug}`;
+}
+
+export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [product, quicklist] = await Promise.all([getProduct(id), getQuicklist()]);
+  const [product, quicklist, reviewState] = await Promise.all([getProduct(id), getQuicklist(), getReviewState(id)]);
   const quicklistEntry = quicklist.entries.find((entry) => entry.tool.id === product.id);
+  const configuration = product.kind === "harness" ? product.harnessConfig : product.kind === "mcp" ? product.mcpConfig : product.kind === "skill" ? product.skillConfig : product.executionConfig;
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {product.name}
-            </h1>
-            <p className="text-muted-foreground">{product.description}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold">
-              ${parseFloat(product.pricePerCallUsd).toFixed(4)}
-            </p>
-            <p className="text-sm text-muted-foreground">per call</p>
-            <div className="mt-3"><QuicklistControl slug={product.slug} initialMode={quicklistEntry?.authorization.mode} versionCurrent={quicklistEntry?.authorization.versionCurrent} /></div>
-          </div>
-        </div>
-        <div className="mt-2 flex gap-2">
-          {product.category && (
-            <Badge variant="secondary">{product.category}</Badge>
-          )}
-          <Badge variant="outline">{product.status}</Badge>
-          {product.trust && (
-            <Badge variant="outline">endpoint {product.trust.endpoint.status}</Badge>
-          )}
-          {product.risk && <Badge variant="outline">{product.risk.level} risk</Badge>}
-          <Badge variant="outline">
-            {(product.uniqueUserCount ?? 0) < 100 ? "Under 100 users" : `${(product.uniqueUserCount ?? 0).toLocaleString()} users`}
-          </Badge>
-          <Badge variant="outline">
-            {(product.usageCount ?? 0) < 1000 ? "Under 1K invokes" : `${(product.usageCount ?? 0).toLocaleString()} invokes`}
-          </Badge>
-          {product.tags.map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      </div>
+  return <div className="space-y-7">
+    <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Marketplace</Link>
+    <section className="flex flex-col justify-between gap-6 border-b pb-7 md:flex-row md:items-start"><div className="flex gap-4"><ToolLogo name={product.name} logoUrl={product.logoUrl} category={product.category} tags={product.tags} size="lg" /><div><div className="flex flex-wrap items-center gap-2"><Badge variant="secondary" className="capitalize">{product.kind === "harness" ? "custom loop" : product.kind}</Badge><Badge variant="outline">{product.status}</Badge></div><h1 className="mt-3 font-display text-3xl font-medium tracking-[-0.045em]">{product.name}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{product.description}</p></div></div><div className="flex shrink-0 flex-col items-end gap-3"><Badge variant="outline">{Number(product.pricePerCallUsd) === 0 ? "Free" : `$${Number(product.pricePerCallUsd).toFixed(4)} / call`}</Badge>{product.kind === "tool" ? <QuicklistControl slug={product.slug} initialMode={quicklistEntry?.authorization.mode} versionCurrent={quicklistEntry?.authorization.versionCurrent} /> : null}<Link href={routeFor(product.kind, product.slug)} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">Public page <ExternalLink className="size-3" /></Link></div></section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Execute</CardTitle>
-            <CardDescription>
-              Fill in the parameters and run this API
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProductExecuteForm
-              productId={product.id}
-              inputSchema={product.inputSchema as Record<string, unknown> | null}
-              executionConfig={product.executionConfig as Record<string, unknown> | null}
-              buyerCredentialConfigured={product.buyerCredentialConfigured}
-              policy={product.policy}
-              manifestDigest={product.manifestDigest}
-            />
-          </CardContent>
-        </Card>
-
-        {product.inputSchema && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Input Schema</CardTitle>
-              <CardDescription>Expected parameters</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <pre className="overflow-auto rounded-lg bg-muted p-4 text-sm">
-                {JSON.stringify(product.inputSchema, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+    <div className={`grid gap-6 ${product.kind === "tool" ? "lg:grid-cols-2" : ""}`}>
+      {product.kind === "tool" ? <Card><CardHeader><CardTitle>Execute</CardTitle><CardDescription>Calls made here become Markgit-observed review evidence.</CardDescription></CardHeader><CardContent><ProductExecuteForm productId={product.id} inputSchema={product.inputSchema as Record<string, unknown> | null} executionConfig={product.executionConfig as Record<string, unknown> | null} buyerCredentialConfigured={product.buyerCredentialConfigured} policy={product.policy} manifestDigest={product.manifestDigest} /></CardContent></Card> : null}
+      <Card><CardHeader><CardTitle>{product.kind === "tool" ? "Input and return schemas" : "Indexed configuration"}</CardTitle><CardDescription>These fields are included in full-document and semantic search.</CardDescription></CardHeader><CardContent><pre className="max-h-[560px] overflow-auto rounded-lg bg-muted p-4 text-xs leading-6">{JSON.stringify({ inputSchema: product.inputSchema, outputSchema: product.outputSchema, configuration, sourceMetadata: product.sourceMetadata }, null, 2)}</pre></CardContent></Card>
     </div>
-  );
+    <ReviewControl identifier={product.id} initialEligibility={reviewState.eligibility} initialReviews={reviewState.reviews} />
+  </div>;
 }

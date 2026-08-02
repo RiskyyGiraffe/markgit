@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Activity, ArrowLeft, Bot, Boxes, Braces, Database, ExternalLink, LockKeyhole, RefreshCw, Shrink, Waypoints } from "lucide-react";
 import { PublicHeader } from "@/components/public-header";
 import { ToolLogo } from "@/components/tool-logo";
+import { PublicReviews } from "@/components/public-reviews";
 import { getPublicHarness } from "@/lib/public-registry";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,7 @@ export default async function HarnessPage({ params }: { params: Promise<{ slug: 
           <div className="rounded-xl border border-white/[0.08] p-5"><Shrink className="size-4 text-[#8f9da4]" /><h3 className="mt-4 text-sm font-medium">Compaction</h3><JsonBlock value={harness.compaction} /></div>
           <div className="rounded-xl border border-white/[0.08] p-5"><LockKeyhole className="size-4 text-[#8f9da4]" /><h3 className="mt-4 text-sm font-medium">Shared monitoring</h3><p className="mt-3 text-xs leading-6 text-[#858c90]">Codex, Claude, or any HTTP client using your account can read the same snapshot and append-only cursor stream.</p><p className="mt-3 flex items-center gap-2 font-mono text-[10px] text-[#687176]"><RefreshCw className="size-3" /> GET /v1/harness-runs/{"{runId}"}/events</p></div>
         </section>
+        <PublicReviews identifier={slug} dark />
       </div>
     </main>
   );

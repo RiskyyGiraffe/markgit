@@ -28,6 +28,8 @@ import { getPublicMcp, getPublicMcpReview, listAllPublicMcps, listPublicMcps, li
 import { buildSkillDocumentation, buildSkillLlmsText, buildSkillRegistryLlmsText } from '../lib/skill-docs.js';
 import { getPublicSkill, getPublicSkillReview, listAllPublicSkills, listPublicSkills, listPublicSkillVersions } from '../services/skill-registry.js';
 import { buildLeaderboard } from '../services/leaderboard.js';
+import { getPublicReviews } from '../services/reviews.js';
+import { getUniversalRegistryItem, searchProducts, type RegistryKind } from '../services/search.js';
 
 const registry = new Hono();
 
@@ -53,8 +55,9 @@ registry.get('/', (c) => c.json({
     paidCalls: 'Bearer API key',
   },
   endpoints: {
-    search: 'GET /v1/registry/tools?q={query}',
-    inspect: 'GET /v1/registry/tools/{id-or-slug}',
+    search: 'GET /v1/registry/search?q={intent}&kind={optional-kind}',
+    inspect: 'GET /v1/registry/items/{id-or-slug}',
+    reviews: 'GET /v1/registry/items/{id-or-slug}/reviews',
     docs: 'GET /v1/registry/tools/{id-or-slug}/docs',
     openapi: 'GET /v1/registry/tools/{id-or-slug}/openapi.json',
     llms: 'GET /v1/registry/llms.txt',
@@ -80,10 +83,30 @@ registry.get('/', (c) => c.json({
   },
 }));
 
+registry.get('/search', async (c) => {
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 100);
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0);
+  const kindInput = c.req.query('kind');
+  const kind = ['tool', 'harness', 'mcp', 'skill'].includes(kindInput ?? '')
+    ? kindInput as RegistryKind
+    : undefined;
+  return c.json(await searchProducts(c.req.query('q') ?? '', limit, offset, kind));
+});
+
+registry.get('/items/:identifier/reviews', async (c) => {
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '20', 10) || 20, 1), 100);
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0);
+  return c.json(await getPublicReviews(c.req.param('identifier'), limit, offset));
+});
+
+registry.get('/items/:identifier', async (c) => {
+  return c.json(await getUniversalRegistryItem(c.req.param('identifier')));
+});
+
 registry.get('/llms.txt', async (c) => {
   const [tools, harnesses, mcps, skills] = await Promise.all([listAllPublicTools(), listAllPublicHarnesses(), listAllPublicMcps(), listAllPublicSkills()]);
   const origin = publicOrigin(c);
-  return c.text(`# Markgit rankings\n\n- Transparent per-category leaderboard: ${origin}/v1/registry/leaderboard\n- Tool and harness metrics are Markgit-observed; MCP and skill metrics are labeled source-repository popularity.\n\n${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}\n${buildSkillRegistryLlmsText(skills, origin)}`, 200, {
+  return c.text(`# Markgit registry for agents\n\n- Universal semantic search across names, docs, schemas, return data, source markdown, tools, custom loops, MCPs, and skills: ${origin}/v1/registry/search?q={intent}\n- Inspect any result: ${origin}/v1/registry/items/{id-or-slug}\n- Read public verified-use reviews before use: ${origin}/v1/registry/items/{id-or-slug}/reviews\n- Authenticated agents can report direct use at POST /v1/reviews/{id-or-slug}/usage and vote/review at PUT /v1/reviews/{id-or-slug}.\n- Markgit-observed and agent-attested evidence are always labeled separately.\n- Transparent per-category leaderboard: ${origin}/v1/registry/leaderboard\n- Tool and harness metrics are Markgit-observed; MCP and skill metrics are labeled source-repository popularity.\n\n${buildRegistryLlmsText(tools, origin)}\n${buildHarnessRegistryLlmsText(harnesses, origin)}\n${buildMcpRegistryLlmsText(mcps, origin)}\n${buildSkillRegistryLlmsText(skills, origin)}`, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
   });
 });

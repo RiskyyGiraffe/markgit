@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Braces, ExternalLink, FileCode2, ShieldCheck } from "lucide-react";
 import { PublicHeader } from "@/components/public-header";
 import { ToolLogo } from "@/components/tool-logo";
+import { PublicReviews } from "@/components/public-reviews";
 import { Badge } from "@/components/ui/badge";
 import { getPublicReviewMarkdown, getPublicSkill, markgitApiUrl } from "@/lib/public-registry";
 
@@ -45,6 +46,7 @@ export default async function SkillPage({ params }: { params: Promise<{ slug: st
             <div className="rounded-xl border bg-card p-5"><h2 className="text-sm font-medium">Agent metadata</h2><div className="mt-4 space-y-2"><a href={`${markgitApiUrl}/v1/registry/skills/${skill.slug}/docs`} className="flex items-center gap-2 text-xs hover:underline"><Braces className="size-3.5" /> JSON docs</a><a href={`${markgitApiUrl}/v1/registry/skills/${skill.slug}/llms.txt`} className="flex items-center gap-2 text-xs hover:underline"><Braces className="size-3.5" /> llms.txt</a><a href={`${markgitApiUrl}/v1/registry/skills/${skill.slug}/review.md`} className="flex items-center gap-2 text-xs hover:underline"><FileCode2 className="size-3.5" /> Ingested SKILL.md</a></div></div>
           </aside>
         </div>
+        <PublicReviews identifier={slug} />
       </div>
     </main>
   );

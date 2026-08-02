@@ -1,219 +1,198 @@
-import { sql, eq, and, ilike, or, desc, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { products, productSearchEmbeddings, purchases } from '../db/schema.js';
+import {
+  harnessRuns,
+  productSearchEmbeddings,
+  productUsageReports,
+  products,
+  providers,
+  purchases,
+} from '../db/schema.js';
 import { cosineSimilarity, embedQuery, ensureProductEmbeddings } from './embeddings.js';
+import { reviewSummaries } from './reviews.js';
 
-const semanticLexicon: Record<string, string[]> = {
-  birthday: ['age', 'years', 'estimate'],
-  guess: ['estimate', 'prediction'],
-  years: ['age'],
-  first: ['name'],
-  firstname: ['name'],
-  demographic: ['demographics', 'population'],
-  predictor: ['prediction', 'estimate'],
-  weather: ['forecast', 'temperature', 'climate'],
-  dogs: ['dog'],
-  facts: ['fact'],
-};
+export type RegistryKind = 'tool' | 'harness' | 'mcp' | 'skill';
 
-function buildSearchDocument() {
-  return sql`
-    (
-      setweight(to_tsvector('english', coalesce(${products.name}, '')), 'A') ||
-      setweight(to_tsvector('english', coalesce(${products.description}, '')), 'B') ||
-      setweight(to_tsvector('english', coalesce(${products.category}, '')), 'C') ||
-      setweight(to_tsvector('english', coalesce(${products.tags}::text, '')), 'B') ||
-      setweight(to_tsvector('english', coalesce(${products.inputSchema}::text, '')), 'D') ||
-      setweight(to_tsvector('english', coalesce(${products.outputSchema}::text, '')), 'D') ||
-      setweight(to_tsvector('english', coalesce(${products.executionConfig}::text, '')), 'D')
-    )
-  `;
+function stringify(value: unknown) {
+  if (value == null) return '';
+  return typeof value === 'string' ? value : JSON.stringify(value);
 }
 
-async function expandSemanticQuery(query: string) {
-  const lexicalTerms = query
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .filter(Boolean)
-    .flatMap((term) => semanticLexicon[term] ?? []);
+export function buildSearchableText(item: {
+  name: string;
+  slug: string;
+  kind: string;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  inputSchema: unknown;
+  outputSchema: unknown;
+  executionConfig: unknown;
+  harnessConfig: unknown;
+  mcpConfig: unknown;
+  skillConfig: unknown;
+  sourceMetadata: unknown;
+  capabilities: unknown;
+}) {
+  return [
+    item.name,
+    item.slug,
+    item.kind,
+    item.description,
+    item.category,
+    item.tags.join(' '),
+    stringify(item.inputSchema),
+    stringify(item.outputSchema),
+    stringify(item.executionConfig),
+    stringify(item.harnessConfig),
+    stringify(item.mcpConfig),
+    stringify(item.skillConfig),
+    stringify(item.sourceMetadata),
+    stringify(item.capabilities),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return Array.from(new Set(lexicalTerms)).slice(0, 6);
-
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            'Expand this marketplace search query into up to 6 short related search phrases.',
-            'Focus on product intent, synonyms, input/output concepts, and common buyer vocabulary.',
-            'Return JSON only in the form {"terms":["..."]}.',
-            `Query: ${query}`,
-          ].join('\n'),
-        },
-      ],
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  if (!response.ok) return Array.from(new Set(lexicalTerms)).slice(0, 6);
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) return Array.from(new Set(lexicalTerms)).slice(0, 6);
-
-  try {
-    const parsed = JSON.parse(content) as { terms?: unknown[] };
-    const parsedTerms = (parsed.terms ?? [])
-      .filter((term): term is string => typeof term === 'string')
-      .map((term) => term.trim())
-      .filter(Boolean);
-
-    return Array.from(
-      new Set([
-        ...lexicalTerms,
-        ...parsedTerms,
-      ]),
-    ).slice(0, 6);
-  } catch {
-    return Array.from(new Set(lexicalTerms)).slice(0, 6);
+export function lexicalSearchScore(query: string, item: Parameters<typeof buildSearchableText>[0]) {
+  const normalized = query.toLowerCase().trim();
+  if (!normalized) return 0;
+  const searchable = buildSearchableText(item);
+  const terms = normalized.split(/[^a-z0-9]+/).filter(Boolean);
+  let score = searchable.includes(normalized) ? 0.45 : 0;
+  if (item.name.toLowerCase().includes(normalized)) score += 0.65;
+  if (item.slug.toLowerCase().includes(normalized)) score += 0.4;
+  for (const term of terms) {
+    if (searchable.includes(term)) score += 0.08;
+    if (item.name.toLowerCase().includes(term)) score += 0.12;
   }
+  return Math.min(score, 1);
 }
 
-async function runSearchQuery(query: string, limit: number, offset: number) {
-  const normalizedQuery = query.trim().replace(/\s+/g, ' ');
-  const likeQuery = `%${normalizedQuery}%`;
-  const searchDocument = buildSearchDocument();
-  const tsQuery = sql`websearch_to_tsquery('english', ${normalizedQuery})`;
-  const relevance = sql<number>`
-    ts_rank_cd(${searchDocument}, ${tsQuery}) +
-    CASE WHEN ${products.name} ILIKE ${likeQuery} THEN 1.0 ELSE 0 END +
-    CASE WHEN ${products.description} ILIKE ${likeQuery} THEN 0.45 ELSE 0 END +
-    CASE WHEN ${products.tags}::text ILIKE ${likeQuery} THEN 0.35 ELSE 0 END +
-    CASE WHEN ${products.inputSchema}::text ILIKE ${likeQuery} THEN 0.15 ELSE 0 END +
-    CASE WHEN ${products.outputSchema}::text ILIKE ${likeQuery} THEN 0.15 ELSE 0 END +
-    CASE WHEN ${products.executionConfig}::text ILIKE ${likeQuery} THEN 0.1 ELSE 0 END
-  `;
-
-  const results = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      slug: products.slug,
-      logoUrl: products.logoUrl,
-      description: products.description,
-      category: products.category,
-      pricePerCallUsd: products.pricePerCallUsd,
-      tags: products.tags,
-      providerId: products.providerId,
-      relevance,
-    })
-    .from(products)
-    .where(
-      and(
-        eq(products.status, 'active'),
-        or(
-          sql`${searchDocument} @@ ${tsQuery}`,
-          ilike(products.name, likeQuery),
-          ilike(products.description, likeQuery),
-          ilike(products.category, likeQuery),
-          sql`${products.tags}::text ILIKE ${likeQuery}`,
-          sql`${products.inputSchema}::text ILIKE ${likeQuery}`,
-          sql`${products.outputSchema}::text ILIKE ${likeQuery}`,
-          sql`${products.executionConfig}::text ILIKE ${likeQuery}`,
-        ),
-      ),
-    )
-    .orderBy(desc(relevance), products.name)
-    .limit(limit)
-    .offset(offset);
-
-  return results.map(({ relevance: _relevance, ...product }) => product);
+function routeFor(kind: RegistryKind, slug: string) {
+  const segment = kind === 'tool' ? 'tools' : kind === 'harness' ? 'harnesses' : `${kind}s`;
+  return `/${segment}/${slug}`;
 }
 
-async function attachUsageCounts<T extends { id: string }>(items: T[]) {
-  if (items.length === 0) return [] as Array<T & { usageCount: number; uniqueUserCount: number }>;
-
-  const rows = await db
-    .select({
-      productId: purchases.productId,
-      usageCount: sql<number>`count(*)::int`,
-      uniqueUserCount: sql<number>`count(distinct ${purchases.userId})::int`,
-    })
-    .from(purchases)
-    .where(and(
-      inArray(purchases.productId, items.map((item) => item.id)),
-      eq(purchases.status, 'completed'),
-    ))
-    .groupBy(purchases.productId);
-  const counts = new Map(rows.map((row) => [row.productId, {
-    usageCount: Number(row.usageCount),
-    uniqueUserCount: Number(row.uniqueUserCount),
+async function usageSummaries(productIds: string[]) {
+  const empty = new Map<string, { usageCount: number; uniqueUserCount: number }>();
+  if (productIds.length === 0) return empty;
+  const [calls, runs, reports] = await Promise.all([
+    db.select({ productId: purchases.productId, userId: purchases.userId, id: purchases.id })
+      .from(purchases).where(and(inArray(purchases.productId, productIds), eq(purchases.status, 'completed'))),
+    db.select({ productId: harnessRuns.productId, userId: harnessRuns.userId, id: harnessRuns.id })
+      .from(harnessRuns).where(and(inArray(harnessRuns.productId, productIds), eq(harnessRuns.status, 'completed'))),
+    db.select({ productId: productUsageReports.productId, userId: productUsageReports.userId, id: productUsageReports.id })
+      .from(productUsageReports).where(inArray(productUsageReports.productId, productIds)),
+  ]);
+  const combined = [...calls, ...runs, ...reports];
+  const users = new Map<string, Set<string>>();
+  const counts = new Map<string, number>();
+  for (const row of combined) {
+    counts.set(row.productId, (counts.get(row.productId) ?? 0) + 1);
+    const productUsers = users.get(row.productId) ?? new Set<string>();
+    productUsers.add(row.userId);
+    users.set(row.productId, productUsers);
+  }
+  return new Map(productIds.map((productId) => [productId, {
+    usageCount: counts.get(productId) ?? 0,
+    uniqueUserCount: users.get(productId)?.size ?? 0,
   }]));
-
-  return items.map((item) => ({
-    ...item,
-    usageCount: counts.get(item.id)?.usageCount ?? 0,
-    uniqueUserCount: counts.get(item.id)?.uniqueUserCount ?? 0,
-  }));
 }
 
-export async function searchProducts(query: string, limit = 20, offset = 0) {
-  const primaryResults = await runSearchQuery(query, limit * 2, 0);
-  const relatedTerms = primaryResults.length >= Math.min(limit, 3) ? [] : await expandSemanticQuery(query);
-  const expandedQuery = relatedTerms.length > 0 ? [query, ...relatedTerms].join(' OR ') : query;
-  const expandedResults =
-    relatedTerms.length > 0 ? await runSearchQuery(expandedQuery, limit * 2, 0) : primaryResults;
+export async function searchProducts(
+  query = '',
+  limit = 20,
+  offset = 0,
+  kind?: RegistryKind,
+) {
+  const normalizedQuery = query.trim().replace(/\s+/g, ' ');
+  const rows = await db.select({
+    id: products.id,
+    name: products.name,
+    slug: products.slug,
+    logoUrl: products.logoUrl,
+    description: products.description,
+    category: products.category,
+    kind: products.kind,
+    pricePerCallUsd: products.pricePerCallUsd,
+    tags: products.tags,
+    providerId: products.providerId,
+    providerName: providers.name,
+    providerTrustTier: providers.trustTier,
+    inputSchema: products.inputSchema,
+    outputSchema: products.outputSchema,
+    executionConfig: products.executionConfig,
+    harnessConfig: products.harnessConfig,
+    mcpConfig: products.mcpConfig,
+    skillConfig: products.skillConfig,
+    sourceMetadata: products.sourceMetadata,
+    capabilities: products.capabilities,
+    manifestDigest: products.manifestDigest,
+    updatedAt: products.updatedAt,
+  }).from(products).innerJoin(providers, eq(products.providerId, providers.id)).where(and(
+    eq(products.status, 'active'),
+    kind ? eq(products.kind, kind) : undefined,
+  ));
 
-  const combined = [...primaryResults];
-  for (const result of expandedResults) {
-    if (!combined.some((existing) => existing.id === result.id)) {
-      combined.push(result);
+  let queryEmbedding: number[] | null = null;
+  let embeddingMap = new Map<string, number[]>();
+  if (normalizedQuery && rows.length > 0) {
+    await ensureProductEmbeddings(rows.map((item) => item.id));
+    queryEmbedding = await embedQuery(normalizedQuery);
+    if (queryEmbedding) {
+      const embeddings = await db.select({
+        productId: productSearchEmbeddings.productId,
+        embedding: productSearchEmbeddings.embedding,
+      }).from(productSearchEmbeddings).where(inArray(
+        productSearchEmbeddings.productId,
+        rows.map((item) => item.id),
+      ));
+      embeddingMap = new Map(embeddings.map((row) => [row.productId, row.embedding]));
     }
   }
 
-  await ensureProductEmbeddings(combined.map((item) => item.id));
-  const queryEmbedding = await embedQuery(query);
-  if (!queryEmbedding) {
-    const results = await attachUsageCounts(combined.slice(offset, offset + limit));
+  const scored = rows.map((item) => {
+    const lexicalScore = normalizedQuery ? lexicalSearchScore(normalizedQuery, item) : 0;
+    const embedding = embeddingMap.get(item.id);
+    const semanticScore = queryEmbedding && embedding ? cosineSimilarity(queryEmbedding, embedding) : 0;
     return {
-      results,
-      total: combined.length,
+      item,
+      score: normalizedQuery
+        ? (queryEmbedding ? semanticScore * 0.78 + lexicalScore * 0.22 : lexicalScore)
+        : 0,
+      lexicalScore,
+      semanticScore,
     };
-  }
+  }).filter((entry) => !normalizedQuery || entry.score > 0)
+    .sort((left, right) => right.score - left.score || right.item.updatedAt.getTime() - left.item.updatedAt.getTime());
 
-  const embeddings = await db
-    .select()
-    .from(productSearchEmbeddings)
-    .where(inArray(productSearchEmbeddings.productId, combined.map((item) => item.id)));
-  const embeddingMap = new Map(embeddings.map((row) => [row.productId, row.embedding]));
-
-  const scored = combined
-    .map((item, index) => {
-      const embedding = embeddingMap.get(item.id);
-      const semanticScore = embedding ? cosineSimilarity(queryEmbedding, embedding) : 0;
-      const lexicalBonus = Math.max(0, (combined.length - index) / combined.length);
-      return {
-        item,
-        score: semanticScore * 0.75 + lexicalBonus * 0.25,
-      };
-    })
-    .sort((left, right) => right.score - left.score);
-
-  const results = await attachUsageCounts(
-    scored.slice(offset, offset + limit).map((entry) => entry.item),
-  );
+  const page = scored.slice(offset, offset + limit);
+  const productIds = page.map((entry) => entry.item.id);
+  const [usage, reviews] = await Promise.all([usageSummaries(productIds), reviewSummaries(productIds)]);
   return {
-    results,
+    query: normalizedQuery,
+    kind: kind ?? null,
+    semantic: Boolean(queryEmbedding),
+    results: page.map(({ item, score, lexicalScore, semanticScore }) => ({
+      ...item,
+      route: routeFor(item.kind, item.slug),
+      score: Number(score.toFixed(6)),
+      lexicalScore: Number(lexicalScore.toFixed(6)),
+      semanticScore: Number(semanticScore.toFixed(6)),
+      usage: usage.get(item.id) ?? { usageCount: 0, uniqueUserCount: 0 },
+      reviews: reviews.get(item.id) ?? { helpful: 0, notHelpful: 0, total: 0, helpfulPercent: null },
+    })),
     total: scored.length,
+    limit,
+    offset,
   };
+}
+
+export async function getUniversalRegistryItem(identifier: string) {
+  const result = await searchProducts('', 10_000, 0);
+  const item = result.results.find((candidate) => candidate.id === identifier || candidate.slug === identifier);
+  if (!item) {
+    const { NotFoundError } = await import('../lib/errors.js');
+    throw new NotFoundError('Registry item');
+  }
+  return item;
 }

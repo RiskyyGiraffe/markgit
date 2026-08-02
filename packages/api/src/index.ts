@@ -24,6 +24,7 @@ import { harnessCallbackRoutes } from './routes/harness-callbacks.js';
 import { mcpRoutes } from './routes/mcps.js';
 import { quicklistRoutes } from './routes/quicklist.js';
 import { skillRoutes } from './routes/skills.js';
+import { reviewRoutes } from './routes/reviews.js';
 import {
   AppError,
   PermissionError,
@@ -66,6 +67,7 @@ v1.route('/harness-runs', harnessRunRoutes);
 v1.route('/mcps', mcpRoutes);
 v1.route('/quicklist', quicklistRoutes);
 v1.route('/skills', skillRoutes);
+v1.route('/reviews', reviewRoutes);
 v1.route('/spend-controls', spendControlRoutes);
 v1.route('/providers', providerStripeRoutes);
 v1.route('/providers', providerRoutes);

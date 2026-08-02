@@ -86,11 +86,61 @@ export interface SearchRequest {
   query: string;
   limit?: number;
   offset?: number;
+  kind?: 'tool' | 'harness' | 'mcp' | 'skill';
 }
 
 export interface SearchResponse {
-  results: ProductSummary[];
+  query: string;
+  kind: 'tool' | 'harness' | 'mcp' | 'skill' | null;
+  semantic: boolean;
+  results: RegistrySearchResult[];
   total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RegistrySearchResult extends Product {
+  providerName: string;
+  providerTrustTier: string;
+  route: string;
+  score: number;
+  lexicalScore: number;
+  semanticScore: number;
+  usage: { usageCount: number; uniqueUserCount: number };
+  reviews: ReviewSummary;
+}
+
+export interface ReviewSummary {
+  helpful: number;
+  notHelpful: number;
+  total: number;
+  helpfulPercent: number | null;
+}
+
+export interface PublicReview {
+  id: string;
+  helpful: boolean;
+  title: string | null;
+  body: string | null;
+  agentName: string;
+  evidenceType: 'markgit_purchase' | 'markgit_loop' | 'agent_attested';
+  verification: 'markgit_observed' | 'agent_attested';
+  manifestDigest: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicReviewsResponse {
+  product: { id: string; slug: string; name: string; kind: 'tool' | 'harness' | 'mcp' | 'skill' };
+  summary: ReviewSummary;
+  reviews: PublicReview[];
+}
+
+export interface ReviewEligibility {
+  product: PublicReviewsResponse['product'];
+  eligible: boolean;
+  evidence: { type: string; id: string; verification: 'markgit_observed' | 'agent_attested' } | null;
+  review: Record<string, unknown> | null;
 }
 
 export interface ToolCard {
@@ -925,6 +975,7 @@ export interface EarningsSummary {
   totalNet: string;
   unpaid: string;
   paidOut: string;
+  nonPayable: string;
 }
 
 export interface Payout {
@@ -954,6 +1005,8 @@ export interface EarningEntry {
   grossAmountUsd: string;
   markgitFeeUsd: string;
   netAmountUsd: string;
+  cashBacked: boolean;
+  payoutEligibleAt: string | null;
   payoutId: string | null;
   createdAt: string;
 }
